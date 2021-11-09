@@ -4,17 +4,21 @@ use std::ptr;
 
 use crate::ffi::RED4ext;
 
-pub trait IntoRED {
-    fn into_red(self, mem: *mut autocxx::c_void);
+pub type Mem = *mut autocxx::c_void;
 
-    unsafe fn set<A>(val: A, meme: *mut autocxx::c_void) {
-        (meme as *mut A).write(val)
+pub trait IntoRED {
+    fn into_red(self, mem: Mem);
+
+    #[inline]
+    unsafe fn set<A>(val: A, mem: Mem) {
+        (mem as *mut A).write(val)
     }
 }
 
 pub trait FromRED {
     fn from_red(frame: *mut RED4ext::CStackFrame) -> Self;
 
+    #[inline]
     unsafe fn get<I: Default>(frame: *mut RED4ext::CStackFrame) -> I {
         let mut init = I::default();
         RED4ext::GetParameter(frame, std::mem::transmute(&mut init));
@@ -25,12 +29,14 @@ pub trait FromRED {
 macro_rules! iso_red_instances {
     ($ty:ty) => {
         impl IntoRED for $ty {
-            fn into_red(self, mem: *mut autocxx::c_void) {
+            #[inline]
+            fn into_red(self, mem: Mem) {
                 unsafe { Self::set(self, mem) }
             }
         }
 
         impl FromRED for $ty {
+            #[inline]
             fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
                 unsafe { Self::get(frame) }
             }
@@ -49,7 +55,7 @@ iso_red_instances!(u16);
 iso_red_instances!(u8);
 
 impl IntoRED for String {
-    fn into_red(self, mem: *mut autocxx::c_void) {
+    fn into_red(self, mem: Mem) {
         let bytes = CString::new(self).unwrap();
         let cstr = mem as *mut RED4ext::CString;
         unsafe { RED4ext::CString::ConstructAt(cstr, bytes.as_ptr(), ptr::null_mut()) };
