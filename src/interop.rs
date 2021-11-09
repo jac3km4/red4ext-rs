@@ -74,3 +74,36 @@ impl FromRED for String {
         }
     }
 }
+
+#[repr(C)]
+struct REDArray<A> {
+    entries: *mut A,
+    cap: u32,
+    size: u32,
+}
+
+impl<A> REDArray<A> {
+    fn as_slice(&self) -> &[A] {
+        unsafe { std::slice::from_raw_parts(self.entries, self.size as usize) }
+    }
+}
+
+impl<A> Default for REDArray<A> {
+    fn default() -> Self {
+        Self {
+            entries: ptr::null_mut(),
+            cap: 0,
+            size: 0,
+        }
+    }
+}
+
+impl<A: FromRED + Clone> FromRED for Vec<A> {
+    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
+        unsafe {
+            let mut arr = REDArray::default();
+            RED4ext::GetParameter(frame, std::mem::transmute(&mut arr));
+            arr.as_slice().to_vec()
+        }
+    }
+}

@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [[example]]
-name = "to_lowercase"
+name = "exports"
 crate-type = ["cdylib"]
 
 [dependencies]

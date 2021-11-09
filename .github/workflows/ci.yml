@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           path: |
-            target/release/examples/to_lowercase.dll
+            target/release/examples/exports.dll
