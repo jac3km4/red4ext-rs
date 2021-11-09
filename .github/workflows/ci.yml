@@ -18,13 +18,14 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: Swatinem/rust-cache@v1
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
+          args: --release --examples
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
           path: |
-            target/release/red4ext_rs.dll
+            target/release/examples/to_lowercase.dll
