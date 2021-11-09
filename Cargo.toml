@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
+
+[[example]]
+name = "to_lowercase"
+crate-type = ["cdylib"]
 
 [dependencies]
 cxx = "1.0"

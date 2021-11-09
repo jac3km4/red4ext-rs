@@ -1,30 +1,9 @@
-use std::ffi::CStr;
-use std::pin::Pin;
-
 use red4ext_rs_macros::lower;
 
 use crate::ffi::RED4ext;
 use crate::interop::{FromRED, IntoRED, Mem};
 
 pub type REDFunction = unsafe extern "C" fn(*mut RED4ext::IScriptable, *mut RED4ext::CStackFrame, Mem, i64);
-
-pub fn register_native(name: &CStr, func: REDFunction) {
-    unsafe {
-        let rtti = Pin::new_unchecked(&mut *(RED4ext::CRTTISystem::Get() as *mut RED4ext::IRTTISystem));
-        let func = RED4ext::CGlobalFunction::Create(name.as_ptr(), name.as_ptr(), func as Mem, true);
-        rtti.RegisterFunction(func);
-    }
-}
-
-#[macro_export]
-macro_rules! register_function {
-    ($fun:ident) => {
-        register_native(cstr!($fun), $fun);
-    };
-    ($name:expr, $fun:ident) => {
-        register_native(cstr!($name), $fun);
-    };
-}
 
 pub trait REDInvokable<A, R> {
     fn invoke(self, ctx: *mut RED4ext::IScriptable, frame: *mut RED4ext::CStackFrame, mem: Mem);

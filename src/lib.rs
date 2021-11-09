@@ -1,13 +1,14 @@
 pub mod function;
 pub mod interop;
-pub mod plugin;
+pub mod register;
 
-mod prelude {
+pub mod prelude {
     pub use cstr::cstr;
     pub use red4ext_rs_macros::redscript;
 
     pub use crate::ffi::RED4ext;
-    pub use crate::function::{register_native, REDInvokable};
+    pub use crate::function::REDInvokable;
+    pub use crate::register::{on_register, register_native};
     pub use crate::register_function;
 }
 
