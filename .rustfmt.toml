@@ -1,4 +1,4 @@
-max_width = 120
+max_width = 110
 newline_style = "Unix"
 use_field_init_shorthand = true
 overflow_delimited_expr = true

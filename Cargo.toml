@@ -10,6 +10,9 @@ crate-type = ["cdylib", "rlib"]
 cxx = "1.0"
 autocxx = "0.13"
 ctor = "0.1"
+casey = "0.3"
+cstr = "0.2"
+red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "7df418a" }
 
 [build-dependencies.autocxx-build]
 path = "deps/autocxx/gen/build"

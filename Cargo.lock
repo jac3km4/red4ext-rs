@@ -178,6 +178,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "casey"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe85130dda9cf267715582ce6cf1ab581c8dfe3cb33f7065fee0f14e3fea14"
+dependencies = [
+ "syn",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -232,6 +241,16 @@ checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
  "unicode-width",
+]
+
+[[package]]
+name = "cstr"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2846d3636dcaff720d311ea8983f5fa7a8288632b2f95145dd4b5819c397fd8"
+dependencies = [
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
@@ -548,8 +567,20 @@ version = "0.1.0"
 dependencies = [
  "autocxx",
  "autocxx-build",
+ "casey",
+ "cstr",
  "ctor",
  "cxx",
+ "red4ext-rs-macros",
+]
+
+[[package]]
+name = "red4ext-rs-macros"
+version = "0.1.0"
+source = "git+https://github.com/jac3km4/red4ext-rs-macros?rev=7df418a#7df418a9339c57f5afc19a7885b09ea9d5de16d6"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
