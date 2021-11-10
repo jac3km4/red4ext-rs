@@ -1,5 +1,4 @@
 use std::ffi::{CStr, CString};
-use std::pin::Pin;
 use std::ptr;
 
 use crate::ffi::RED4ext;
@@ -15,14 +14,19 @@ pub trait IntoRED {
     }
 }
 
-pub trait FromRED {
-    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self;
+pub trait FromRED: Sized
+where
+    Self::Repr: Default,
+{
+    type Repr;
+
+    fn from_repr(repr: Self::Repr) -> Self;
 
     #[inline]
-    unsafe fn get<I: Default>(frame: *mut RED4ext::CStackFrame) -> I {
-        let mut init = I::default();
-        RED4ext::GetParameter(frame, std::mem::transmute(&mut init));
-        init
+    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
+        let mut init = Self::Repr::default();
+        unsafe { RED4ext::GetParameter(frame, std::mem::transmute(&mut init)) };
+        Self::from_repr(init)
     }
 }
 
@@ -36,9 +40,11 @@ macro_rules! iso_red_instances {
         }
 
         impl FromRED for $ty {
+            type Repr = $ty;
+
             #[inline]
-            fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
-                unsafe { Self::get(frame) }
+            fn from_repr(repr: Self::Repr) -> Self {
+                repr
             }
         }
     };
@@ -54,6 +60,37 @@ iso_red_instances!(u32);
 iso_red_instances!(u16);
 iso_red_instances!(u8);
 
+#[repr(packed)]
+#[derive(Clone, Copy)]
+pub struct REDString {
+    data: [i8; 0x14],
+    length: u32,
+    _allocator: Mem,
+}
+
+impl REDString {
+    fn as_str(&self) -> &str {
+        unsafe {
+            let ptr = if self.length < 0x40000000 {
+                self.data.as_ptr()
+            } else {
+                *(self.data.as_ptr() as *const *const i8)
+            };
+            CStr::from_ptr(ptr).to_str().unwrap()
+        }
+    }
+}
+
+impl Default for REDString {
+    fn default() -> Self {
+        Self {
+            data: [0; 0x14],
+            length: 0,
+            _allocator: ptr::null_mut(),
+        }
+    }
+}
+
 impl IntoRED for String {
     fn into_red(self, mem: Mem) {
         let bytes = CString::new(self).unwrap();
@@ -63,20 +100,16 @@ impl IntoRED for String {
 }
 
 impl FromRED for String {
-    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
-        unsafe {
-            let cstr = RED4ext::CString::make_unique(ptr::null_mut()).into_raw();
-            RED4ext::GetParameter(frame, std::mem::transmute(cstr));
+    type Repr = REDString;
 
-            CStr::from_ptr(Pin::new_unchecked(cstr.as_mut().unwrap()).c_str())
-                .to_string_lossy()
-                .into_owned()
-        }
+    #[inline]
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.as_str().to_owned()
     }
 }
 
 #[repr(C)]
-struct REDArray<A> {
+pub struct REDArray<A> {
     entries: *mut A,
     cap: u32,
     size: u32,
@@ -98,12 +131,14 @@ impl<A> Default for REDArray<A> {
     }
 }
 
-impl<A: FromRED + Clone> FromRED for Vec<A> {
-    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
-        unsafe {
-            let mut arr = REDArray::default();
-            RED4ext::GetParameter(frame, std::mem::transmute(&mut arr));
-            arr.as_slice().to_vec()
-        }
+impl<A: FromRED + Clone> FromRED for Vec<A>
+where
+    A: FromRED,
+    A::Repr: Clone,
+{
+    type Repr = REDArray<A::Repr>;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.as_slice().iter().cloned().map(FromRED::from_repr).collect()
     }
 }

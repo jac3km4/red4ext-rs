@@ -1,13 +1,18 @@
 use red4ext_rs::prelude::*;
 
 #[redscript]
-fn sum_ints(a: Vec<i32>) -> i32 {
-    a.iter().sum()
+fn sum_ints(ints: Vec<i32>) -> i32 {
+    ints.iter().sum()
 }
 
 #[redscript]
-fn to_lowercase(a: String) -> String {
-    a.to_lowercase()
+fn to_lowercase(str: String) -> String {
+    str.to_lowercase()
+}
+
+#[redscript]
+fn concat_strings(strs: Vec<String>) -> String {
+    strs.join("")
 }
 
 #[ctor::ctor]
@@ -18,6 +23,7 @@ fn init() {
 extern "C" fn register() {}
 
 extern "C" fn post_register() {
-    register_function!("ToLowercase", to_lowercase);
     register_function!("SumInts", sum_ints);
+    register_function!("ToLowercase", to_lowercase);
+    register_function!("ConcatStrings", concat_strings);
 }
