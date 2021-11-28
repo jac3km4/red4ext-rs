@@ -5,7 +5,7 @@ use cxx::UniquePtr;
 
 use crate::ffi::RED4ext;
 
-pub type Mem = *mut autocxx::c_void;
+pub type Mem = *mut std::ffi::c_void;
 
 pub trait IntoRED: Sized {
     type Repr;

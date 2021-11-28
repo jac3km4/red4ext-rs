@@ -1,11 +1,11 @@
 use std::ffi::CString;
 use std::pin::Pin;
-use std::thread;
 use std::time::Duration;
+use std::{mem, thread};
 
 use crate::ffi::RED4ext;
 use crate::function::REDFunction;
-use crate::interop::{fnv1a64, CName, Mem, Ref};
+use crate::interop::{fnv1a64, CName, Ref};
 
 pub type RegisterCallback = extern "C" fn();
 
@@ -44,14 +44,17 @@ pub fn get_type(name: CName) -> *const RED4ext::CBaseRTTIType {
 pub fn on_register(register: RegisterCallback, post_register: RegisterCallback) {
     thread::spawn(move || {
         thread::sleep(Duration::from_micros(1));
-        unsafe { RED4ext::RTTIRegistrator::AddHack(register as Mem, post_register as Mem, true) };
+        unsafe {
+            RED4ext::RTTIRegistrator::AddHack(mem::transmute(register), mem::transmute(post_register), true)
+        };
     });
 }
 
 pub fn register_function(name: &str, func: REDFunction) {
     let c_str = CString::new(name).unwrap();
     unsafe {
-        let func = RED4ext::CGlobalFunction::Create(c_str.as_ptr(), c_str.as_ptr(), func as Mem, true);
+        let func =
+            RED4ext::CGlobalFunction::Create(c_str.as_ptr(), c_str.as_ptr(), mem::transmute(func), true);
         get_rtti().RegisterFunction(func);
     }
 }

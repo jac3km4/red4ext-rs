@@ -52,7 +52,8 @@ pub fn exec_function<R: FromRED, const N: usize>(
     let mut ret = R::Repr::default();
 
     let vector = unsafe { RED4ext::ConstructArgs(mem::transmute(args.as_ptr()), args.len() as u64) };
-    unsafe { RED4ext::ExecuteFunction(this.instance as Mem, fun, mem::transmute(&mut ret), vector) };
+    let this = unsafe { mem::transmute(this.instance) };
+    unsafe { RED4ext::ExecuteFunction(this, fun, mem::transmute(&mut ret), vector) };
     R::from_repr(ret)
 }
 
