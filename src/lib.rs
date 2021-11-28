@@ -1,15 +1,16 @@
 pub mod function;
 pub mod interop;
-pub mod register;
+pub mod rtti;
 
 pub mod prelude {
     pub use cstr::cstr;
-    pub use red4ext_rs_macros::redscript;
+    pub use erasable;
+    pub use interop::Ref;
+    pub use red4ext_rs_macros::redscript_export;
 
     pub use crate::ffi::RED4ext;
-    pub use crate::function::REDInvokable;
-    pub use crate::register::{on_register, register_native};
-    pub use crate::register_function;
+    pub use crate::function::{exec_function, get_argument_type, REDInvokable};
+    pub use crate::{call, call_static, exec_function, interop, register_function, rtti};
 }
 
 autocxx::include_cpp! {
@@ -20,6 +21,7 @@ autocxx::include_cpp! {
   generate!("RED4ext::ExecuteGlobalFunction")
   generate!("RED4ext::ExecuteFunction")
   generate!("RED4ext::GetParameter")
+  generate!("RED4ext::ConstructArgs")
 
   generate!("RED4ext::IScriptable")
   generate!("RED4ext::IRTTISystem")

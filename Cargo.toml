@@ -15,7 +15,9 @@ cxx = "1.0"
 autocxx = "0.13"
 ctor = "0.1"
 cstr = "0.2"
-red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "ccb4393" }
+array-init = "2.0"
+erasable = "1.2"
+red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "5457ed5" }
 
 [build-dependencies.autocxx-build]
 path = "deps/autocxx/gen/build"

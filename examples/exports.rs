@@ -1,23 +1,30 @@
 use red4ext_rs::prelude::*;
 
-#[redscript]
+#[redscript_export]
 fn sum_ints(ints: Vec<i32>) -> i32 {
     ints.iter().sum()
 }
 
-#[redscript]
+#[redscript_export]
 fn to_lowercase(str: String) -> String {
     str.to_lowercase()
 }
 
-#[redscript]
+#[redscript_export]
 fn concat_strings(strs: Vec<String>) -> String {
     strs.join("")
 }
 
+#[redscript_export]
+fn on_menu_load(controller: Ref<RED4ext::IScriptable>) {
+    call!("Max" (1i32, 2i32) -> i32);
+    call!("RoundMath;Float" (1.2f32) -> i32);
+    call!(controller, "Size" () -> i32);
+}
+
 #[ctor::ctor]
 fn init() {
-    on_register(register, post_register);
+    rtti::on_register(register, post_register);
 }
 
 extern "C" fn register() {}
@@ -26,4 +33,5 @@ extern "C" fn post_register() {
     register_function!("SumInts", sum_ints);
     register_function!("ToLowercase", to_lowercase);
     register_function!("ConcatStrings", concat_strings);
+    register_function!("OnMainMenuLoadTest", on_menu_load);
 }
