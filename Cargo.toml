@@ -18,6 +18,5 @@ array-init = "2.0"
 erasable = "1.2"
 red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "5457ed5" }
 
-[build-dependencies.autocxx-build]
-path = "deps/autocxx/gen/build"
-package = "autocxx-build"
+[build-dependencies]
+autocxx-build = "0.13"
