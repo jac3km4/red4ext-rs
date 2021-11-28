@@ -30,8 +30,8 @@ fn init() {
 extern "C" fn register() {}
 
 extern "C" fn post_register() {
-    register_function!("SumInts", sum_ints);
-    register_function!("ToLowercase", to_lowercase);
-    register_function!("ConcatStrings", concat_strings);
-    register_function!("OnMainMenuLoadTest", on_menu_load);
+    rtti::register_function("SumInts", sum_ints);
+    rtti::register_function("ToLowercase", to_lowercase);
+    rtti::register_function("ConcatStrings", concat_strings);
+    rtti::register_function("OnMainMenuLoadTest", on_menu_load);
 }

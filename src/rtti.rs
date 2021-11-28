@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::ffi::CString;
 use std::pin::Pin;
 use std::thread;
 use std::time::Duration;
@@ -48,20 +48,10 @@ pub fn on_register(register: RegisterCallback, post_register: RegisterCallback) 
     });
 }
 
-pub fn register_native(name: &CStr, func: REDFunction) {
+pub fn register_function(name: &str, func: REDFunction) {
+    let c_str = CString::new(name).unwrap();
     unsafe {
-        let rtti = Pin::new_unchecked(&mut *(RED4ext::CRTTISystem::Get() as *mut RED4ext::IRTTISystem));
-        let func = RED4ext::CGlobalFunction::Create(name.as_ptr(), name.as_ptr(), func as Mem, true);
-        rtti.RegisterFunction(func);
+        let func = RED4ext::CGlobalFunction::Create(c_str.as_ptr(), c_str.as_ptr(), func as Mem, true);
+        get_rtti().RegisterFunction(func);
     }
-}
-
-#[macro_export]
-macro_rules! register_function {
-    ($fun:ident) => {
-        rtti::register_native(cstr!($fun), $fun);
-    };
-    ($name:expr, $fun:ident) => {
-        rtti::register_native(cstr!($name), $fun);
-    };
 }

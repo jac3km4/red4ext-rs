@@ -19,14 +19,14 @@ fn on_menu_load(controller: Ref<RED4ext::IScriptable>) {
 
 #[ctor::ctor]
 fn init() {
-    on_register(register, post_register);
+    rtti::on_register(register, post_register);
 }
 
 extern "C" fn register() {}
 
 extern "C" fn post_register() {
-    register_function!("ToLowercase", to_lowercase);
-    register_function!("OnMainMenuLoadTest", on_menu_load);
+    rtti::register_function("ToLowercase", to_lowercase);
+    rtti::register_function("OnMainMenuLoadTest", on_menu_load);
 }
 ```
 

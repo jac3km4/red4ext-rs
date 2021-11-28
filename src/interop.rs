@@ -192,19 +192,6 @@ where
 }
 
 #[repr(C)]
-pub struct StackArg {
-    typ: *const RED4ext::CBaseRTTIType,
-    value: Mem,
-}
-
-impl StackArg {
-    #[inline]
-    pub fn new(typ: *const RED4ext::CBaseRTTIType, value: Mem) -> StackArg {
-        StackArg { typ, value }
-    }
-}
-
-#[repr(C)]
 #[derive(Default)]
 pub struct RefCount {
     strong_refs: u32,
@@ -283,4 +270,17 @@ pub const fn fnv1a64(str: &str) -> u64 {
     }
 
     calc(str.as_bytes(), SEED)
+}
+
+#[repr(C)]
+pub struct StackArg {
+    typ: *const RED4ext::CBaseRTTIType,
+    value: Mem,
+}
+
+impl StackArg {
+    #[inline]
+    pub fn new(typ: *const RED4ext::CBaseRTTIType, value: Mem) -> StackArg {
+        StackArg { typ, value }
+    }
 }

@@ -1,16 +1,18 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![allow(clippy::missing_safety_doc)]
+
 pub mod function;
 pub mod interop;
 pub mod rtti;
 
 pub mod prelude {
-    pub use cstr::cstr;
     pub use erasable;
     pub use interop::Ref;
     pub use red4ext_rs_macros::redscript_export;
 
     pub use crate::ffi::RED4ext;
     pub use crate::function::{exec_function, get_argument_type, REDInvokable};
-    pub use crate::{call, call_static, exec_function, interop, register_function, rtti};
+    pub use crate::{call, call_static, exec_function, interop, rtti};
 }
 
 autocxx::include_cpp! {
