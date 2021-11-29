@@ -3,11 +3,15 @@ use std::pin::Pin;
 use std::time::Duration;
 use std::{mem, thread};
 
+use cxx::UniquePtr;
+
 use crate::ffi::RED4ext;
 use crate::function::REDFunction;
-use crate::interop::{fnv1a64, CName, Ref};
+use crate::interop::{fnv1a64, Ref};
 
 pub type RegisterCallback = extern "C" fn();
+
+type ExternCName = UniquePtr<RED4ext::CName>;
 
 #[inline]
 pub fn get_rtti<'a>() -> Pin<&'a mut RED4ext::IRTTISystem> {
@@ -15,29 +19,29 @@ pub fn get_rtti<'a>() -> Pin<&'a mut RED4ext::IRTTISystem> {
 }
 
 #[inline]
-pub fn get_cname(str: &str) -> CName {
+pub fn get_cname(str: &str) -> ExternCName {
     RED4ext::CName::make_unique(fnv1a64(str))
 }
 
-pub fn get_function(fn_name: CName) -> *mut RED4ext::CBaseFunction {
+pub fn get_function(fn_name: ExternCName) -> *mut RED4ext::CBaseFunction {
     get_rtti().GetFunction(fn_name) as *mut _
 }
 
-pub fn get_method(this: Ref<RED4ext::IScriptable>, fn_name: CName) -> *mut RED4ext::CBaseFunction {
+pub fn get_method(this: Ref<RED4ext::IScriptable>, fn_name: ExternCName) -> *mut RED4ext::CBaseFunction {
     unsafe {
         let typ = Pin::new_unchecked(this.instance.as_mut().unwrap()).GetType();
         Pin::new_unchecked(typ.as_mut().unwrap()).GetFunction(fn_name) as *mut _
     }
 }
 
-pub fn get_static_method(class: CName, fn_name: CName) -> *mut RED4ext::CBaseFunction {
+pub fn get_static_method(class: ExternCName, fn_name: ExternCName) -> *mut RED4ext::CBaseFunction {
     unsafe {
         let typ = get_rtti().GetClass(class);
         Pin::new_unchecked(typ.as_mut().unwrap()).GetFunction(fn_name) as *mut _
     }
 }
 
-pub fn get_type(name: CName) -> *const RED4ext::CBaseRTTIType {
+pub fn get_type(name: ExternCName) -> *const RED4ext::CBaseRTTIType {
     get_rtti().GetType(name)
 }
 

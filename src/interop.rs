@@ -1,8 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
-use cxx::UniquePtr;
-
 use crate::ffi::RED4ext;
 
 pub type Mem = *mut std::ffi::c_void;
@@ -58,47 +56,8 @@ impl FromRED for () {
     fn from_red(_frame: *mut RED4ext::CStackFrame) -> Self {}
 }
 
-macro_rules! iso_red_instances {
-    ($ty:ty, $name:ident) => {
-        impl IntoRED for $ty {
-            type Repr = $ty;
-
-            #[inline]
-            fn type_name() -> &'static str {
-                stringify!($name)
-            }
-
-            #[inline]
-            fn into_repr(self) -> Self::Repr {
-                self
-            }
-        }
-
-        impl FromRED for $ty {
-            type Repr = $ty;
-
-            #[inline]
-            fn from_repr(repr: Self::Repr) -> Self {
-                repr
-            }
-        }
-    };
-}
-
-iso_red_instances!(f32, Float);
-iso_red_instances!(f64, Double);
-iso_red_instances!(i64, Int64);
-iso_red_instances!(i32, Int32);
-iso_red_instances!(i16, Int16);
-iso_red_instances!(i8, Int8);
-iso_red_instances!(u64, Uint64);
-iso_red_instances!(u32, Uint32);
-iso_red_instances!(u16, Uint16);
-iso_red_instances!(u8, Uint8);
-iso_red_instances!(bool, Bool);
-
-#[repr(C, packed)]
 #[derive(Clone, Copy)]
+#[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
     length: u32,
@@ -129,6 +88,18 @@ impl Default for REDString {
     }
 }
 
+impl IntoRED for &str {
+    type Repr = REDString;
+
+    fn type_name() -> &'static str {
+        "String"
+    }
+
+    fn into_repr(self) -> Self::Repr {
+        self.to_owned().into_repr()
+    }
+}
+
 impl IntoRED for String {
     type Repr = REDString;
 
@@ -154,6 +125,7 @@ impl FromRED for String {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct REDArray<A> {
     entries: *mut A,
@@ -191,8 +163,8 @@ where
     }
 }
 
-#[repr(C)]
 #[derive(Default)]
+#[repr(C)]
 pub struct RefCount {
     strong_refs: u32,
     weak_refs: u32,
@@ -230,27 +202,17 @@ impl<A> Clone for Ref<A> {
     }
 }
 
-impl FromRED for Ref<RED4ext::IScriptable> {
-    type Repr = Self;
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        repr
-    }
+#[derive(Debug, Default)]
+#[repr(C)]
+pub struct CName {
+    hash: u64,
 }
 
-impl IntoRED for Ref<RED4ext::IScriptable> {
-    type Repr = Self;
-
-    fn type_name() -> &'static str {
-        "ref<IScriptable>"
-    }
-
-    fn into_repr(self) -> Self::Repr {
-        self
+impl CName {
+    pub const fn new(str: &str) -> Self {
+        Self { hash: fnv1a64(str) }
     }
 }
-
-pub type CName = UniquePtr<RED4ext::CName>;
 
 #[inline]
 pub const fn fnv1a64(str: &str) -> u64 {
@@ -272,6 +234,7 @@ pub const fn fnv1a64(str: &str) -> u64 {
     calc(str.as_bytes(), SEED)
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct StackArg {
     typ: *const RED4ext::CBaseRTTIType,
@@ -284,3 +247,44 @@ impl StackArg {
         StackArg { typ, value }
     }
 }
+
+macro_rules! iso_red_instances {
+    ($ty:ty, $name:literal) => {
+        impl IntoRED for $ty {
+            type Repr = $ty;
+
+            #[inline]
+            fn type_name() -> &'static str {
+                stringify!($name)
+            }
+
+            #[inline]
+            fn into_repr(self) -> Self::Repr {
+                self
+            }
+        }
+
+        impl FromRED for $ty {
+            type Repr = $ty;
+
+            #[inline]
+            fn from_repr(repr: Self::Repr) -> Self {
+                repr
+            }
+        }
+    };
+}
+
+iso_red_instances!(f32, "Float");
+iso_red_instances!(f64, "Double");
+iso_red_instances!(i64, "Int64");
+iso_red_instances!(i32, "Int32");
+iso_red_instances!(i16, "Int16");
+iso_red_instances!(i8, "Int8");
+iso_red_instances!(u64, "Uint64");
+iso_red_instances!(u32, "Uint32");
+iso_red_instances!(u16, "Uint16");
+iso_red_instances!(u8, "Uint8");
+iso_red_instances!(bool, "Bool");
+iso_red_instances!(CName, "CName");
+iso_red_instances!(Ref<RED4ext::IScriptable>, "ref<IScriptable>");

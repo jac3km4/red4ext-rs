@@ -7,7 +7,7 @@ pub mod rtti;
 
 pub mod prelude {
     pub use erasable;
-    pub use interop::Ref;
+    pub use interop::{CName, Ref};
     pub use red4ext_rs_macros::redscript_export;
 
     pub use crate::ffi::RED4ext;
