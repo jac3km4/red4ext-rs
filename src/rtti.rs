@@ -5,7 +5,7 @@ use std::{mem, thread};
 
 use cxx::UniquePtr;
 
-use crate::ffi::RED4ext;
+use crate::ffi::{glue, RED4ext};
 use crate::function::REDFunction;
 use crate::interop::{fnv1a64, Ref};
 
@@ -48,17 +48,14 @@ pub fn get_type(name: ExternCName) -> *const RED4ext::CBaseRTTIType {
 pub fn on_register(register: RegisterCallback, post_register: RegisterCallback) {
     thread::spawn(move || {
         thread::sleep(Duration::from_micros(1));
-        unsafe {
-            RED4ext::RTTIRegistrator::AddHack(mem::transmute(register), mem::transmute(post_register), true)
-        };
+        unsafe { glue::AddRTTICallback(mem::transmute(register), mem::transmute(post_register), true) };
     });
 }
 
 pub fn register_function(name: &str, func: REDFunction) {
     let c_str = CString::new(name).unwrap();
     unsafe {
-        let func =
-            RED4ext::CGlobalFunction::Create(c_str.as_ptr(), c_str.as_ptr(), mem::transmute(func), true);
+        let func = glue::CreateNativeFunction(c_str.as_ptr(), c_str.as_ptr(), mem::transmute(func), true);
         get_rtti().RegisterFunction(func);
     }
 }

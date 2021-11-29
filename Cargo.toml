@@ -12,11 +12,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 cxx = "1.0"
-autocxx = "0.13"
+autocxx = "0.14"
 ctor = "0.1"
 array-init = "2.0"
 erasable = "1.2"
-red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "b1db321" }
+red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "c0a9bcb" }
 
 [build-dependencies]
-autocxx-build = "0.13"
+autocxx-build = "0.14"

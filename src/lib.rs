@@ -17,13 +17,13 @@ pub mod prelude {
 
 autocxx::include_cpp! {
   #include "RED4ext/RED4ext.hpp"
+  #include "glue.hpp"
 
   safety!(unsafe)
 
   generate!("RED4ext::ExecuteGlobalFunction")
   generate!("RED4ext::ExecuteFunction")
   generate!("RED4ext::GetParameter")
-  generate!("RED4ext::ConstructArgs")
 
   generate!("RED4ext::IScriptable")
   generate!("RED4ext::IRTTISystem")
@@ -37,4 +37,9 @@ autocxx::include_cpp! {
   generate!("RED4ext::CNamePool")
   generate!("RED4ext::CClass")
   generate!("RED4ext::CString")
+
+  generate!("glue::CreateNativeFunction")
+  generate!("glue::AddRTTICallback")
+  generate!("glue::ConstructStringAt")
+  generate!("glue::ConstructArgs")
 }

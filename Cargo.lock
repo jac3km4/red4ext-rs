@@ -58,9 +58,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "autocxx"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60febfcda87a3d43cfbad393389fcdaec7610b1eb3a1b877e5866f6a5884d921"
+checksum = "797c7a5124a155d23e3678fbb9deb71bf8f9d3787ae2e1db88bf0e330b76b546"
 dependencies = [
  "aquamarine",
  "autocxx-engine",
@@ -94,9 +94,9 @@ dependencies = [
 
 [[package]]
 name = "autocxx-build"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5933067942f583bdbdc04ebc110c5b17901a10fa8775e7b39b56e7075c85fbef"
+checksum = "f001e85f02dc04faecf11f5ed9507b08d39f3b0ad0f2ed979d857491e96cae30"
 dependencies = [
  "autocxx-engine",
  "env_logger",
@@ -105,9 +105,9 @@ dependencies = [
 
 [[package]]
 name = "autocxx-engine"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceea2cf3b2a46895372ca984e344bd178f5425034a02e7f714c635407dc24c6f"
+checksum = "e9f68b7f8d2a4581c8466a139741a7c88dcad3c8d2ed2e55ed0b25de78de93ea"
 dependencies = [
  "aquamarine",
  "autocxx-bindgen",
@@ -121,6 +121,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
+ "serde_json",
  "strum_macros",
  "syn",
  "tempfile",
@@ -130,9 +131,9 @@ dependencies = [
 
 [[package]]
 name = "autocxx-macro"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27d2a0ed422a420380cf4dce37cf419a28fc4275c80753a16f6875e6c66a11ea"
+checksum = "bff9e1155bf7983b7dd3b17a0fc10439106cb6fc6b1a74a6eb35758321ccd7ba"
 dependencies = [
  "autocxx-parser",
  "proc-macro-error",
@@ -143,13 +144,15 @@ dependencies = [
 
 [[package]]
 name = "autocxx-parser"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2027bc9d48421ec6ca22c7dc156b83b82d8324dd27394a17fc6038ddac26cae"
+checksum = "4a9dee6ace8bfcf377c87fe963268781c3cdf7a859df2db00b8dde6489c448d2"
 dependencies = [
  "log",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_derive",
  "syn",
 ]
 
@@ -366,6 +369,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -550,7 +559,7 @@ dependencies = [
 [[package]]
 name = "red4ext-rs-macros"
 version = "0.1.0"
-source = "git+https://github.com/jac3km4/red4ext-rs-macros?rev=b1db321#b1db3213a11220595d06cb122de98f65be6b60a2"
+source = "git+https://github.com/jac3km4/red4ext-rs-macros?rev=c0a9bcb#c0a9bcbb2b97238a90404ca5ca12aed705b1fa22"
 dependencies = [
  "quote",
  "syn",
@@ -598,10 +607,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "ryu"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c9613b5a66ab9ba26415184cfc41156594925a9cf3a2057e57f31ff145f6568"
+
+[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "serde"
+version = "1.0.130"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f12d06de37cf59146fbdecab66aa99f9fe4f78722e3607577a5375d66bd0c913"
+
+[[package]]
+name = "serde_derive"
+version = "1.0.130"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7bc1a1ab1961464eae040d96713baa5a724a8152c1222492465b54322ec508b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.72"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0ffa0837f2dfa6fb90868c2b5468cad482e175f7dad97e7421951e663f2b527"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
+]
 
 [[package]]
 name = "shlex"

@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 use std::{mem, ptr};
 
-use crate::ffi::RED4ext;
+use crate::ffi::{glue, RED4ext};
 
 pub type Mem = *mut std::ffi::c_void;
 
@@ -111,7 +111,7 @@ impl IntoRED for String {
     fn into_repr(self) -> REDString {
         let bytes = CString::new(self).unwrap();
         let mut str = REDString::default();
-        unsafe { RED4ext::CString::ConstructAt(mem::transmute(&mut str), bytes.as_ptr(), ptr::null_mut()) };
+        unsafe { glue::ConstructStringAt(mem::transmute(&mut str), bytes.as_ptr(), ptr::null_mut()) };
         str
     }
 }

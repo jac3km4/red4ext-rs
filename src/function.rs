@@ -3,7 +3,7 @@ use std::mem;
 use erasable::ErasedPtr;
 use red4ext_rs_macros::lower;
 
-use crate::ffi::RED4ext;
+use crate::ffi::{glue, RED4ext};
 use crate::interop::{FromRED, IntoRED, Mem, Ref, StackArg};
 use crate::rtti;
 
@@ -51,7 +51,7 @@ pub fn exec_function<R: FromRED, const N: usize>(
     let args: [StackArg; N] = array_init::from_iter(arg_iter).unwrap();
     let mut ret = R::Repr::default();
 
-    let vector = unsafe { RED4ext::ConstructArgs(mem::transmute(args.as_ptr()), args.len() as u64) };
+    let vector = unsafe { glue::ConstructArgs(mem::transmute(args.as_ptr()), args.len() as u64) };
     let this = unsafe { mem::transmute(this.instance) };
     unsafe { RED4ext::ExecuteFunction(this, fun, mem::transmute(&mut ret), vector) };
     R::from_repr(ret)
