@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::pin::Pin;
+use std::thread;
 use std::time::Duration;
-use std::{mem, thread};
 
 use cxx::UniquePtr;
 
@@ -48,14 +48,14 @@ pub fn get_type(name: ExternCName) -> *const RED4ext::CBaseRTTIType {
 pub fn on_register(register: RegisterCallback, post_register: RegisterCallback) {
     thread::spawn(move || {
         thread::sleep(Duration::from_micros(1));
-        unsafe { glue::AddRTTICallback(mem::transmute(register), mem::transmute(post_register), true) };
+        unsafe { glue::AddRTTICallback(register as *mut _, post_register as *mut _, true) };
     });
 }
 
 pub fn register_function(name: &str, func: REDFunction) {
     let c_str = CString::new(name).unwrap();
     unsafe {
-        let func = glue::CreateNativeFunction(c_str.as_ptr(), c_str.as_ptr(), mem::transmute(func), true);
+        let func = glue::CreateNativeFunction(c_str.as_ptr(), c_str.as_ptr(), func as *mut _);
         get_rtti().RegisterFunction(func);
     }
 }

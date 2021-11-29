@@ -6,9 +6,9 @@ using namespace RED4ext;
 
 namespace glue {
 
-  CGlobalFunction* CreateNativeFunction(const char* aFullName, const char* aShortName, void* aFunc, bool native)
+  CGlobalFunction* CreateNativeFunction(const char* aFullName, const char* aShortName, void* aFunc)
   {
-    CBaseFunction::Flags flags = { .isNative = native, .isStatic = true };
+    CBaseFunction::Flags flags = { .isNative = true, .isStatic = true };
     auto func = CGlobalFunction::Create(aFullName, aShortName, (ScriptingFunction_t<void*>)aFunc);
     func->flags = flags;
     return func;
