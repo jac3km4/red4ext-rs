@@ -56,7 +56,7 @@ impl FromRED for () {
     fn from_red(_frame: *mut RED4ext::CStackFrame) -> Self {}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
@@ -163,13 +163,14 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 #[repr(C)]
 pub struct RefCount {
     strong_refs: u32,
     weak_refs: u32,
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct Ref<A> {
     pub instance: *mut A,
