@@ -4,35 +4,22 @@ Automagical Rust binding to [RED4ext](https://github.com/WopsS/RED4ext.SDK)
 ```rust
 use red4ext_rs::prelude::*;
 
-#[redscript_export]
-fn to_lowercase(str: String) -> String {
-    str.to_lowercase()
+define_plugin! {
+    name: "example",
+    author: "jekky",
+    version: 1:0:0,
+    on_register: {
+        register_function!("SumInts", sum_ints);
+    }
 }
 
-#[redscript_export]
-fn on_menu_load(controller: Ref<RED4ext::IScriptable>) {
-    // calling game functions
-    call!("Max" (1i32, 2i32) -> i32);
-    call!("RoundMath;Float" (1.2f32) -> i32);
-    call!(controller, "Size" () -> i32);
-}
-
-#[ctor::ctor]
-fn init() {
-    rtti::on_register(register, post_register);
-}
-
-extern "C" fn register() {}
-
-extern "C" fn post_register() {
-    rtti::register_function("ToLowercase", to_lowercase);
-    rtti::register_function("OnMainMenuLoadTest", on_menu_load);
+fn sum_ints(ints: Vec<i32>) -> i32 {
+    ints.iter().sum()
 }
 ```
 
 ```swift
-native func ToLowercase(param: String) -> String;
-native func OnMainMenuLoadTest(controller: ref<ListController>);
+native func SumInts(ints: array<Int32>) -> Int32;
 ```
 
 ## credits
