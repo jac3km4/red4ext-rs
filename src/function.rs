@@ -1,7 +1,6 @@
 use std::mem;
 
 use erasable::ErasedPtr;
-use red4ext_rs_macros::lower;
 
 use crate::ffi::{glue, RED4ext};
 use crate::interop::{FromRED, IntoRED, Mem, Ref, StackArg};
@@ -13,32 +12,34 @@ pub trait REDInvokable<A, R> {
     fn invoke(self, ctx: *mut RED4ext::IScriptable, frame: *mut RED4ext::CStackFrame, mem: Mem);
 }
 
-macro_rules! impl_function_ret {
+macro_rules! impl_invokable {
     ($( $types:ident ),*) => {
         #[allow(unused_variables)]
-        impl<$($types,)* R> REDInvokable<($($types,)*), R> for fn($($types,)*) -> R
+        impl<$($types,)* R, FN> REDInvokable<($($types,)*), R> for FN
         where
+            FN: Fn($($types,)*) -> R,
             $($types: FromRED,)*
             R: IntoRED
         {
+            #[inline]
             fn invoke(self, ctx: *mut RED4ext::IScriptable, frame: *mut RED4ext::CStackFrame, mem: Mem) {
-                $(let lower!($types) = FromRED::from_red(frame);)*
-                let res = self($(lower!($types),)*);
+                $(let casey::lower!($types) = FromRED::from_red(frame);)*
+                let res = self($(casey::lower!($types),)*);
                 IntoRED::into_red(res, mem);
             }
         }
     };
 }
 
-impl_function_ret!();
-impl_function_ret!(A);
-impl_function_ret!(A, B);
-impl_function_ret!(A, B, C);
-impl_function_ret!(A, B, C, D);
-impl_function_ret!(A, B, C, D, E);
-impl_function_ret!(A, B, C, D, E, F);
+impl_invokable!();
+impl_invokable!(A);
+impl_invokable!(A, B);
+impl_invokable!(A, B, C);
+impl_invokable!(A, B, C, D);
+impl_invokable!(A, B, C, D, E);
+impl_invokable!(A, B, C, D, E, F);
 
-pub fn exec_function<R: FromRED, const N: usize>(
+pub fn invoke<R: FromRED, const N: usize>(
     this: Ref<RED4ext::IScriptable>,
     fun: *mut RED4ext::CBaseFunction,
     vals: [ErasedPtr; N],
@@ -52,8 +53,7 @@ pub fn exec_function<R: FromRED, const N: usize>(
     let mut ret = R::Repr::default();
 
     let vector = unsafe { glue::ConstructArgs(mem::transmute(args.as_ptr()), args.len() as u64) };
-    let this = unsafe { mem::transmute(this.instance) };
-    unsafe { RED4ext::ExecuteFunction(this, fun, mem::transmute(&mut ret), vector) };
+    unsafe { RED4ext::ExecuteFunction(this.instance as _, fun, mem::transmute(&mut ret), vector) };
     R::from_repr(ret)
 }
 
@@ -63,12 +63,14 @@ pub fn get_argument_type<A: IntoRED>(_val: &A) -> *const RED4ext::CBaseRTTIType 
 }
 
 #[macro_export]
-macro_rules! exec_function {
+macro_rules! invoke {
     ($this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
         {
-            let types = [$(get_argument_type(&$args)),*];
-            let args = [$(erasable::ErasablePtr::erase(std::boxed::Box::new(interop::IntoRED::into_repr($args)))),*];
-            let res: $rett = exec_function($this, $func, args, types);
+            let types = [$($crate::function::get_argument_type(&$args)),*];
+            let args = [
+                $($crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::interop::IntoRED::into_repr($args)))),*
+            ];
+            let res: $rett = $crate::function::invoke($this, $func, args, types);
             res
         }
     };
@@ -77,16 +79,28 @@ macro_rules! exec_function {
 #[macro_export]
 macro_rules! call {
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
-        exec_function!(interop::Ref::null(), rtti::get_function(rtti::get_cname($fn_name)), ($($args),*) -> $rett)
+        $crate::invoke!(
+            $crate::interop::Ref::null(),
+            $crate::rtti::get_function($crate::rtti::get_cname($fn_name)),
+            ($($args),*) -> $rett
+        )
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
-        exec_function!($this.clone(), rtti::get_method($this, rtti::get_cname($fn_name)), ($($args),*) -> $rett)
+        $crate::invoke!(
+            $this.clone(),
+            $crate::rtti::get_method($this, $crate::rtti::get_cname($fn_name)),
+            ($($args),*) -> $rett
+        )
     };
 }
 
 #[macro_export]
 macro_rules! call_static {
     ($class:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
-        exec_function!(interop::Ref::null(), rtti::get_static_method(rtti::get_cname($class), rtti::get_cname($fn_name)), ($($args),*) -> $rett)
+        $crate::invoke!(
+            $crate::interop::Ref::null(),
+            $crate::rtti::get_static_method($crate::rtti::get_cname($class), $crate::rtti::get_cname($fn_name)),
+            ($($args),*) -> $rett
+        )
     };
 }

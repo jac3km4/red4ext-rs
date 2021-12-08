@@ -7,16 +7,16 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [[example]]
-name = "exports"
+name = "example"
 crate-type = ["cdylib"]
 
 [dependencies]
 cxx = "1.0"
 autocxx = "0.14"
-ctor = "0.1"
 array-init = "2.0"
 erasable = "1.2"
-red4ext-rs-macros = { git = "https://github.com/jac3km4/red4ext-rs-macros", rev = "c0a9bcb" }
+wchar = "0.11"
+casey = "0.3"
 
 [build-dependencies]
 autocxx-build = "0.14"

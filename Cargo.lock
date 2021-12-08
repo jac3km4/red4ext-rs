@@ -22,9 +22,9 @@ dependencies = [
 
 [[package]]
 name = "aquamarine"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "796971668ab6bfd8970bb1688ba30dd1b59c223bd342b74a3336e641a7b8f0a9"
+checksum = "96e14cb2a51c8b45d26a4219981985c7350fc05eacb7b5b2939bceb2ffefdf3e"
 dependencies = [
  "itertools 0.9.0",
  "proc-macro-error",
@@ -79,7 +79,7 @@ dependencies = [
  "clang-sys",
  "clap",
  "env_logger",
- "itertools 0.10.1",
+ "itertools 0.10.3",
  "lazy_static",
  "lazycell",
  "log",
@@ -116,7 +116,7 @@ dependencies = [
  "cxx",
  "cxx-gen",
  "indoc",
- "itertools 0.10.1",
+ "itertools 0.10.3",
  "log",
  "once_cell",
  "proc-macro2",
@@ -161,6 +161,15 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "casey"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe85130dda9cf267715582ce6cf1ab581c8dfe3cb33f7065fee0f14e3fea14"
+dependencies = [
+ "syn",
+]
 
 [[package]]
 name = "cc"
@@ -220,20 +229,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctor"
-version = "0.1.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc0a48a9b826acdf4028595adc9db92caea352f7af011a3034acd172a52a0aa"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "cxx"
-version = "1.0.57"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41f56fa5c2a0a564ac1a19da01fb46354ab4b09c9ddda9bf78b7fc3d5bf118e4"
+checksum = "c99a363a6495600daed3a8bddf743f757fe2ad9934cc3f99839f410b3d2cd0bf"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -243,9 +242,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-gen"
-version = "0.7.57"
+version = "0.7.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c5e50543e90bbc10514cd4b8cb6465dd7c7ec222d16a9c7a98dbe4d89b1c25"
+checksum = "2df725ff70c1afbeebe826bbbad2cf379f72ffb1160a16cac7a64b771e495df3"
 dependencies = [
  "codespan-reporting",
  "proc-macro2",
@@ -255,15 +254,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.57"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f118262aae90f3a264ca22396e05ac32fa5268b3756365153ded35d487561eda"
+checksum = "36350a174d39466913110c68870303b6b443f27f6c1f8eead11c0e68a4b7aa56"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.57"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8907c4ff452ac2efc5edfe3fd2c5dfcf63ea3a9b402bb6d357a29ed5f9bbb07d"
+checksum = "f302dc691ab9638ab7e23a855e64c45612d36d15675c26e61bdf0957033d1a5b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -360,9 +359,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.10.1"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69ddb889f9d0d08a67338271fa9b62996bc788c7796a5c18cf057420aaed5eaf"
+checksum = "a9a9d19fa1e79b6215ff29b9d6880b706147f16e9b1dbb1e4e5947b5b02bc5e3"
 dependencies = [
  "either",
 ]
@@ -486,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.32"
+version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
+checksum = "fb37d2df5df740e582f28f8560cf425f52bb267d872fe58358eadb554909f07a"
 dependencies = [
  "unicode-xid",
 ]
@@ -549,19 +548,10 @@ dependencies = [
  "array-init",
  "autocxx",
  "autocxx-build",
- "ctor",
+ "casey",
  "cxx",
  "erasable",
- "red4ext-rs-macros",
-]
-
-[[package]]
-name = "red4ext-rs-macros"
-version = "0.1.0"
-source = "git+https://github.com/jac3km4/red4ext-rs-macros?rev=c0a9bcb#c0a9bcbb2b97238a90404ca5ca12aed705b1fa22"
-dependencies = [
- "quote",
- "syn",
+ "wchar",
 ]
 
 [[package]]
@@ -764,6 +754,26 @@ name = "wasi"
 version = "0.10.2+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
+
+[[package]]
+name = "wchar"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1ca6ea80317e76471c3aa6d47efb151ef04538960ab810845a1c854f5cd7d8c"
+dependencies = [
+ "wchar-impl",
+]
+
+[[package]]
+name = "wchar-impl"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "075c93156fed21f9dab57af5e81604d0fdb67432c919a8c1f78bb979f06a3d25"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "which"

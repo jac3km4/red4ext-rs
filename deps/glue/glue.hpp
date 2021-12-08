@@ -1,7 +1,7 @@
 #pragma once
 
-#include <RED4ext/RTTITypes.hpp>
-#include <RED4ext/RTTISystem.hpp>
+#include <RED4ext/RED4ext.hpp>
+
 using namespace RED4ext;
 
 namespace glue {
@@ -30,4 +30,17 @@ namespace glue {
       return vec;
   }
 
+  void DefinePlugin(void* ptr, const uint16_t* name, const uint16_t* author, uint8_t major, uint16_t minor, uint32_t patch)
+  {
+      auto aInfo = (PluginInfo*)ptr;
+      aInfo->name = (wchar_t*)name;
+      aInfo->author = (wchar_t*)author;
+      aInfo->version = RED4EXT_SEMVER(major, minor, patch);
+      aInfo->runtime = RED4EXT_RUNTIME_LATEST;
+      aInfo->sdk = RED4EXT_SDK_LATEST;
+  }
+
+  uint32_t GetSdkVersion() {
+      return RED4EXT_API_VERSION_LATEST;
+  }
 }

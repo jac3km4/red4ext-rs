@@ -91,6 +91,7 @@ impl Default for REDString {
 impl IntoRED for &str {
     type Repr = REDString;
 
+    #[inline]
     fn type_name() -> &'static str {
         "String"
     }
