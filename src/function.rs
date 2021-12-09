@@ -7,6 +7,7 @@ use crate::interop::{FromRED, IntoRED, Mem, Ref, StackArg};
 use crate::rtti;
 
 pub type REDFunction = unsafe extern "C" fn(*mut RED4ext::IScriptable, *mut RED4ext::CStackFrame, Mem, i64);
+type REDType = *const RED4ext::CBaseRTTIType;
 
 pub trait REDInvokable<A, R> {
     fn invoke(self, ctx: *mut RED4ext::IScriptable, frame: *mut RED4ext::CStackFrame, mem: Mem);
@@ -42,13 +43,11 @@ impl_invokable!(A, B, C, D, E, F);
 pub fn invoke<R: FromRED, const N: usize>(
     this: Ref<RED4ext::IScriptable>,
     fun: *mut RED4ext::CBaseFunction,
-    vals: [ErasedPtr; N],
-    types: [*const RED4ext::CBaseRTTIType; N],
+    args: [(REDType, ErasedPtr); N],
 ) -> R {
-    let arg_iter = vals
+    let arg_iter = args
         .into_iter()
-        .zip(types)
-        .map(|(val, typ)| StackArg::new(typ, val.as_ptr() as Mem));
+        .map(|(typ, val)| StackArg::new(typ, val.as_ptr() as Mem));
     let args: [StackArg; N] = array_init::from_iter(arg_iter).unwrap();
     let mut ret = R::Repr::default();
 
@@ -66,11 +65,13 @@ pub fn get_argument_type<A: IntoRED>(_val: &A) -> *const RED4ext::CBaseRTTIType 
 macro_rules! invoke {
     ($this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
         {
-            let types = [$($crate::function::get_argument_type(&$args)),*];
             let args = [
-                $($crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::interop::IntoRED::into_repr($args)))),*
+                $(
+                    ($crate::function::get_argument_type(&$args),
+                     $crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::interop::IntoRED::into_repr($args))))
+                 ),*
             ];
-            let res: $rett = $crate::function::invoke($this, $func, args, types);
+            let res: $rett = $crate::function::invoke($this, $func, args);
             res
         }
     };
