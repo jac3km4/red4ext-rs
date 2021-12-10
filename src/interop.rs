@@ -33,6 +33,33 @@ where
     }
 }
 
+pub trait IsoRED: Default {
+    fn type_name() -> &'static str;
+}
+
+impl<A: IsoRED> FromRED for A {
+    type Repr = A;
+
+    #[inline]
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr
+    }
+}
+
+impl<A: IsoRED> IntoRED for A {
+    type Repr = A;
+
+    #[inline]
+    fn type_name() -> &'static str {
+        <Self as IsoRED>::type_name()
+    }
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        self
+    }
+}
+
 impl IntoRED for () {
     type Repr = ();
 
@@ -204,7 +231,7 @@ impl<A> Clone for Ref<A> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct CName {
     hash: u64,
@@ -236,6 +263,39 @@ pub const fn fnv1a64(str: &str) -> u64 {
     calc(str.as_bytes(), SEED)
 }
 
+#[derive(Debug, Default, Clone)]
+#[repr(C)]
+pub struct Vector2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl Vector2 {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+#[repr(C)]
+pub struct Color {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+    pub alpha: u8,
+}
+
+impl Color {
+    pub fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+        Self {
+            red,
+            green,
+            blue,
+            alpha,
+        }
+    }
+}
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct StackArg {
@@ -250,43 +310,29 @@ impl StackArg {
     }
 }
 
-macro_rules! iso_red_instances {
+macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
-        impl IntoRED for $ty {
-            type Repr = $ty;
-
+        impl IsoRED for $ty {
             #[inline]
             fn type_name() -> &'static str {
                 stringify!($name)
-            }
-
-            #[inline]
-            fn into_repr(self) -> Self::Repr {
-                self
-            }
-        }
-
-        impl FromRED for $ty {
-            type Repr = $ty;
-
-            #[inline]
-            fn from_repr(repr: Self::Repr) -> Self {
-                repr
             }
         }
     };
 }
 
-iso_red_instances!(f32, "Float");
-iso_red_instances!(f64, "Double");
-iso_red_instances!(i64, "Int64");
-iso_red_instances!(i32, "Int32");
-iso_red_instances!(i16, "Int16");
-iso_red_instances!(i8, "Int8");
-iso_red_instances!(u64, "Uint64");
-iso_red_instances!(u32, "Uint32");
-iso_red_instances!(u16, "Uint16");
-iso_red_instances!(u8, "Uint8");
-iso_red_instances!(bool, "Bool");
-iso_red_instances!(CName, "CName");
-iso_red_instances!(Ref<RED4ext::IScriptable>, "ref<IScriptable>");
+iso_red_instance!(f32, "Float");
+iso_red_instance!(f64, "Double");
+iso_red_instance!(i64, "Int64");
+iso_red_instance!(i32, "Int32");
+iso_red_instance!(i16, "Int16");
+iso_red_instance!(i8, "Int8");
+iso_red_instance!(u64, "Uint64");
+iso_red_instance!(u32, "Uint32");
+iso_red_instance!(u16, "Uint16");
+iso_red_instance!(u8, "Uint8");
+iso_red_instance!(bool, "Bool");
+iso_red_instance!(CName, "CName");
+iso_red_instance!(Vector2, "Vector2");
+iso_red_instance!(Color, "Color");
+iso_red_instance!(Ref<RED4ext::IScriptable>, "ref<IScriptable>");
