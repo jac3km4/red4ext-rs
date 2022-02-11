@@ -9,7 +9,12 @@ fn main() {
     let mut build = autocxx_build::Builder::new("src/lib.rs", includes)
         .extra_clang_args(&["-std=c++20"])
         .expect_build();
-    build.flag("-std:c++20").compile("red4ext-rs");
+    build
+        .compiler("clang")
+        .flag("-std=c++20")
+        .flag("-D_DLL")
+        .flag("-Wno-everything")
+        .compile("red4ext-rs");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
 }
