@@ -12,7 +12,8 @@ pub use crate::ffi::{glue as RED4extGlue, RED4ext};
 pub mod prelude {
     pub use crate::ffi::RED4ext;
     pub use crate::interop::{CName, Ref};
-    pub use crate::{call, call_static, define_plugin, register_function};
+    pub use crate::plugin::{Plugin, Version};
+    pub use crate::{call, call_static, define_plugin, define_trait_plugin, register_function};
 }
 
 autocxx::include_cpp! {
