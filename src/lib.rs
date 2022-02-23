@@ -39,6 +39,7 @@ autocxx::include_cpp! {
   generate!("glue::AddRTTICallback")
   generate!("glue::ConstructStringAt")
   generate!("glue::ConstructArgs")
+  generate!("glue::ScriptableTypeName")
   generate!("glue::DefinePlugin")
   generate!("glue::GetSdkVersion")
 }

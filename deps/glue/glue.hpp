@@ -30,6 +30,11 @@ namespace glue {
       return vec;
   }
 
+  const char* ScriptableTypeName(IScriptable* scriptable)
+  {
+      return CNamePool::Get(scriptable->GetType()->GetName());
+  }
+
   void DefinePlugin(void* ptr, const uint16_t* name, const uint16_t* author, uint8_t major, uint16_t minor, uint32_t patch)
   {
       auto aInfo = (PluginInfo*)ptr;

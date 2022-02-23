@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::pin::Pin;
 
 use cxx::UniquePtr;
@@ -31,6 +31,10 @@ pub fn get_class(name: ExternCName) -> *mut RED4ext::CClass {
 
 pub fn get_type(name: ExternCName) -> *const RED4ext::CBaseRTTIType {
     get_rtti().GetType(name)
+}
+
+pub fn get_type_name<'a>(this: Ref<RED4ext::IScriptable>) -> &'a CStr {
+    unsafe { CStr::from_ptr(glue::ScriptableTypeName(this.instance)) }
 }
 
 pub fn get_method(this: Ref<RED4ext::IScriptable>, fn_name: ExternCName) -> *mut RED4ext::CBaseFunction {
