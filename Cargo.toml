@@ -12,11 +12,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 cxx = "1.0"
-autocxx = "0.15"
 array-init = "2.0"
 erasable = "1.2"
 wchar = "0.11"
 casey = "0.3"
 
 [build-dependencies]
-autocxx-build = "0.14"
+cxx-build = "1.0"

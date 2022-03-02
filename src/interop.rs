@@ -1,7 +1,7 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::{mem, ptr};
 
-use crate::ffi::{glue, RED4ext};
+use crate::ffi;
 
 pub type Mem = *mut std::ffi::c_void;
 
@@ -26,9 +26,9 @@ where
     fn from_repr(repr: Self::Repr) -> Self;
 
     #[inline]
-    fn from_red(frame: *mut RED4ext::CStackFrame) -> Self {
+    fn from_red(frame: *mut ffi::CStackFrame) -> Self {
         let mut init = Self::Repr::default();
-        unsafe { RED4ext::GetParameter(frame, mem::transmute(&mut init)) };
+        unsafe { ffi::get_parameter(frame, mem::transmute(&mut init)) };
         Self::from_repr(init)
     }
 }
@@ -80,7 +80,7 @@ impl FromRED for () {
     #[inline]
     fn from_repr(_repr: Self::Repr) -> Self {}
     #[inline]
-    fn from_red(_frame: *mut RED4ext::CStackFrame) -> Self {}
+    fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -137,9 +137,8 @@ impl IntoRED for String {
     }
 
     fn into_repr(self) -> REDString {
-        let bytes = CString::new(self).unwrap();
         let mut str = REDString::default();
-        unsafe { glue::ConstructStringAt(mem::transmute(&mut str), bytes.as_ptr(), ptr::null_mut()) };
+        unsafe { ffi::construct_string_at(&mut str, &self, ptr::null_mut()) };
         str
     }
 }
@@ -163,7 +162,7 @@ pub struct REDArray<A> {
 
 impl<A> REDArray<A> {
     #[inline]
-    fn as_slice(&self) -> &[A] {
+    pub fn as_slice(&self) -> &[A] {
         unsafe { std::slice::from_raw_parts(self.entries, self.size as usize) }
     }
 }
@@ -231,13 +230,14 @@ impl<A> Clone for Ref<A> {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct CName {
     hash: u64,
 }
 
 impl CName {
+    #[inline]
     pub const fn new(str: &str) -> Self {
         Self { hash: fnv1a64(str) }
     }
@@ -299,13 +299,13 @@ impl Color {
 #[derive(Debug)]
 #[repr(C)]
 pub struct StackArg {
-    typ: *const RED4ext::CBaseRTTIType,
+    typ: *const ffi::CBaseRTTIType,
     value: Mem,
 }
 
 impl StackArg {
     #[inline]
-    pub fn new(typ: *const RED4ext::CBaseRTTIType, value: Mem) -> StackArg {
+    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
         StackArg { typ, value }
     }
 }
@@ -335,4 +335,4 @@ iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
-iso_red_instance!(Ref<RED4ext::IScriptable>, "ref<IScriptable>");
+iso_red_instance!(Ref<ffi::IScriptable>, "ref<IScriptable>");

@@ -4,43 +4,131 @@
 pub mod function;
 pub mod interop;
 pub mod plugin;
+pub mod prelude;
 pub mod rtti;
+
+use cxx::{type_id, ExternType};
 pub use {casey, erasable, wchar};
 
-pub use crate::ffi::{glue as RED4extGlue, RED4ext};
+pub struct VoidPtr(pub *mut std::ffi::c_void);
 
-pub mod prelude {
-    pub use crate::ffi::RED4ext;
-    pub use crate::interop::{CName, Ref};
-    pub use crate::plugin::{Plugin, Version};
-    pub use crate::{call, call_static, define_plugin, define_trait_plugin, register_function};
+unsafe impl ExternType for VoidPtr {
+    type Id = type_id!("glue::VoidPtr");
+    type Kind = cxx::kind::Trivial;
 }
 
-autocxx::include_cpp! {
-  #include "RED4ext/RED4ext.hpp"
-  #include "glue.hpp"
+unsafe impl ExternType for interop::REDString {
+    type Id = type_id!("RED4ext::CString");
+    type Kind = cxx::kind::Trivial;
+}
 
-  safety!(unsafe)
+unsafe impl ExternType for interop::CName {
+    type Id = type_id!("RED4ext::CName");
+    type Kind = cxx::kind::Trivial;
+}
 
-  generate!("RED4ext::ExecuteGlobalFunction")
-  generate!("RED4ext::ExecuteFunction")
-  generate!("RED4ext::GetParameter")
+unsafe impl ExternType for interop::StackArg {
+    type Id = type_id!("RED4ext::CStackType");
+    type Kind = cxx::kind::Trivial;
+}
 
-  generate!("RED4ext::IScriptable")
-  generate!("RED4ext::IRTTISystem")
-  generate!("RED4ext::CRTTISystem")
-  generate!("RED4ext::CStackFrame")
-  generate!("RED4ext::PluginInfo")
-  generate!("RED4ext::CName")
-  generate!("RED4ext::CClass")
-  generate!("RED4ext::EMainReason")
-  generate!("RED4ext::Sdk")
+unsafe impl ExternType for plugin::MainReason {
+    type Id = type_id!("RED4ext::EMainReason");
+    type Kind = cxx::kind::Trivial;
+}
 
-  generate!("glue::CreateNativeFunction")
-  generate!("glue::AddRTTICallback")
-  generate!("glue::ConstructStringAt")
-  generate!("glue::ConstructArgs")
-  generate!("glue::ScriptableTypeName")
-  generate!("glue::DefinePlugin")
-  generate!("glue::GetSdkVersion")
+#[cxx::bridge]
+pub mod ffi {
+
+    #[namespace = "RED4ext"]
+    unsafe extern "C++" {
+        include!("RED4ext/RED4ext.hpp");
+
+        #[namespace = "RED4ext::Memory"]
+        type IAllocator;
+        type IScriptable;
+        type CClass;
+        type CBaseFunction;
+        type CGlobalFunction;
+        type CClassFunction;
+        type IRTTISystem;
+        type CRTTISystem;
+        type CBaseRTTIType;
+        type CStackFrame;
+        type PluginInfo;
+        type Sdk;
+
+        type EMainReason = crate::plugin::MainReason;
+        type CName = crate::interop::CName;
+        type CString = crate::interop::REDString;
+        type CStackType = crate::interop::StackArg;
+
+        #[cxx_name = "GetFunction"]
+        fn get_function(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CGlobalFunction;
+
+        #[cxx_name = "GetClass"]
+        fn get_class(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CClass;
+
+        #[cxx_name = "GetType"]
+        fn get_type(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CBaseRTTIType;
+
+        #[cxx_name = "RegisterFunction"]
+        unsafe fn register_function(self: Pin<&mut IRTTISystem>, func: *mut CGlobalFunction);
+
+        #[cxx_name = "GetType"]
+        fn get_type(self: Pin<&mut IScriptable>) -> *mut CClass;
+
+        #[cxx_name = "GetName"]
+        fn get_name(self: &CClass) -> CName;
+
+        #[cxx_name = "GetFunction"]
+        fn get_function(self: &CClass, name: CName) -> *mut CClassFunction;
+
+        #[cxx_name = "GetParameter"]
+        unsafe fn get_parameter(frame: *mut CStackFrame, mem: VoidPtr);
+
+        #[cxx_name = "Step"]
+        fn step(self: Pin<&mut CStackFrame>);
+    }
+
+    #[namespace = "glue"]
+    unsafe extern "C++" {
+        include!("glue.hpp");
+
+        type VoidPtr = super::VoidPtr;
+
+        #[cxx_name = "CreateNativeFunction"]
+        fn new_native_function(name: &str, short_name: &str, mem: VoidPtr) -> *mut CGlobalFunction;
+
+        #[cxx_name = "GetRTTI"]
+        fn get_rtti() -> *mut IRTTISystem;
+
+        #[cxx_name = "AddRTTICallback"]
+        fn add_rtti_callback(reg_func: VoidPtr, post_reg_func: VoidPtr, unused: bool);
+
+        #[cxx_name = "ConstructStringAt"]
+        unsafe fn construct_string_at(str: *mut CString, text: &str, alloc: *mut IAllocator);
+
+        #[cxx_name = "Execute"]
+        unsafe fn execute_function(
+            instance: VoidPtr,
+            func: *mut CBaseFunction,
+            mem: VoidPtr,
+            args: *const CStackType,
+            arg_count: u64,
+        ) -> bool;
+
+        #[cxx_name = "DefinePlugin"]
+        unsafe fn define_plugin(
+            info: *mut PluginInfo,
+            name: *const u16,
+            author: *const u16,
+            major: u8,
+            minor: u16,
+            patch: u32,
+        );
+
+        #[cxx_name = "GetSdkVersion"]
+        fn get_sdk_version() -> u32;
+    }
 }

@@ -6,10 +6,8 @@ fn main() {
         PathBuf::from("deps").join("glue"),
     ];
 
-    let mut build = autocxx_build::Builder::new("src/lib.rs", includes)
-        .extra_clang_args(&["-std=c++20"])
-        .expect_build();
-    build
+    cxx_build::bridge("src/lib.rs")
+        .includes(includes)
         .compiler("clang")
         .flag("-std=c++20")
         .flag("-D_DLL")
