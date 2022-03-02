@@ -95,7 +95,7 @@ macro_rules! call {
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         $crate::invoke!(
-            $this.clone(),
+            $this,
             $crate::rtti::get_method($this, $crate::interop::CName::new($fn_name)),
             ($($args),*) -> $rett
         )

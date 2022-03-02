@@ -230,6 +230,8 @@ impl<A> Clone for Ref<A> {
     }
 }
 
+impl<A> Copy for Ref<A> {}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct CName {
@@ -253,7 +255,7 @@ pub const fn fnv1a64(str: &str) -> u64 {
         match str.split_first() {
             Some((head, tail)) => {
                 hash ^= *head as u64;
-                hash *= PRIME;
+                hash = hash.wrapping_mul(PRIME);
                 calc(tail, hash)
             }
             None => hash,
