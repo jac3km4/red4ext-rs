@@ -51,15 +51,7 @@ pub fn invoke<R: FromRED, const N: usize>(
     let args: [StackArg; N] = array_init::from_iter(arg_iter).unwrap();
     let mut ret = R::Repr::default();
 
-    unsafe {
-        ffi::execute_function(
-            VoidPtr(this.instance as _),
-            fun,
-            mem::transmute(&mut ret),
-            args.as_ptr(),
-            args.len() as u64,
-        )
-    };
+    unsafe { ffi::execute_function(VoidPtr(this.instance as _), fun, mem::transmute(&mut ret), &args) };
     R::from_repr(ret)
 }
 

@@ -27,6 +27,11 @@ unsafe impl ExternType for interop::CName {
     type Kind = cxx::kind::Trivial;
 }
 
+unsafe impl ExternType for interop::Variant {
+    type Id = type_id!("RED4ext::Variant");
+    type Kind = cxx::kind::Trivial;
+}
+
 unsafe impl ExternType for interop::StackArg {
     type Id = type_id!("RED4ext::CStackType");
     type Kind = cxx::kind::Trivial;
@@ -62,6 +67,7 @@ pub mod ffi {
         type CName = crate::interop::CName;
         type CString = crate::interop::REDString;
         type CStackType = crate::interop::StackArg;
+        type Variant = crate::interop::Variant;
 
         #[cxx_name = "GetFunction"]
         fn get_function(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CGlobalFunction;
@@ -76,10 +82,10 @@ pub mod ffi {
         unsafe fn register_function(self: Pin<&mut IRTTISystem>, func: *mut CGlobalFunction);
 
         #[cxx_name = "GetType"]
-        fn get_type(self: Pin<&mut IScriptable>) -> *mut CClass;
+        fn get_class(self: Pin<&mut IScriptable>) -> *mut CClass;
 
         #[cxx_name = "GetName"]
-        fn get_name(self: &CClass) -> CName;
+        fn get_name(self: &CBaseRTTIType) -> CName;
 
         #[cxx_name = "GetFunction"]
         fn get_function(self: &CClass, name: CName) -> *mut CClassFunction;
@@ -89,6 +95,9 @@ pub mod ffi {
 
         #[cxx_name = "Step"]
         fn step(self: Pin<&mut CStackFrame>);
+
+        #[cxx_name = "GetDataPtr"]
+        fn get_data_ptr(self: &Variant) -> VoidPtr;
     }
 
     #[namespace = "glue"]
@@ -114,8 +123,7 @@ pub mod ffi {
             instance: VoidPtr,
             func: *mut CBaseFunction,
             mem: VoidPtr,
-            args: *const CStackType,
-            arg_count: u64,
+            args: &[CStackType],
         ) -> bool;
 
         #[cxx_name = "DefinePlugin"]

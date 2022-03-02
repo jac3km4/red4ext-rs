@@ -31,9 +31,9 @@ namespace glue {
       *addr = cstr;
   }
 
-  bool Execute(ScriptInstance aInstance, CBaseFunction* aFunc, VoidPtr aOut, const CStackType* args, uint64_t arg_count)
+  bool Execute(ScriptInstance aInstance, CBaseFunction* aFunc, VoidPtr aOut, rust::Slice<const CStackType> args)
   {
-      std::vector<CStackType> vec(args, args + arg_count);
+      std::vector<CStackType> vec(args.data(), args.data() + args.length());
       return ExecuteFunction(aInstance, aFunc, aOut, vec);
   }
 

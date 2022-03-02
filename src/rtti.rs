@@ -23,13 +23,13 @@ pub fn get_type(name: CName) -> *const ffi::CBaseRTTIType {
 }
 
 #[inline]
-pub fn get_scriptable_type(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
-    unsafe { Pin::new_unchecked(&mut *this.instance).get_type() }
+pub fn class_of(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
+    unsafe { Pin::new_unchecked(&mut *this.instance).get_class() }
 }
 
 #[inline]
-pub fn get_type_name(class: *const ffi::CClass) -> CName {
-    unsafe { Pin::new_unchecked(&*class).get_name() }
+pub fn get_type_name(typ: *const ffi::CBaseRTTIType) -> CName {
+    unsafe { (&*typ).get_name() }
 }
 
 pub fn get_function(fn_name: CName) -> *mut ffi::CBaseFunction {
@@ -38,15 +38,15 @@ pub fn get_function(fn_name: CName) -> *mut ffi::CBaseFunction {
 
 pub fn get_method(this: Ref<ffi::IScriptable>, fn_name: CName) -> *mut ffi::CBaseFunction {
     unsafe {
-        let typ = get_scriptable_type(this);
-        Pin::new_unchecked(&*typ).get_function(fn_name) as *mut _
+        let typ = class_of(this);
+        (&*typ).get_function(fn_name) as *mut _
     }
 }
 
 pub fn get_static_method(class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
     unsafe {
         let typ = get_class(class);
-        Pin::new_unchecked(&*typ).get_function(fn_name) as *mut _
+        (&*typ).get_function(fn_name) as *mut _
     }
 }
 

@@ -265,6 +265,23 @@ pub const fn fnv1a64(str: &str) -> u64 {
     calc(str.as_bytes(), SEED)
 }
 
+#[derive(Debug)]
+#[repr(C)]
+pub struct Variant {
+    typ: *const ffi::CBaseRTTIType,
+    data: [u8; 0x10],
+}
+
+impl Variant {
+    pub fn get_type(&self) -> *const ffi::CBaseRTTIType {
+        self.typ
+    }
+
+    pub fn get_data(&self) -> Mem {
+        ffi::Variant::get_data_ptr(self).0
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct Vector2 {
