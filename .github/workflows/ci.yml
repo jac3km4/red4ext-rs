@@ -18,7 +18,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@v1
       - name: Build
         uses: actions-rs/cargo@v1
         with:
