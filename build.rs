@@ -15,4 +15,5 @@ fn main() {
         .compile("red4ext-rs");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
+    println!("cargo:rerun-if-changed=deps/glue/glue.hpp");
 }

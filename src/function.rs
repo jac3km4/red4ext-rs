@@ -57,7 +57,7 @@ pub fn invoke<R: FromRED, const N: usize>(
 
 #[inline]
 pub fn get_argument_type<A: IntoRED>(_val: &A) -> *const ffi::CBaseRTTIType {
-    rtti::get_type(CName::new(A::type_name()))
+    rtti::get_type(CName::new(A::NAME))
 }
 
 #[macro_export]

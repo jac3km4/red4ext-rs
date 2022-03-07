@@ -138,5 +138,8 @@ pub mod ffi {
 
         #[cxx_name = "GetSdkVersion"]
         fn get_sdk_version() -> u32;
+
+        #[cxx_name = "AllocArray"]
+        fn alloc_array(arr: VoidPtr, cap: u32, elem_size: u32);
     }
 }

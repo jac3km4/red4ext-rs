@@ -1,14 +1,14 @@
 use std::ffi::CStr;
 use std::{mem, ptr};
 
-use crate::ffi;
+use crate::{ffi, VoidPtr};
 
 pub type Mem = *mut std::ffi::c_void;
 
 pub trait IntoRED: Sized {
     type Repr;
 
-    fn type_name() -> &'static str;
+    const NAME: &'static str;
     fn into_repr(self) -> Self::Repr;
 
     #[inline]
@@ -34,7 +34,7 @@ where
 }
 
 pub trait IsoRED: Default {
-    fn type_name() -> &'static str;
+    const NAME: &'static str;
 }
 
 impl<A: IsoRED> FromRED for A {
@@ -49,10 +49,7 @@ impl<A: IsoRED> FromRED for A {
 impl<A: IsoRED> IntoRED for A {
     type Repr = A;
 
-    #[inline]
-    fn type_name() -> &'static str {
-        <Self as IsoRED>::type_name()
-    }
+    const NAME: &'static str = <Self as IsoRED>::NAME;
 
     #[inline]
     fn into_repr(self) -> Self::Repr {
@@ -63,10 +60,7 @@ impl<A: IsoRED> IntoRED for A {
 impl IntoRED for () {
     type Repr = ();
 
-    #[inline]
-    fn type_name() -> &'static str {
-        "Void"
-    }
+    const NAME: &'static str = "Void";
 
     #[inline]
     fn into_repr(self) -> Self::Repr {}
@@ -118,10 +112,7 @@ impl Default for REDString {
 impl IntoRED for &str {
     type Repr = REDString;
 
-    #[inline]
-    fn type_name() -> &'static str {
-        "String"
-    }
+    const NAME: &'static str = "String";
 
     fn into_repr(self) -> Self::Repr {
         self.to_owned().into_repr()
@@ -131,10 +122,7 @@ impl IntoRED for &str {
 impl IntoRED for String {
     type Repr = REDString;
 
-    #[inline]
-    fn type_name() -> &'static str {
-        "String"
-    }
+    const NAME: &'static str = "String";
 
     fn into_repr(self) -> REDString {
         let mut str = REDString::default();
@@ -165,6 +153,29 @@ impl<A> REDArray<A> {
     pub fn as_slice(&self) -> &[A] {
         unsafe { std::slice::from_raw_parts(self.entries, self.size as usize) }
     }
+
+    #[inline]
+    pub fn as_mut_slice(&mut self) -> &mut [A] {
+        unsafe { std::slice::from_raw_parts_mut(self.entries, self.size as usize) }
+    }
+
+    #[inline]
+    pub fn with_capacity(count: usize) -> Self {
+        let arr = REDArray::default();
+        let ptr = unsafe { VoidPtr(mem::transmute(&arr)) };
+        ffi::alloc_array(ptr, count as u32, mem::size_of::<A>() as u32);
+        arr
+    }
+
+    pub fn from_sized_iter<I: ExactSizeIterator<Item = A>>(iter: I) -> Self {
+        let len = iter.len();
+        let mut arr: REDArray<A> = REDArray::with_capacity(len);
+        for (i, elem) in iter.into_iter().enumerate() {
+            unsafe { arr.entries.add(i).write(elem) }
+        }
+        arr.size = len as u32;
+        arr
+    }
 }
 
 impl<A> Default for REDArray<A> {
@@ -178,7 +189,12 @@ impl<A> Default for REDArray<A> {
     }
 }
 
-impl<A: FromRED + Clone> FromRED for Vec<A>
+impl<A: IsoRED> IsoRED for REDArray<A> {
+    // FIXME: this should be "array:" + A::NAME, but not possible yet
+    const NAME: &'static str = "array:Variant";
+}
+
+impl<A> FromRED for Vec<A>
 where
     A: FromRED,
     A::Repr: Clone,
@@ -187,6 +203,32 @@ where
 
     fn from_repr(repr: Self::Repr) -> Self {
         repr.as_slice().iter().cloned().map(FromRED::from_repr).collect()
+    }
+}
+
+impl<A> IntoRED for Vec<A>
+where
+    A: IntoRED + Clone,
+{
+    type Repr = REDArray<A::Repr>;
+    // FIXME: this should be "array:" + A::NAME, but not possible yet
+    const NAME: &'static str = "array:Variant";
+
+    fn into_repr(self) -> Self::Repr {
+        REDArray::from_sized_iter(self.into_iter().map(IntoRED::into_repr))
+    }
+}
+
+impl<A> IntoRED for &[A]
+where
+    A: IntoRED + Clone,
+{
+    type Repr = REDArray<A::Repr>;
+    // FIXME: this should be "array:" + A::NAME, but not possible yet
+    const NAME: &'static str = "array:Variant";
+
+    fn into_repr(self) -> Self::Repr {
+        REDArray::from_sized_iter(self.iter().cloned().map(IntoRED::into_repr))
     }
 }
 
@@ -332,10 +374,7 @@ impl StackArg {
 macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
         impl IsoRED for $ty {
-            #[inline]
-            fn type_name() -> &'static str {
-                stringify!($name)
-            }
+            const NAME: &'static str = stringify!($name);
         }
     };
 }
