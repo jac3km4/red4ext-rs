@@ -8,10 +8,7 @@ fn main() {
 
     cxx_build::bridge("src/lib.rs")
         .includes(includes)
-        .compiler("clang")
-        .flag("-std=c++20")
-        .flag("-D_DLL")
-        .flag("-Wno-everything")
+        .flag("-std:c++20")
         .compile("red4ext-rs");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
