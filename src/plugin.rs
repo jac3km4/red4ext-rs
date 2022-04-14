@@ -1,7 +1,23 @@
+use crate::logger::SdkLogger;
+
 #[repr(u8)]
 pub enum MainReason {
     Load = 0,
     Unload = 1,
+}
+
+pub type PluginHandle = usize;
+
+pub struct SemVer;
+pub struct Hooking;
+pub struct GameStates;
+
+#[repr(C)]
+pub struct Sdk {
+    pub(crate) runtime: &'static SemVer,
+    pub(crate) logger: &'static SdkLogger,
+    pub(crate) hooking: &'static Hooking,
+    pub(crate) game_states: &'static GameStates,
 }
 
 #[macro_export]
@@ -13,10 +29,13 @@ macro_rules! define_plugin {
     } => {
         #[allow(non_snake_case)]
         #[no_mangle]
-        unsafe extern "C" fn Main(handle: *const (), reason: $crate::ffi::EMainReason, sdk: *const $crate::ffi::Sdk) {
+        unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
             match reason {
-                $crate::plugin::MainReason::Load =>
-                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true),
+                $crate::plugin::MainReason::Load => {
+                    $crate::logger::Logger::init(sdk, handle).ok();
+
+                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+                }
                 $crate::plugin::MainReason::Unload => {}
             }
         }
@@ -58,10 +77,13 @@ macro_rules! define_trait_plugin {
     } => {
         #[allow(non_snake_case)]
         #[no_mangle]
-        unsafe extern "C" fn Main(handle: *const (), reason: $crate::ffi::EMainReason, sdk: *const $crate::ffi::Sdk) {
+        unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
             match reason {
-                $crate::plugin::MainReason::Load =>
-                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true),
+                $crate::plugin::MainReason::Load => {
+                    $crate::logger::Logger::init(sdk, handle).ok();
+
+                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+                }
                 $crate::plugin::MainReason::Unload => {
                     <$ty as $crate::plugin::Plugin>::unload();
                 }

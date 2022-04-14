@@ -3,6 +3,7 @@
 
 pub mod function;
 pub mod interop;
+pub mod logger;
 pub mod plugin;
 pub mod prelude;
 pub mod rtti;
