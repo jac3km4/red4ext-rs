@@ -109,17 +109,17 @@ impl Default for REDString {
     }
 }
 
-impl IntoRED for &str {
+impl IntoRED for String {
     type Repr = REDString;
 
     const NAME: &'static str = "String";
 
     fn into_repr(self) -> Self::Repr {
-        self.to_owned().into_repr()
+        self.as_str().into_repr()
     }
 }
 
-impl IntoRED for String {
+impl IntoRED for &str {
     type Repr = REDString;
 
     const NAME: &'static str = "String";
