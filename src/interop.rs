@@ -128,7 +128,7 @@ impl IntoRED for &str {
 
     fn into_repr(self) -> REDString {
         let mut str = REDString::default();
-        unsafe { ffi::construct_string_at(&mut str, &self, ptr::null_mut()) };
+        unsafe { ffi::construct_string_at(&mut str, self, ptr::null_mut()) };
         str
     }
 }
