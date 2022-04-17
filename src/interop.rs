@@ -291,19 +291,18 @@ pub const fn fnv1a64(str: &str) -> u64 {
     const PRIME: u64 = 0x100000001b3;
     const SEED: u64 = 0xCBF29CE484222325;
 
-    #[inline]
-    const fn calc(str: &[u8], mut hash: u64) -> u64 {
-        match str.split_first() {
-            Some((head, tail)) => {
+    let mut tail = str.as_bytes();
+    let mut hash = SEED;
+    loop {
+        match tail.split_first() {
+            Some((head, rem)) => {
                 hash ^= *head as u64;
                 hash = hash.wrapping_mul(PRIME);
-                calc(tail, hash)
+                tail = rem;
             }
-            None => hash,
+            None => break hash,
         }
     }
-
-    calc(str.as_bytes(), SEED)
 }
 
 #[derive(Debug)]
@@ -405,5 +404,12 @@ mod tests {
             <Vec<Ref<ffi::IScriptable>> as IntoRED>::NAME,
             "array:ref:IScriptable"
         );
+    }
+
+    #[test]
+    fn calculate_hashes() {
+        assert_eq!(CName::new("IScriptable").hash, 3191163302135919211);
+        assert_eq!(CName::new("Vector2").hash, 7466804955052523504);
+        assert_eq!(CName::new("Color").hash, 3769135706557701272);
     }
 }
