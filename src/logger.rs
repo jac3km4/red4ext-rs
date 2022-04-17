@@ -43,7 +43,7 @@ pub struct SdkLogger {
     criticalwf: fn(PluginHandle, *const u16),
 }
 
-pub static INSTANCE: OnceCell<Logger> = OnceCell::new();
+static INSTANCE: OnceCell<Logger> = OnceCell::new();
 
 pub struct Logger {
     sdk: &'static Sdk,
@@ -55,33 +55,43 @@ impl Logger {
         INSTANCE.set(Self { sdk, handle })
     }
 
+    #[inline]
+    pub fn with_logger<F: Fn(&Self)>(func: F) {
+        if let Some(logger) = INSTANCE.get() {
+            func(logger)
+        }
+    }
+
     pub fn error(&self, args: Arguments) {
-        (self.sdk.logger.error)(self.handle, format!("{}\0", args).as_bytes().as_ptr())
+        let str = format!("{}\0", args);
+        (self.sdk.logger.error)(self.handle, str.as_bytes().as_ptr())
     }
 
     pub fn warn(&self, args: Arguments) {
-        (self.sdk.logger.warn)(self.handle, format!("{}\0", args).as_bytes().as_ptr())
+        let str = format!("{}\0", args);
+        (self.sdk.logger.warn)(self.handle, str.as_bytes().as_ptr())
     }
 
     pub fn info(&self, args: Arguments) {
-        (self.sdk.logger.info)(self.handle, format!("{}\0", args).as_bytes().as_ptr())
+        let str = format!("{}\0", args);
+        (self.sdk.logger.info)(self.handle, str.as_bytes().as_ptr())
     }
 
     pub fn debug(&self, args: Arguments) {
-        (self.sdk.logger.debug)(self.handle, format!("{}\0", args).as_bytes().as_ptr())
+        let str = format!("{}\0", args);
+        (self.sdk.logger.debug)(self.handle, str.as_bytes().as_ptr())
     }
 
     pub fn trace(&self, args: Arguments) {
-        (self.sdk.logger.trace)(self.handle, format!("{}\0", args).as_bytes().as_ptr())
+        let str = format!("{}\0", args);
+        (self.sdk.logger.trace)(self.handle, str.as_bytes().as_ptr())
     }
 }
 
 #[macro_export]
 macro_rules! log {
     ($level:ident, $($args:expr),*) => {
-        if let Some(logger) = $crate::logger::INSTANCE.get() {
-            logger.$level(format_args!($($args),*))
-        }
+        $crate::logger::Logger::with_logger(|log| log.$level(format_args!($($args),*)))
     };
 }
 
