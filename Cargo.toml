@@ -17,6 +17,7 @@ erasable = "1.2"
 wchar = "0.11"
 casey = "0.3"
 once_cell = "1.10"
+const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.3" }
 
 [build-dependencies]
 cxx-build = "1.0"

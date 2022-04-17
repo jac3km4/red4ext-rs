@@ -1,6 +1,8 @@
 use std::ffi::CStr;
 use std::{mem, ptr};
 
+use const_combine::bounded::const_combine;
+
 use crate::{ffi, VoidPtr};
 
 pub type Mem = *mut std::ffi::c_void;
@@ -190,8 +192,7 @@ impl<A> Default for REDArray<A> {
 }
 
 impl<A: IsoRED> IsoRED for REDArray<A> {
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
 impl<A> FromRED for Vec<A>
@@ -211,8 +212,7 @@ where
     A: IntoRED + Clone,
 {
     type Repr = REDArray<A::Repr>;
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.into_iter().map(IntoRED::into_repr))
@@ -224,8 +224,7 @@ where
     A: IntoRED + Clone,
 {
     type Repr = REDArray<A::Repr>;
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.iter().cloned().map(IntoRED::into_repr))
@@ -374,7 +373,7 @@ impl StackArg {
 macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
         impl IsoRED for $ty {
-            const NAME: &'static str = stringify!($name);
+            const NAME: &'static str = $name;
         }
     };
 }
@@ -393,4 +392,18 @@ iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
-iso_red_instance!(Ref<ffi::IScriptable>, "ref<IScriptable>");
+iso_red_instance!(Ref<ffi::IScriptable>, "ref:IScriptable");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_type_names() {
+        assert_eq!(<Vec<Vec<Vec<i32>>> as IntoRED>::NAME, "array:array:array:Int32");
+        assert_eq!(
+            <Vec<Ref<ffi::IScriptable>> as IntoRED>::NAME,
+            "array:ref:IScriptable"
+        );
+    }
+}
