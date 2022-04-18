@@ -209,7 +209,7 @@ where
 
 impl<A> IntoRED for Vec<A>
 where
-    A: IntoRED + Clone,
+    A: IntoRED,
 {
     type Repr = REDArray<A::Repr>;
     const NAME: &'static str = const_combine!("array:", A::NAME);
@@ -320,6 +320,20 @@ impl Variant {
     pub fn get_data(&self) -> Mem {
         ffi::Variant::get_data_ptr(self).0
     }
+}
+
+impl Default for Variant {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            typ: ptr::null(),
+            data: [0; 0x10],
+        }
+    }
+}
+
+impl IsoRED for Variant {
+    const NAME: &'static str = "Variant";
 }
 
 #[derive(Debug, Default, Clone)]
