@@ -93,14 +93,3 @@ macro_rules! call {
         )
     };
 }
-
-#[macro_export]
-macro_rules! call_static {
-    ($class:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
-        $crate::invoke!(
-            $crate::interop::Ref::null(),
-            $crate::rtti::get_static_method($crate::interop::CName::new($class), $crate::interop::CName::new($fn_name)),
-            ($($args),*) -> $rett
-        )
-    };
-}
