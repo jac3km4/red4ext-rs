@@ -316,26 +316,21 @@ impl Variant {
     pub fn new<A: IntoRED>(val: A) -> Self {
         let mut this = Self::default();
         let typ = rtti::get_type(CName::new(A::NAME));
-        let mut repr = val.into_repr();
+        let repr = val.into_repr();
         unsafe {
-            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(mem::transmute(&mut repr)));
+            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(mem::transmute(&repr)));
         }
         this
     }
 
     #[inline]
     pub fn try_get<A: FromRED + IntoRED>(&self) -> Option<A> {
-        if rtti::get_type_name(self.typ) == CName::new(A::NAME) {
+        if rtti::get_type_name(self.get_type()) == CName::new(A::NAME) {
             let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
             Some(A::from_repr(unsafe { &*ptr }))
         } else {
             None
         }
-    }
-
-    #[inline]
-    pub fn get_type(&self) -> *const ffi::CBaseRTTIType {
-        self.typ
     }
 }
 

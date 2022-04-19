@@ -97,6 +97,9 @@ pub mod ffi {
         #[cxx_name = "Step"]
         fn step(self: Pin<&mut CStackFrame>);
 
+        #[cxx_name = "GetType"]
+        fn get_type(self: &Variant) -> *mut CBaseRTTIType;
+
         #[cxx_name = "GetDataPtr"]
         fn get_data_ptr(self: &Variant) -> VoidPtr;
 
