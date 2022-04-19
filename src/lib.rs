@@ -99,6 +99,9 @@ pub mod ffi {
 
         #[cxx_name = "GetDataPtr"]
         fn get_data_ptr(self: &Variant) -> VoidPtr;
+
+        #[cxx_name = "Fill"]
+        unsafe fn fill(self: Pin<&mut Variant>, typ: *const CBaseRTTIType, data: VoidPtr) -> bool;
     }
 
     #[namespace = "glue"]

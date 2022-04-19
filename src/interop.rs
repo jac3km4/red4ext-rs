@@ -1,9 +1,10 @@
 use std::ffi::CStr;
+use std::pin::Pin;
 use std::{mem, ptr};
 
 use const_combine::bounded::const_combine;
 
-use crate::{ffi, VoidPtr};
+use crate::{ffi, rtti, VoidPtr};
 
 pub type Mem = *mut std::ffi::c_void;
 
@@ -25,13 +26,13 @@ where
 {
     type Repr;
 
-    fn from_repr(repr: Self::Repr) -> Self;
+    fn from_repr(repr: &Self::Repr) -> Self;
 
     #[inline]
     fn from_red(frame: *mut ffi::CStackFrame) -> Self {
         let mut init = Self::Repr::default();
         unsafe { ffi::get_parameter(frame, mem::transmute(&mut init)) };
-        Self::from_repr(init)
+        Self::from_repr(&init)
     }
 }
 
@@ -39,12 +40,12 @@ pub trait IsoRED: Default {
     const NAME: &'static str;
 }
 
-impl<A: IsoRED> FromRED for A {
+impl<A: IsoRED + Clone> FromRED for A {
     type Repr = A;
 
     #[inline]
-    fn from_repr(repr: Self::Repr) -> Self {
-        repr
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.clone()
     }
 }
 
@@ -74,7 +75,7 @@ impl FromRED for () {
     type Repr = ();
 
     #[inline]
-    fn from_repr(_repr: Self::Repr) -> Self {}
+    fn from_repr(_repr: &Self::Repr) -> Self {}
     #[inline]
     fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
@@ -137,12 +138,12 @@ impl FromRED for String {
     type Repr = REDString;
 
     #[inline]
-    fn from_repr(repr: Self::Repr) -> Self {
+    fn from_repr(repr: &Self::Repr) -> Self {
         repr.as_str().to_owned()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct REDArray<A> {
     entries: *mut A,
@@ -198,12 +199,11 @@ impl<A: IsoRED> IsoRED for REDArray<A> {
 impl<A> FromRED for Vec<A>
 where
     A: FromRED,
-    A::Repr: Clone,
 {
     type Repr = REDArray<A::Repr>;
 
-    fn from_repr(repr: Self::Repr) -> Self {
-        repr.as_slice().iter().cloned().map(FromRED::from_repr).collect()
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.as_slice().iter().map(FromRED::from_repr).collect()
     }
 }
 
@@ -305,7 +305,7 @@ pub const fn fnv1a64(str: &str) -> u64 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Variant {
     typ: *const ffi::CBaseRTTIType,
@@ -313,12 +313,29 @@ pub struct Variant {
 }
 
 impl Variant {
-    pub fn get_type(&self) -> *const ffi::CBaseRTTIType {
-        self.typ
+    pub fn new<A: IntoRED>(val: A) -> Self {
+        let mut this = Self::default();
+        let typ = rtti::get_type(CName::new(A::NAME));
+        let mut repr = val.into_repr();
+        unsafe {
+            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(mem::transmute(&mut repr)));
+        }
+        this
     }
 
-    pub fn get_data(&self) -> Mem {
-        ffi::Variant::get_data_ptr(self).0
+    #[inline]
+    pub fn try_get<A: FromRED + IntoRED>(&self) -> Option<A> {
+        if rtti::get_type_name(self.typ) == CName::new(A::NAME) {
+            let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
+            Some(A::from_repr(unsafe { &*ptr }))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn get_type(&self) -> *const ffi::CBaseRTTIType {
+        self.typ
     }
 }
 

@@ -52,7 +52,7 @@ pub fn invoke<R: FromRED, const N: usize>(
     let mut ret = R::Repr::default();
 
     unsafe { ffi::execute_function(VoidPtr(this.instance as _), fun, mem::transmute(&mut ret), &args) };
-    R::from_repr(ret)
+    R::from_repr(&ret)
 }
 
 #[inline]
