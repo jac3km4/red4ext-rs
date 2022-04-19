@@ -40,6 +40,7 @@ impl_invokable!(A, B, C, D);
 impl_invokable!(A, B, C, D, E);
 impl_invokable!(A, B, C, D, E, F);
 
+#[inline]
 pub fn invoke<R: FromRED, const N: usize>(
     this: Ref<ffi::IScriptable>,
     fun: *mut ffi::CBaseFunction,
