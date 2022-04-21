@@ -9,11 +9,15 @@ namespace glue {
 
   using VoidPtr = void*;
 
-  CGlobalFunction* CreateNativeFunction(rust::Str aFullName, rust::Str aShortName, const VoidPtr aFunc)
+  CGlobalFunction* CreateNativeFunction(rust::Str aFullName, rust::Str aShortName, const VoidPtr aFunc, rust::Slice<const CName> params, CName ret)
   {
     CBaseFunction::Flags flags = { .isNative = true, .isStatic = true };
     auto func = CGlobalFunction::Create(std::string(aFullName).c_str(), std::string(aShortName).c_str(), (ScriptingFunction_t<void*>)aFunc);
     func->flags = flags;
+    for (auto param: params) {
+      func->AddParam(param, "");
+    }
+    func->SetReturnType(ret);
     return func;
   }
 

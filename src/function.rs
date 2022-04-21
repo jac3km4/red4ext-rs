@@ -10,6 +10,9 @@ pub type REDFunction = unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CSt
 type REDType = *const ffi::CBaseRTTIType;
 
 pub trait REDInvokable<A, R> {
+    const ARG_TYPES: &'static [CName];
+    const RETURN_TYPE: CName;
+
     fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem);
 }
 
@@ -22,6 +25,9 @@ macro_rules! impl_invokable {
             $($types: FromRED,)*
             R: IntoRED
         {
+            const ARG_TYPES: &'static [CName] = &[$(CName::new($types::NAME),)*];
+            const RETURN_TYPE: CName = CName::new(R::NAME);
+
             #[inline]
             fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
                 $(let casey::lower!($types) = FromRED::from_red(frame);)*

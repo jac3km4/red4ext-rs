@@ -114,7 +114,13 @@ pub mod ffi {
         type VoidPtr = super::VoidPtr;
 
         #[cxx_name = "CreateNativeFunction"]
-        fn new_native_function(name: &str, short_name: &str, mem: VoidPtr) -> *mut CGlobalFunction;
+        fn new_native_function(
+            name: &str,
+            short_name: &str,
+            mem: VoidPtr,
+            args: &[CName],
+            ret: CName,
+        ) -> *mut CGlobalFunction;
 
         #[cxx_name = "GetRTTI"]
         fn get_rtti() -> *mut IRTTISystem;

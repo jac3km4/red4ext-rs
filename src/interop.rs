@@ -8,10 +8,13 @@ use crate::{ffi, rtti, VoidPtr};
 
 pub type Mem = *mut std::ffi::c_void;
 
-pub trait IntoRED: Sized {
+pub trait NativeRED {
+    const NAME: &'static str;
+}
+
+pub trait IntoRED: NativeRED + Sized {
     type Repr;
 
-    const NAME: &'static str;
     fn into_repr(self) -> Self::Repr;
 
     #[inline]
@@ -20,7 +23,7 @@ pub trait IntoRED: Sized {
     }
 }
 
-pub trait FromRED: Sized
+pub trait FromRED: NativeRED + Sized
 where
     Self::Repr: Default,
 {
@@ -36,9 +39,7 @@ where
     }
 }
 
-pub trait IsoRED: Default {
-    const NAME: &'static str;
-}
+pub trait IsoRED: NativeRED + Default {}
 
 impl<A: IsoRED + Clone> FromRED for A {
     type Repr = A;
@@ -52,18 +53,18 @@ impl<A: IsoRED + Clone> FromRED for A {
 impl<A: IsoRED> IntoRED for A {
     type Repr = A;
 
-    const NAME: &'static str = <Self as IsoRED>::NAME;
-
     #[inline]
     fn into_repr(self) -> Self::Repr {
         self
     }
 }
 
+impl NativeRED for () {
+    const NAME: &'static str = "Void";
+}
+
 impl IntoRED for () {
     type Repr = ();
-
-    const NAME: &'static str = "Void";
 
     #[inline]
     fn into_repr(self) -> Self::Repr {}
@@ -112,20 +113,24 @@ impl Default for REDString {
     }
 }
 
+impl NativeRED for String {
+    const NAME: &'static str = "String";
+}
+
 impl IntoRED for String {
     type Repr = REDString;
-
-    const NAME: &'static str = "String";
 
     fn into_repr(self) -> Self::Repr {
         self.as_str().into_repr()
     }
 }
 
+impl NativeRED for &str {
+    const NAME: &'static str = "String";
+}
+
 impl IntoRED for &str {
     type Repr = REDString;
-
-    const NAME: &'static str = "String";
 
     fn into_repr(self) -> REDString {
         let mut str = REDString::default();
@@ -192,7 +197,13 @@ impl<A> Default for REDArray<A> {
     }
 }
 
-impl<A: IsoRED> IsoRED for REDArray<A> {
+impl<A: NativeRED> NativeRED for REDArray<A> {
+    const NAME: &'static str = const_combine!("array:", A::NAME);
+}
+
+impl<A: IsoRED> IsoRED for REDArray<A> {}
+
+impl<A: NativeRED> NativeRED for Vec<A> {
     const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
@@ -212,11 +223,14 @@ where
     A: IntoRED,
 {
     type Repr = REDArray<A::Repr>;
-    const NAME: &'static str = const_combine!("array:", A::NAME);
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.into_iter().map(IntoRED::into_repr))
     }
+}
+
+impl<A: NativeRED> NativeRED for &[A] {
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
 impl<A> IntoRED for &[A]
@@ -224,7 +238,6 @@ where
     A: IntoRED + Clone,
 {
     type Repr = REDArray<A::Repr>;
-    const NAME: &'static str = const_combine!("array:", A::NAME);
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.iter().cloned().map(IntoRED::into_repr))
@@ -344,9 +357,11 @@ impl Default for Variant {
     }
 }
 
-impl IsoRED for Variant {
+impl NativeRED for Variant {
     const NAME: &'static str = "Variant";
 }
+
+impl IsoRED for Variant {}
 
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
@@ -397,9 +412,11 @@ impl StackArg {
 
 macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
-        impl IsoRED for $ty {
+        impl NativeRED for $ty {
             const NAME: &'static str = $name;
         }
+
+        impl IsoRED for $ty {}
     };
 }
 
@@ -425,9 +442,9 @@ mod tests {
 
     #[test]
     fn render_type_names() {
-        assert_eq!(<Vec<Vec<Vec<i32>>> as IntoRED>::NAME, "array:array:array:Int32");
+        assert_eq!(<Vec<Vec<Vec<i32>>> as NativeRED>::NAME, "array:array:array:Int32");
         assert_eq!(
-            <Vec<Ref<ffi::IScriptable>> as IntoRED>::NAME,
+            <Vec<Ref<ffi::IScriptable>> as NativeRED>::NAME,
             "array:ref:IScriptable"
         );
     }

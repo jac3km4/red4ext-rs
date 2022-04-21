@@ -1,6 +1,6 @@
 use std::pin::Pin;
 
-use crate::function::REDFunction;
+use crate::function::{REDFunction, REDInvokable};
 use crate::interop::Ref;
 use crate::prelude::CName;
 use crate::{ffi, VoidPtr};
@@ -50,11 +50,16 @@ pub fn get_static_method(class: CName, fn_name: CName) -> *mut ffi::CBaseFunctio
     }
 }
 
-pub fn register_function(name: &str, func: REDFunction) {
+pub fn register_function(name: &str, func: REDFunction, args: &[CName], ret: CName) {
     unsafe {
-        let func = ffi::new_native_function(name, name, VoidPtr(func as *mut _));
+        let func = ffi::new_native_function(name, name, VoidPtr(func as *mut _), args, ret);
         get_rtti().register_function(func);
     }
+}
+
+#[inline(always)]
+pub fn get_invokable_types<F: REDInvokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
+    (F::ARG_TYPES, F::RETURN_TYPE)
 }
 
 #[macro_export]
@@ -70,6 +75,7 @@ macro_rules! register_function {
             std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
         }
 
-        $crate::rtti::register_function($name, native_impl)
+        let (arg_types, ret_type) = $crate::rtti::get_invokable_types(&$fun);
+        $crate::rtti::register_function($name, native_impl, arg_types, ret_type)
     }};
 }
