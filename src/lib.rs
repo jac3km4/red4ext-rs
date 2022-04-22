@@ -9,7 +9,7 @@ pub mod prelude;
 pub mod rtti;
 
 use cxx::{type_id, ExternType};
-pub use {casey, erasable, wchar};
+pub use {erasable, wchar};
 
 pub struct VoidPtr(pub *mut std::ffi::c_void);
 

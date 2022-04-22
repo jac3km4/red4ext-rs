@@ -18,7 +18,7 @@ pub trait REDInvokable<A, R> {
 
 macro_rules! impl_invokable {
     ($( $types:ident ),*) => {
-        #[allow(unused_variables)]
+        #[allow(non_snake_case, unused_variables)]
         impl<$($types,)* R, FN> REDInvokable<($($types,)*), R> for FN
         where
             FN: Fn($($types,)*) -> R,
@@ -30,8 +30,8 @@ macro_rules! impl_invokable {
 
             #[inline]
             fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
-                $(let casey::lower!($types) = FromRED::from_red(frame);)*
-                let res = self($(casey::lower!($types),)*);
+                $(let $types = FromRED::from_red(frame);)*
+                let res = self($($types,)*);
                 IntoRED::into_red(res, mem);
             }
         }

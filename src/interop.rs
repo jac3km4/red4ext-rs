@@ -23,11 +23,8 @@ pub trait IntoRED: NativeRED + Sized {
     }
 }
 
-pub trait FromRED: NativeRED + Sized
-where
-    Self::Repr: Default,
-{
-    type Repr;
+pub trait FromRED: NativeRED + Sized {
+    type Repr: Default;
 
     fn from_repr(repr: &Self::Repr) -> Self;
 
@@ -39,9 +36,9 @@ where
     }
 }
 
-pub trait IsoRED: NativeRED + Default {}
+pub trait IsoRED: NativeRED {}
 
-impl<A: IsoRED + Clone> FromRED for A {
+impl<A: IsoRED + Clone + Default> FromRED for A {
     type Repr = A;
 
     #[inline]
@@ -326,6 +323,14 @@ pub struct Variant {
 }
 
 impl Variant {
+    #[inline]
+    pub const fn undefined() -> Self {
+        Variant {
+            typ: ptr::null(),
+            data: [0; 0x10],
+        }
+    }
+
     pub fn new<A: IntoRED>(val: A) -> Self {
         let mut this = Self::default();
         let typ = rtti::get_type(CName::new(A::NAME));
@@ -337,7 +342,7 @@ impl Variant {
     }
 
     #[inline]
-    pub fn try_get<A: FromRED + IntoRED>(&self) -> Option<A> {
+    pub fn try_get<A: FromRED>(&self) -> Option<A> {
         if rtti::get_type_name(self.get_type()) == CName::new(A::NAME) {
             let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
             Some(A::from_repr(unsafe { &*ptr }))
@@ -350,10 +355,7 @@ impl Variant {
 impl Default for Variant {
     #[inline]
     fn default() -> Self {
-        Self {
-            typ: ptr::null(),
-            data: [0; 0x10],
-        }
+        Self::undefined()
     }
 }
 
@@ -362,6 +364,20 @@ impl NativeRED for Variant {
 }
 
 impl IsoRED for Variant {}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct StackArg {
+    typ: *const ffi::CBaseRTTIType,
+    value: Mem,
+}
+
+impl StackArg {
+    #[inline]
+    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
+        StackArg { typ, value }
+    }
+}
 
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
@@ -396,20 +412,6 @@ impl Color {
     }
 }
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct StackArg {
-    typ: *const ffi::CBaseRTTIType,
-    value: Mem,
-}
-
-impl StackArg {
-    #[inline]
-    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
-        StackArg { typ, value }
-    }
-}
-
 macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
         impl NativeRED for $ty {
@@ -434,7 +436,7 @@ iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
-iso_red_instance!(Ref<ffi::IScriptable>, "ref:IScriptable");
+iso_red_instance!(Ref<ffi::IScriptable>, "handle:IScriptable");
 
 #[cfg(test)]
 mod tests {
@@ -445,7 +447,7 @@ mod tests {
         assert_eq!(<Vec<Vec<Vec<i32>>> as NativeRED>::NAME, "array:array:array:Int32");
         assert_eq!(
             <Vec<Ref<ffi::IScriptable>> as NativeRED>::NAME,
-            "array:ref:IScriptable"
+            "array:handle:IScriptable"
         );
     }
 
