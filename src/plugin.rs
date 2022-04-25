@@ -100,7 +100,7 @@ macro_rules! define_trait_plugin {
             #[allow(non_snake_case)]
             #[no_mangle]
             unsafe extern "C" fn Query(info: *mut $crate::ffi::PluginInfo) {
-                let version = <$ty as $crate::plugin::Plugin>::version();
+                let version = <$ty as $crate::plugin::Plugin>::VERSION;
                 $crate::ffi::define_plugin(
                     info as _,
                     $crate::wchar::wchz!($name).as_ptr(),
@@ -137,13 +137,14 @@ pub struct Version {
 }
 
 impl Version {
-    pub fn new(major: u8, minor: u16, patch: u32) -> Self {
+    pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
         Self { major, minor, patch }
     }
 }
 
 pub trait Plugin {
-    fn version() -> Version;
+    const VERSION: Version;
+
     fn register() {}
     fn post_register() {}
     fn unload() {}
