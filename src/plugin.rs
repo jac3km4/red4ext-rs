@@ -27,44 +27,48 @@ macro_rules! define_plugin {
       version: $major:literal:$minor:literal:$patch:literal,
       on_register: $($on_register:tt)*
     } => {
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
-            match reason {
-                $crate::plugin::MainReason::Load => {
-                    $crate::logger::Logger::init(sdk, handle).ok();
+        mod __raw_api {
+            use super::*;
 
-                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
+                match reason {
+                    $crate::plugin::MainReason::Load => {
+                        $crate::logger::Logger::init(sdk, handle).ok();
+
+                        $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+                    }
+                    $crate::plugin::MainReason::Unload => {}
                 }
-                $crate::plugin::MainReason::Unload => {}
             }
-        }
 
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        unsafe extern "C" fn Query(info: *mut $crate::ffi::PluginInfo) {
-            $crate::ffi::define_plugin(
-                info as _,
-                $crate::wchar::wchz!($name).as_ptr(),
-                $crate::wchar::wchz!($author).as_ptr(),
-                $major,
-                $minor,
-                $patch,
-            );
-        }
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            unsafe extern "C" fn Query(info: *mut $crate::ffi::PluginInfo) {
+                $crate::ffi::define_plugin(
+                    info as _,
+                    $crate::wchar::wchz!($name).as_ptr(),
+                    $crate::wchar::wchz!($author).as_ptr(),
+                    $major,
+                    $minor,
+                    $patch,
+                );
+            }
 
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        extern "C" fn Supports() -> u32 {
-            $crate::ffi::get_sdk_version()
-        }
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            extern "C" fn Supports() -> u32 {
+                $crate::ffi::get_sdk_version()
+            }
 
-        #[allow(non_snake_case)]
-        extern "C" fn Register() {}
+            #[allow(non_snake_case)]
+            extern "C" fn Register() {}
 
-        #[allow(non_snake_case)]
-        extern "C" fn PostRegister() {
-            $($on_register)*
+            #[allow(non_snake_case)]
+            extern "C" fn PostRegister() {
+                $($on_register)*
+            }
         }
     };
 }
@@ -75,49 +79,53 @@ macro_rules! define_trait_plugin {
       author: $author:literal,
       plugin: $ty:ty
     } => {
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
-            match reason {
-                $crate::plugin::MainReason::Load => {
-                    $crate::logger::Logger::init(sdk, handle).ok();
+        mod __raw_api {
+            use super::*;
 
-                    $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
-                }
-                $crate::plugin::MainReason::Unload => {
-                    <$ty as $crate::plugin::Plugin>::unload();
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            unsafe extern "C" fn Main(handle: $crate::plugin::PluginHandle, reason: $crate::plugin::MainReason, sdk: &'static $crate::plugin::Sdk) {
+                match reason {
+                    $crate::plugin::MainReason::Load => {
+                        $crate::logger::Logger::init(sdk, handle).ok();
+
+                        $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+                    }
+                    $crate::plugin::MainReason::Unload => {
+                        <$ty as $crate::plugin::Plugin>::unload();
+                    }
                 }
             }
-        }
 
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        unsafe extern "C" fn Query(info: *mut $crate::ffi::PluginInfo) {
-            let version = <$ty as $crate::plugin::Plugin>::version();
-            $crate::ffi::define_plugin(
-                info as _,
-                $crate::wchar::wchz!($name).as_ptr(),
-                $crate::wchar::wchz!($author).as_ptr(),
-                version.major,
-                version.minor,
-                version.patch,
-            );
-        }
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            unsafe extern "C" fn Query(info: *mut $crate::ffi::PluginInfo) {
+                let version = <$ty as $crate::plugin::Plugin>::version();
+                $crate::ffi::define_plugin(
+                    info as _,
+                    $crate::wchar::wchz!($name).as_ptr(),
+                    $crate::wchar::wchz!($author).as_ptr(),
+                    version.major,
+                    version.minor,
+                    version.patch,
+                );
+            }
 
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        extern "C" fn Supports() -> u32 {
-            $crate::ffi::get_sdk_version()
-        }
+            #[allow(non_snake_case)]
+            #[no_mangle]
+            extern "C" fn Supports() -> u32 {
+                $crate::ffi::get_sdk_version()
+            }
 
-        #[allow(non_snake_case)]
-        extern "C" fn Register() {
-            <$ty as $crate::plugin::Plugin>::register();
-        }
+            #[allow(non_snake_case)]
+            extern "C" fn Register() {
+                <$ty as $crate::plugin::Plugin>::register();
+            }
 
-        #[allow(non_snake_case)]
-        extern "C" fn PostRegister() {
-            <$ty as $crate::plugin::Plugin>::post_register();
+            #[allow(non_snake_case)]
+            extern "C" fn PostRegister() {
+                <$ty as $crate::plugin::Plugin>::post_register();
+            }
         }
     };
 }
