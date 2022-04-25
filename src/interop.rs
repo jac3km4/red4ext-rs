@@ -26,13 +26,13 @@ pub trait IntoRED: NativeRED + Sized {
 pub trait FromRED: NativeRED + Sized {
     type Repr: Default;
 
-    fn from_repr(repr: &Self::Repr) -> Self;
+    fn from_repr(repr: Self::Repr) -> Self;
 
     #[inline]
     fn from_red(frame: *mut ffi::CStackFrame) -> Self {
         let mut init = Self::Repr::default();
         unsafe { ffi::get_parameter(frame, mem::transmute(&mut init)) };
-        Self::from_repr(&init)
+        Self::from_repr(init)
     }
 }
 
@@ -42,8 +42,8 @@ impl<A: IsoRED + Clone + Default> FromRED for A {
     type Repr = A;
 
     #[inline]
-    fn from_repr(repr: &Self::Repr) -> Self {
-        repr.clone()
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr
     }
 }
 
@@ -73,7 +73,7 @@ impl FromRED for () {
     type Repr = ();
 
     #[inline]
-    fn from_repr(_repr: &Self::Repr) -> Self {}
+    fn from_repr(_repr: Self::Repr) -> Self {}
     #[inline]
     fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
@@ -98,6 +98,7 @@ impl REDString {
         }
     }
 
+    #[inline]
     pub fn as_str(&self) -> &str {
         self.as_cstr().to_str().unwrap()
     }
@@ -150,7 +151,7 @@ impl FromRED for String {
     type Repr = REDString;
 
     #[inline]
-    fn from_repr(repr: &Self::Repr) -> Self {
+    fn from_repr(repr: Self::Repr) -> Self {
         repr.as_str().to_owned()
     }
 }
@@ -225,11 +226,12 @@ impl<A: NativeRED> NativeRED for Vec<A> {
 impl<A> FromRED for Vec<A>
 where
     A: FromRED,
+    A::Repr: Clone,
 {
     type Repr = REDArray<A::Repr>;
 
-    fn from_repr(repr: &Self::Repr) -> Self {
-        repr.as_slice().iter().map(FromRED::from_repr).collect()
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.as_slice().iter().cloned().map(FromRED::from_repr).collect()
     }
 }
 
@@ -360,10 +362,14 @@ impl Variant {
     }
 
     #[inline]
-    pub fn try_get<A: FromRED>(&self) -> Option<A> {
+    pub fn try_get<A>(&self) -> Option<A>
+    where
+        A: FromRED,
+        A::Repr: Clone,
+    {
         if rtti::get_type_name(self.get_type()) == CName::new(A::NAME) {
-            let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
-            Some(A::from_repr(unsafe { &*ptr }))
+            let ptr = self.get_data_ptr().0 as *mut <A as FromRED>::Repr;
+            Some(A::from_repr(unsafe { (*ptr).clone() }))
         } else {
             None
         }
