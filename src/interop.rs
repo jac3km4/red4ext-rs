@@ -78,8 +78,8 @@ impl FromRED for () {
     fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
 
-#[derive(Debug, Clone, Copy)]
-#[repr(C, packed)]
+#[derive(Debug, Clone)]
+#[repr(C)]
 pub struct REDString {
     data: [i8; 0x14],
     length: u32,
@@ -87,15 +87,25 @@ pub struct REDString {
 }
 
 impl REDString {
-    fn as_str(&self) -> &str {
+    pub fn as_cstr(&self) -> &CStr {
         unsafe {
             let ptr = if self.length < 0x40000000 {
                 self.data.as_ptr()
             } else {
                 *(self.data.as_ptr() as *const *const i8)
             };
-            CStr::from_ptr(ptr).to_str().unwrap()
+            CStr::from_ptr(ptr)
         }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.as_cstr().to_str().unwrap()
+    }
+}
+
+impl Drop for REDString {
+    fn drop(&mut self) {
+        unsafe { ffi::destruct_string(self) };
     }
 }
 
@@ -180,6 +190,14 @@ impl<A> REDArray<A> {
         }
         arr.size = len as u32;
         arr
+    }
+}
+
+impl<A> Drop for REDArray<A> {
+    fn drop(&mut self) {
+        for el in self.as_mut_slice() {
+            unsafe { std::ptr::drop_in_place(el) };
+        }
     }
 }
 

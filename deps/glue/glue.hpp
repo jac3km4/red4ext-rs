@@ -61,4 +61,9 @@ namespace glue {
     RelocFunc<func_t> func(Addresses::DynArray_Realloc);
     func(array, cap, elemSize, alignment, nullptr);
   }
+
+  void DestructString(CString* cstr) {
+    RelocFunc<CString* (*)(CString*)> func(Addresses::CString_dtor);
+    func(cstr);
+  }
 }

@@ -154,5 +154,8 @@ pub mod ffi {
 
         #[cxx_name = "AllocArray"]
         fn alloc_array(arr: VoidPtr, cap: u32, elem_size: u32);
+
+        #[cxx_name = "DestructString"]
+        unsafe fn destruct_string(str: *mut CString);
     }
 }
