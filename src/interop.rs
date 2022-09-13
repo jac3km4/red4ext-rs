@@ -1,14 +1,20 @@
 use std::ffi::CStr;
+use std::pin::Pin;
 use std::{mem, ptr};
 
-use crate::{ffi, VoidPtr};
+use const_combine::bounded::const_combine;
+
+use crate::{ffi, rtti, VoidPtr};
 
 pub type Mem = *mut std::ffi::c_void;
 
-pub trait IntoRED: Sized {
+pub trait NativeRED {
+    const NAME: &'static str;
+}
+
+pub trait IntoRED: NativeRED + Sized {
     type Repr;
 
-    const NAME: &'static str;
     fn into_repr(self) -> Self::Repr;
 
     #[inline]
@@ -17,39 +23,32 @@ pub trait IntoRED: Sized {
     }
 }
 
-pub trait FromRED: Sized
-where
-    Self::Repr: Default,
-{
-    type Repr;
+pub trait FromRED: NativeRED + Sized {
+    type Repr: Default;
 
-    fn from_repr(repr: Self::Repr) -> Self;
+    fn from_repr(repr: &Self::Repr) -> Self;
 
     #[inline]
     fn from_red(frame: *mut ffi::CStackFrame) -> Self {
         let mut init = Self::Repr::default();
         unsafe { ffi::get_parameter(frame, mem::transmute(&mut init)) };
-        Self::from_repr(init)
+        Self::from_repr(&init)
     }
 }
 
-pub trait IsoRED: Default {
-    const NAME: &'static str;
-}
+pub trait IsoRED: NativeRED {}
 
-impl<A: IsoRED> FromRED for A {
+impl<A: IsoRED + Clone + Default> FromRED for A {
     type Repr = A;
 
     #[inline]
-    fn from_repr(repr: Self::Repr) -> Self {
-        repr
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.clone()
     }
 }
 
 impl<A: IsoRED> IntoRED for A {
     type Repr = A;
-
-    const NAME: &'static str = <Self as IsoRED>::NAME;
 
     #[inline]
     fn into_repr(self) -> Self::Repr {
@@ -57,10 +56,12 @@ impl<A: IsoRED> IntoRED for A {
     }
 }
 
+impl NativeRED for () {
+    const NAME: &'static str = "Void";
+}
+
 impl IntoRED for () {
     type Repr = ();
-
-    const NAME: &'static str = "Void";
 
     #[inline]
     fn into_repr(self) -> Self::Repr {}
@@ -72,7 +73,7 @@ impl FromRED for () {
     type Repr = ();
 
     #[inline]
-    fn from_repr(_repr: Self::Repr) -> Self {}
+    fn from_repr(_repr: &Self::Repr) -> Self {}
     #[inline]
     fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
@@ -109,24 +110,28 @@ impl Default for REDString {
     }
 }
 
-impl IntoRED for &str {
-    type Repr = REDString;
-
+impl NativeRED for String {
     const NAME: &'static str = "String";
-
-    fn into_repr(self) -> Self::Repr {
-        self.to_owned().into_repr()
-    }
 }
 
 impl IntoRED for String {
     type Repr = REDString;
 
+    fn into_repr(self) -> Self::Repr {
+        self.as_str().into_repr()
+    }
+}
+
+impl NativeRED for &str {
     const NAME: &'static str = "String";
+}
+
+impl IntoRED for &str {
+    type Repr = REDString;
 
     fn into_repr(self) -> REDString {
         let mut str = REDString::default();
-        unsafe { ffi::construct_string_at(&mut str, &self, ptr::null_mut()) };
+        unsafe { ffi::construct_string_at(&mut str, self, ptr::null_mut()) };
         str
     }
 }
@@ -135,12 +140,12 @@ impl FromRED for String {
     type Repr = REDString;
 
     #[inline]
-    fn from_repr(repr: Self::Repr) -> Self {
+    fn from_repr(repr: &Self::Repr) -> Self {
         repr.as_str().to_owned()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct REDArray<A> {
     entries: *mut A,
@@ -189,34 +194,40 @@ impl<A> Default for REDArray<A> {
     }
 }
 
-impl<A: IsoRED> IsoRED for REDArray<A> {
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
+impl<A: NativeRED> NativeRED for REDArray<A> {
+    const NAME: &'static str = const_combine!("array:", A::NAME);
+}
+
+impl<A: IsoRED> IsoRED for REDArray<A> {}
+
+impl<A: NativeRED> NativeRED for Vec<A> {
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
 impl<A> FromRED for Vec<A>
 where
     A: FromRED,
-    A::Repr: Clone,
 {
     type Repr = REDArray<A::Repr>;
 
-    fn from_repr(repr: Self::Repr) -> Self {
-        repr.as_slice().iter().cloned().map(FromRED::from_repr).collect()
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.as_slice().iter().map(FromRED::from_repr).collect()
     }
 }
 
 impl<A> IntoRED for Vec<A>
 where
-    A: IntoRED + Clone,
+    A: IntoRED,
 {
     type Repr = REDArray<A::Repr>;
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.into_iter().map(IntoRED::into_repr))
     }
+}
+
+impl<A: NativeRED> NativeRED for &[A] {
+    const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
 impl<A> IntoRED for &[A]
@@ -224,8 +235,6 @@ where
     A: IntoRED + Clone,
 {
     type Repr = REDArray<A::Repr>;
-    // FIXME: this should be "array:" + A::NAME, but not possible yet
-    const NAME: &'static str = "array:Variant";
 
     fn into_repr(self) -> Self::Repr {
         REDArray::from_sized_iter(self.iter().cloned().map(IntoRED::into_repr))
@@ -292,22 +301,21 @@ pub const fn fnv1a64(str: &str) -> u64 {
     const PRIME: u64 = 0x100000001b3;
     const SEED: u64 = 0xCBF29CE484222325;
 
-    #[inline]
-    const fn calc(str: &[u8], mut hash: u64) -> u64 {
-        match str.split_first() {
-            Some((head, tail)) => {
+    let mut tail = str.as_bytes();
+    let mut hash = SEED;
+    loop {
+        match tail.split_first() {
+            Some((head, rem)) => {
                 hash ^= *head as u64;
                 hash = hash.wrapping_mul(PRIME);
-                calc(tail, hash)
+                tail = rem;
             }
-            None => hash,
+            None => break hash,
         }
     }
-
-    calc(str.as_bytes(), SEED)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Variant {
     typ: *const ffi::CBaseRTTIType,
@@ -315,12 +323,59 @@ pub struct Variant {
 }
 
 impl Variant {
-    pub fn get_type(&self) -> *const ffi::CBaseRTTIType {
-        self.typ
+    #[inline]
+    pub const fn undefined() -> Self {
+        Variant {
+            typ: ptr::null(),
+            data: [0; 0x10],
+        }
     }
 
-    pub fn get_data(&self) -> Mem {
-        ffi::Variant::get_data_ptr(self).0
+    pub fn new<A: IntoRED>(val: A) -> Self {
+        let mut this = Self::default();
+        let typ = rtti::get_type(CName::new(A::NAME));
+        let repr = val.into_repr();
+        unsafe {
+            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(mem::transmute(&repr)));
+        }
+        this
+    }
+
+    #[inline]
+    pub fn try_get<A: FromRED>(&self) -> Option<A> {
+        if rtti::get_type_name(self.get_type()) == CName::new(A::NAME) {
+            let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
+            Some(A::from_repr(unsafe { &*ptr }))
+        } else {
+            None
+        }
+    }
+}
+
+impl Default for Variant {
+    #[inline]
+    fn default() -> Self {
+        Self::undefined()
+    }
+}
+
+impl NativeRED for Variant {
+    const NAME: &'static str = "Variant";
+}
+
+impl IsoRED for Variant {}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct StackArg {
+    typ: *const ffi::CBaseRTTIType,
+    value: Mem,
+}
+
+impl StackArg {
+    #[inline]
+    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
+        StackArg { typ, value }
     }
 }
 
@@ -357,25 +412,13 @@ impl Color {
     }
 }
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct StackArg {
-    typ: *const ffi::CBaseRTTIType,
-    value: Mem,
-}
-
-impl StackArg {
-    #[inline]
-    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
-        StackArg { typ, value }
-    }
-}
-
 macro_rules! iso_red_instance {
     ($ty:ty, $name:literal) => {
-        impl IsoRED for $ty {
-            const NAME: &'static str = stringify!($name);
+        impl NativeRED for $ty {
+            const NAME: &'static str = $name;
         }
+
+        impl IsoRED for $ty {}
     };
 }
 
@@ -393,4 +436,25 @@ iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
-iso_red_instance!(Ref<ffi::IScriptable>, "ref<IScriptable>");
+iso_red_instance!(Ref<ffi::IScriptable>, "handle:IScriptable");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_type_names() {
+        assert_eq!(<Vec<Vec<Vec<i32>>> as NativeRED>::NAME, "array:array:array:Int32");
+        assert_eq!(
+            <Vec<Ref<ffi::IScriptable>> as NativeRED>::NAME,
+            "array:handle:IScriptable"
+        );
+    }
+
+    #[test]
+    fn calculate_hashes() {
+        assert_eq!(CName::new("IScriptable").hash, 3191163302135919211);
+        assert_eq!(CName::new("Vector2").hash, 7466804955052523504);
+        assert_eq!(CName::new("Color").hash, 3769135706557701272);
+    }
+}

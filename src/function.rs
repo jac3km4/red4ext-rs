@@ -10,22 +10,28 @@ pub type REDFunction = unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CSt
 type REDType = *const ffi::CBaseRTTIType;
 
 pub trait REDInvokable<A, R> {
+    const ARG_TYPES: &'static [CName];
+    const RETURN_TYPE: CName;
+
     fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem);
 }
 
 macro_rules! impl_invokable {
     ($( $types:ident ),*) => {
-        #[allow(unused_variables)]
+        #[allow(non_snake_case, unused_variables)]
         impl<$($types,)* R, FN> REDInvokable<($($types,)*), R> for FN
         where
             FN: Fn($($types,)*) -> R,
             $($types: FromRED,)*
             R: IntoRED
         {
+            const ARG_TYPES: &'static [CName] = &[$(CName::new($types::NAME),)*];
+            const RETURN_TYPE: CName = CName::new(R::NAME);
+
             #[inline]
             fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
-                $(let casey::lower!($types) = FromRED::from_red(frame);)*
-                let res = self($(casey::lower!($types),)*);
+                $(let $types = FromRED::from_red(frame);)*
+                let res = self($($types,)*);
                 IntoRED::into_red(res, mem);
             }
         }
@@ -40,6 +46,7 @@ impl_invokable!(A, B, C, D);
 impl_invokable!(A, B, C, D, E);
 impl_invokable!(A, B, C, D, E, F);
 
+#[inline]
 pub fn invoke<R: FromRED, const N: usize>(
     this: Ref<ffi::IScriptable>,
     fun: *mut ffi::CBaseFunction,
@@ -52,7 +59,7 @@ pub fn invoke<R: FromRED, const N: usize>(
     let mut ret = R::Repr::default();
 
     unsafe { ffi::execute_function(VoidPtr(this.instance as _), fun, mem::transmute(&mut ret), &args) };
-    R::from_repr(ret)
+    R::from_repr(&ret)
 }
 
 #[inline]
@@ -89,17 +96,6 @@ macro_rules! call {
         $crate::invoke!(
             $this,
             $crate::rtti::get_method($this, $crate::interop::CName::new($fn_name)),
-            ($($args),*) -> $rett
-        )
-    };
-}
-
-#[macro_export]
-macro_rules! call_static {
-    ($class:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
-        $crate::invoke!(
-            $crate::interop::Ref::null(),
-            $crate::rtti::get_static_method($crate::interop::CName::new($class), $crate::interop::CName::new($fn_name)),
             ($($args),*) -> $rett
         )
     };

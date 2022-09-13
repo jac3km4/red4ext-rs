@@ -3,12 +3,13 @@
 
 pub mod function;
 pub mod interop;
+pub mod logger;
 pub mod plugin;
 pub mod prelude;
 pub mod rtti;
 
 use cxx::{type_id, ExternType};
-pub use {casey, erasable, wchar};
+pub use {erasable, wchar};
 
 pub struct VoidPtr(pub *mut std::ffi::c_void);
 
@@ -96,8 +97,14 @@ pub mod ffi {
         #[cxx_name = "Step"]
         fn step(self: Pin<&mut CStackFrame>);
 
+        #[cxx_name = "GetType"]
+        fn get_type(self: &Variant) -> *mut CBaseRTTIType;
+
         #[cxx_name = "GetDataPtr"]
         fn get_data_ptr(self: &Variant) -> VoidPtr;
+
+        #[cxx_name = "Fill"]
+        unsafe fn fill(self: Pin<&mut Variant>, typ: *const CBaseRTTIType, data: VoidPtr) -> bool;
     }
 
     #[namespace = "glue"]
@@ -107,7 +114,13 @@ pub mod ffi {
         type VoidPtr = super::VoidPtr;
 
         #[cxx_name = "CreateNativeFunction"]
-        fn new_native_function(name: &str, short_name: &str, mem: VoidPtr) -> *mut CGlobalFunction;
+        fn new_native_function(
+            name: &str,
+            short_name: &str,
+            mem: VoidPtr,
+            args: &[CName],
+            ret: CName,
+        ) -> *mut CGlobalFunction;
 
         #[cxx_name = "GetRTTI"]
         fn get_rtti() -> *mut IRTTISystem;
