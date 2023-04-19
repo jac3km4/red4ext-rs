@@ -65,6 +65,7 @@ impl IntoRED for () {
 
     #[inline]
     fn into_repr(self) -> Self::Repr {}
+
     #[inline]
     fn into_red(self, _mem: Mem) {}
 }
@@ -74,6 +75,7 @@ impl FromRED for () {
 
     #[inline]
     fn from_repr(_repr: &Self::Repr) -> Self {}
+
     #[inline]
     fn from_red(_frame: *mut ffi::CStackFrame) -> Self {}
 }
@@ -89,7 +91,7 @@ pub struct REDString {
 impl REDString {
     fn as_str(&self) -> &str {
         unsafe {
-            let ptr = if self.length < 0x40000000 {
+            let ptr = if self.length < 0x4000_0000 {
                 self.data.as_ptr()
             } else {
                 *(self.data.as_ptr() as *const *const i8)
@@ -167,7 +169,7 @@ impl<A> REDArray<A> {
     #[inline]
     pub fn with_capacity(count: usize) -> Self {
         let arr = REDArray::default();
-        let ptr = unsafe { VoidPtr(mem::transmute(&arr)) };
+        let ptr = VoidPtr(&arr as *const _ as *mut _);
         ffi::alloc_array(ptr, count as u32, mem::size_of::<A>() as u32);
         arr
     }
@@ -298,8 +300,8 @@ impl CName {
 
 #[inline]
 pub const fn fnv1a64(str: &str) -> u64 {
-    const PRIME: u64 = 0x100000001b3;
-    const SEED: u64 = 0xCBF29CE484222325;
+    const PRIME: u64 = 0x0100_0000_01b3;
+    const SEED: u64 = 0xCBF2_9CE4_8422_2325;
 
     let mut tail = str.as_bytes();
     let mut hash = SEED;
@@ -336,7 +338,7 @@ impl Variant {
         let typ = rtti::get_type(CName::new(A::NAME));
         let repr = val.into_repr();
         unsafe {
-            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(mem::transmute(&repr)));
+            Pin::new_unchecked(&mut this).fill(typ, VoidPtr(&repr as *const _ as *mut _));
         }
         this
     }
@@ -444,7 +446,10 @@ mod tests {
 
     #[test]
     fn render_type_names() {
-        assert_eq!(<Vec<Vec<Vec<i32>>> as NativeRED>::NAME, "array:array:array:Int32");
+        assert_eq!(
+            <Vec<Vec<Vec<i32>>> as NativeRED>::NAME,
+            "array:array:array:Int32"
+        );
         assert_eq!(
             <Vec<Ref<ffi::IScriptable>> as NativeRED>::NAME,
             "array:handle:IScriptable"
@@ -453,8 +458,8 @@ mod tests {
 
     #[test]
     fn calculate_hashes() {
-        assert_eq!(CName::new("IScriptable").hash, 3191163302135919211);
-        assert_eq!(CName::new("Vector2").hash, 7466804955052523504);
-        assert_eq!(CName::new("Color").hash, 3769135706557701272);
+        assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
+        assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
+        assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
     }
 }

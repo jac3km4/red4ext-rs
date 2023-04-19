@@ -58,33 +58,33 @@ impl Logger {
     #[inline]
     pub fn with_logger<F: Fn(&Self)>(func: F) {
         if let Some(logger) = INSTANCE.get() {
-            func(logger)
+            func(logger);
         }
     }
 
-    pub fn error(&self, args: Arguments) {
+    pub fn error(&self, args: Arguments<'_>) {
         let str = format!("{}\0", args);
-        (self.sdk.logger.error)(self.handle, str.as_bytes().as_ptr())
+        (self.sdk.logger.error)(self.handle, str.as_bytes().as_ptr());
     }
 
-    pub fn warn(&self, args: Arguments) {
+    pub fn warn(&self, args: Arguments<'_>) {
         let str = format!("{}\0", args);
-        (self.sdk.logger.warn)(self.handle, str.as_bytes().as_ptr())
+        (self.sdk.logger.warn)(self.handle, str.as_bytes().as_ptr());
     }
 
-    pub fn info(&self, args: Arguments) {
+    pub fn info(&self, args: Arguments<'_>) {
         let str = format!("{}\0", args);
-        (self.sdk.logger.info)(self.handle, str.as_bytes().as_ptr())
+        (self.sdk.logger.info)(self.handle, str.as_bytes().as_ptr());
     }
 
-    pub fn debug(&self, args: Arguments) {
+    pub fn debug(&self, args: Arguments<'_>) {
         let str = format!("{}\0", args);
-        (self.sdk.logger.debug)(self.handle, str.as_bytes().as_ptr())
+        (self.sdk.logger.debug)(self.handle, str.as_bytes().as_ptr());
     }
 
-    pub fn trace(&self, args: Arguments) {
+    pub fn trace(&self, args: Arguments<'_>) {
         let str = format!("{}\0", args);
-        (self.sdk.logger.trace)(self.handle, str.as_bytes().as_ptr())
+        (self.sdk.logger.trace)(self.handle, str.as_bytes().as_ptr());
     }
 }
 
