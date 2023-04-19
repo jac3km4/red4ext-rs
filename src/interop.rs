@@ -325,6 +325,7 @@ pub struct TweakDBID {
 impl TweakDBID {
     #[inline]
     pub const fn new(str: &str) -> Self {
+        assert!(str.len() <= u8::MAX as usize);
         Self {
             hash: const_crc32::crc32(str.as_bytes()),
             length: str.len() as u8,
