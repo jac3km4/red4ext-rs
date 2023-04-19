@@ -17,6 +17,7 @@ erasable = "1"
 wchar = "0.11"
 once_cell = "1"
 const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.4" }
+const-crc32 = "1.2.0"
 
 [build-dependencies]
 cxx-build = "1.0"

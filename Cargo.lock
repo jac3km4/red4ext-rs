@@ -36,6 +36,12 @@ version = "0.1.0"
 source = "git+https://github.com/jac3km4/const-combine?rev=v0.1.4#1a3310b205964b72f8bb15223a4fd31285e7c1d2"
 
 [[package]]
+name = "const-crc32"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23eeda20729a10d016ff87bc5b3547d771e7aa9e356ec2e65abd899c02c2d66e"
+
+[[package]]
 name = "cxx"
 version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -128,6 +134,7 @@ version = "0.1.0"
 dependencies = [
  "array-init",
  "const-combine",
+ "const-crc32",
  "cxx",
  "cxx-build",
  "erasable",
