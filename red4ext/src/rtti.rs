@@ -1,9 +1,9 @@
 use std::pin::Pin;
 
-use crate::function::{REDFunction, REDInvokable};
-use crate::interop::Ref;
-use crate::prelude::CName;
-use crate::{ffi, VoidPtr};
+use red4ext_sys::ffi;
+
+use crate::invokable::{REDFunction, REDInvokable};
+use crate::types::{CName, Ref, VoidPtr};
 
 pub type RegisterCallback = extern "C" fn();
 
@@ -71,7 +71,7 @@ macro_rules! register_function {
             ret: *mut std::ffi::c_void,
             _unk: i64,
         ) {
-            $crate::function::REDInvokable::invoke($fun, ctx, frame, ret);
+            $crate::invokable::REDInvokable::invoke($fun, ctx, frame, ret);
             std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
         }
 

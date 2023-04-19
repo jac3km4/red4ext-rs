@@ -128,11 +128,18 @@ version = "0.1.0"
 dependencies = [
  "array-init",
  "const-combine",
- "cxx",
- "cxx-build",
  "erasable",
  "once_cell",
+ "red4ext-sys",
  "wchar",
+]
+
+[[package]]
+name = "red4ext-sys"
+version = "0.1.0"
+dependencies = [
+ "cxx",
+ "cxx-build",
 ]
 
 [[package]]

@@ -1,10 +1,12 @@
 use std::mem;
 
 use erasable::ErasedPtr;
+use red4ext_sys::ffi;
+use red4ext_sys::interop::{Mem, StackArg};
 
-use crate::interop::{FromRED, IntoRED, Mem, Ref, StackArg};
-use crate::prelude::CName;
-use crate::{ffi, rtti, VoidPtr};
+use crate::conv::{FromRED, IntoRED};
+use crate::rtti;
+use crate::types::{CName, Ref, VoidPtr};
 
 pub type REDFunction = unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
 type REDType = *const ffi::CBaseRTTIType;

@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 fn main() {
     let includes: &[PathBuf] = &[
-        PathBuf::from("deps").join("RED4ext.SDK").join("include"),
-        PathBuf::from("deps").join("glue"),
+        PathBuf::from("cpp").join("RED4ext.SDK").join("include"),
+        PathBuf::from("cpp").join("glue"),
     ];
 
     cxx_build::bridge("src/lib.rs")
@@ -12,5 +12,5 @@ fn main() {
         .compile("red4ext-rs");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=deps/glue/glue.hpp");
+    println!("cargo:rerun-if-changed=cpp/glue/glue.hpp");
 }
