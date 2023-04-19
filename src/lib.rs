@@ -28,6 +28,11 @@ unsafe impl ExternType for interop::CName {
     type Kind = cxx::kind::Trivial;
 }
 
+unsafe impl ExternType for interop::TweakDBID {
+    type Id = type_id!("RED4ext::TweakDBID");
+    type Kind = cxx::kind::Trivial;
+}
+
 unsafe impl ExternType for interop::Variant {
     type Id = type_id!("RED4ext::Variant");
     type Kind = cxx::kind::Trivial;

@@ -315,6 +315,23 @@ pub const fn fnv1a64(str: &str) -> u64 {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct TweakDBID {
+    hash: u32,
+    length: u8,
+}
+
+impl TweakDBID {
+    #[inline]
+    pub const fn new(str: &str) -> Self {
+        Self {
+            hash: const_crc32::crc32(str.as_bytes()),
+            length: str.len() as u8,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Variant {
