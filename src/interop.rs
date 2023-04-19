@@ -451,6 +451,7 @@ iso_red_instance!(u16, "Uint16");
 iso_red_instance!(u8, "Uint8");
 iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
+iso_red_instance!(TweakDBID, "TweakDBID");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
 iso_red_instance!(Ref<ffi::IScriptable>, "handle:IScriptable");
