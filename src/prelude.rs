@@ -1,5 +1,5 @@
 pub use crate::interop::{CName, Ref};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::{
-    call, debug, define_plugin, define_trait_plugin, error, ffi, info, register_function, rtti, trace, warn
+    call, debug, define_plugin, define_trait_plugin, error, ffi, info, register_function, rtti, trace, warn,
 };
