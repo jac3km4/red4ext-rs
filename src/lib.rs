@@ -1,6 +1,7 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::missing_safety_doc)]
 
+pub mod crc32_table;
 pub mod function;
 pub mod interop;
 pub mod logger;
