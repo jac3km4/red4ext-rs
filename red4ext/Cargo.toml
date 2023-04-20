@@ -1,0 +1,20 @@
+[package]
+name = "red4ext-rs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[example]]
+name = "example"
+crate-type = ["cdylib"]
+
+[dependencies]
+array-init = "2"
+erasable = "1"
+wchar = "0.11"
+once_cell = "1"
+const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.4" }
+
+red4ext-sys = { path = "../red4ext-sys" }

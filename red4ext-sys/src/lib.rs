@@ -1,57 +1,9 @@
-#![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::missing_safety_doc)]
 
-pub mod crc32_table;
-pub mod function;
 pub mod interop;
-pub mod logger;
-pub mod plugin;
-pub mod prelude;
-pub mod rtti;
-
-use cxx::{type_id, ExternType};
-pub use {erasable, wchar};
-
-pub struct VoidPtr(pub *mut std::ffi::c_void);
-
-unsafe impl ExternType for VoidPtr {
-    type Id = type_id!("glue::VoidPtr");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for interop::REDString {
-    type Id = type_id!("RED4ext::CString");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for interop::CName {
-    type Id = type_id!("RED4ext::CName");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for interop::TweakDBID {
-    type Id = type_id!("RED4ext::TweakDBID");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for interop::Variant {
-    type Id = type_id!("RED4ext::Variant");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for interop::StackArg {
-    type Id = type_id!("RED4ext::CStackType");
-    type Kind = cxx::kind::Trivial;
-}
-
-unsafe impl ExternType for plugin::MainReason {
-    type Id = type_id!("RED4ext::EMainReason");
-    type Kind = cxx::kind::Trivial;
-}
 
 #[cxx::bridge]
 pub mod ffi {
-
     #[namespace = "RED4ext"]
     unsafe extern "C++" {
         include!("RED4ext/RED4ext.hpp");
@@ -70,7 +22,7 @@ pub mod ffi {
         type PluginInfo;
         type Sdk;
 
-        type EMainReason = crate::plugin::MainReason;
+        type EMainReason = crate::interop::MainReason;
         type CName = crate::interop::CName;
         type CString = crate::interop::REDString;
         type CStackType = crate::interop::StackArg;
@@ -117,7 +69,7 @@ pub mod ffi {
     unsafe extern "C++" {
         include!("glue.hpp");
 
-        type VoidPtr = super::VoidPtr;
+        type VoidPtr = super::interop::VoidPtr;
 
         #[cxx_name = "CreateNativeFunction"]
         fn new_native_function(

@@ -1,0 +1,13 @@
+[package]
+name = "red4ext-sys"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+cxx = "1"
+
+[build-dependencies]
+cxx-build = "1"

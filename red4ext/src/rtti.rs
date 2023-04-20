@@ -1,9 +1,9 @@
 use std::pin::Pin;
 
-use crate::function::{REDFunction, REDInvokable};
-use crate::interop::Ref;
-use crate::prelude::CName;
-use crate::{ffi, VoidPtr};
+use red4ext_sys::ffi;
+
+use crate::invokable::{REDFunction, REDInvokable};
+use crate::types::{CName, Ref, VoidPtr};
 
 pub type RegisterCallback = extern "C" fn();
 
@@ -29,7 +29,7 @@ pub fn class_of(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
 
 #[inline]
 pub fn get_type_name(typ: *const ffi::CBaseRTTIType) -> CName {
-    unsafe { (&*typ).get_name() }
+    unsafe { (*typ).get_name() }
 }
 
 pub fn get_function(fn_name: CName) -> *mut ffi::CBaseFunction {
@@ -39,14 +39,14 @@ pub fn get_function(fn_name: CName) -> *mut ffi::CBaseFunction {
 pub fn get_method(this: Ref<ffi::IScriptable>, fn_name: CName) -> *mut ffi::CBaseFunction {
     unsafe {
         let typ = class_of(this);
-        (&*typ).get_function(fn_name) as *mut _
+        (*typ).get_function(fn_name) as *mut _
     }
 }
 
 pub fn get_static_method(class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
     unsafe {
         let typ = get_class(class);
-        (&*typ).get_function(fn_name) as *mut _
+        (*typ).get_function(fn_name) as *mut _
     }
 }
 
@@ -71,7 +71,7 @@ macro_rules! register_function {
             ret: *mut std::ffi::c_void,
             _unk: i64,
         ) {
-            $crate::function::REDInvokable::invoke($fun, ctx, frame, ret);
+            $crate::invokable::REDInvokable::invoke($fun, ctx, frame, ret);
             std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
         }
 
