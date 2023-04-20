@@ -48,12 +48,15 @@ unsafe impl ExternType for CName {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct TweakDBID {
-    hash: u64,
+    hash: u32,
+    length: u8,
 }
 
 impl From<u64> for TweakDBID {
     fn from(value: u64) -> Self {
-        Self { hash: value }
+        let hash = u32::from_ne_bytes(value.to_ne_bytes()[0..=3].try_into().unwrap());
+        let length = value.to_ne_bytes()[4];
+        Self { hash, length }
     }
 }
 
@@ -61,29 +64,17 @@ impl TweakDBID {
     #[inline]
     pub const fn new(str: &str) -> Self {
         assert!(str.len() <= u8::MAX as usize);
-        let hash = crc32(str.as_bytes()).to_ne_bytes();
-        let length = str.len() as u8;
         Self {
-            hash: u64::from_ne_bytes([hash[0], hash[1], hash[2], hash[3], length, 0u8, 0u8, 0u8]),
+            hash: crc32(str.as_bytes()),
+            length: str.len() as u8,
         }
     }
     #[inline]
     pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
-        let bytes = base.hash.to_ne_bytes();
-        assert!((bytes[4] as usize + str.len()) <= u8::MAX as usize);
-        let seed = u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-        let hash = crc32_seed(str.as_bytes(), seed).to_ne_bytes();
+        assert!((base.length as usize + str.len()) <= u8::MAX as usize);
         Self {
-            hash: u64::from_ne_bytes([
-                hash[0],
-                hash[1],
-                hash[2],
-                hash[3],
-                bytes[4] + str.len() as u8,
-                0u8,
-                0u8,
-                0u8,
-            ]),
+            hash: crc32_seed(str.as_bytes(), base.hash),
+            length: str.len() as u8 + base.length,
         }
     }
 }
