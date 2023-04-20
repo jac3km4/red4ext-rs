@@ -79,11 +79,11 @@ macro_rules! invoke {
         {
             let args = [
                 $(
-                    ($crate::function::get_argument_type(&$args),
-                     $crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::interop::IntoRED::into_repr($args))))
+                    ($crate::invokable::get_argument_type(&$args),
+                     $crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::conv::IntoRED::into_repr($args))))
                  ),*
             ];
-            let res: $rett = $crate::function::invoke($this, $func, args);
+            let res: $rett = $crate::invokable::invoke($this, $func, args);
             res
         }
     };
@@ -93,15 +93,15 @@ macro_rules! invoke {
 macro_rules! call {
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         $crate::invoke!(
-            $crate::interop::Ref::null(),
-            $crate::rtti::get_function($crate::interop::CName::new($fn_name)),
+            $crate::types::Ref::null(),
+            $crate::rtti::get_function($crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         )
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         $crate::invoke!(
             $this,
-            $crate::rtti::get_method($this, $crate::interop::CName::new($fn_name)),
+            $crate::rtti::get_method($this, $crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         )
     };
