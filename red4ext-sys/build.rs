@@ -87,7 +87,7 @@ fn main() {
         }
         Some(out_dir) => PathBuf::from(out_dir),
     };
-    let _ = write_crc_tables(&out_dir);
+    let _unused = write_crc_tables(&out_dir);
 
     let includes: &[PathBuf] = &[
         PathBuf::from("cpp").join("RED4ext.SDK").join("include"),
