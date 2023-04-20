@@ -1,7 +1,7 @@
+use std::ffi::CStr;
 use std::ptr;
-use std::{ffi::CStr};
 
-use const_crc32::{crc32_seed, crc32};
+use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
 
 use crate::ffi;
