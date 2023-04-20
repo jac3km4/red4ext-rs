@@ -88,6 +88,11 @@ impl TweakDBID {
     }
 }
 
+unsafe impl ExternType for TweakDBID {
+    type Id = type_id!("RED4ext::TweakDBID");
+    type Kind = cxx::kind::Trivial;
+}
+
 // code borrowed from [const-crc32](https://git.shipyard.rs/jstrong/const-crc32/src/branch/master/LICENSE)
 const fn crc32(buf: &[u8], seed: u32) -> u32 {
     let mut out = !seed;
