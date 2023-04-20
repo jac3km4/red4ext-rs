@@ -44,6 +44,51 @@ unsafe impl ExternType for CName {
     type Kind = cxx::kind::Trivial;
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct TweakDBID {
+    hash: u32,
+    length: u8,
+}
+
+impl From<u64> for TweakDBID {
+    fn from(value: u64) -> Self {
+        let hash = u32::from_ne_bytes(value.to_ne_bytes()[0..4].try_into().unwrap());
+        let length = u8::from_ne_bytes(value.to_ne_bytes()[4..5].try_into().unwrap());
+        Self { hash, length }
+    }
+}
+
+impl TweakDBID {
+    #[inline]
+    pub const fn new(str: &str) -> Self {
+        assert!(str.len() <= u8::MAX as usize);
+        Self {
+            hash: crc32(str.as_bytes(), 0),
+            length: str.len() as u8,
+        }
+    }
+    #[inline]
+    pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
+        assert!((base.length as usize + str.len()) <= u8::MAX as usize);
+        Self {
+            hash: crc32(str.as_bytes(), base.hash),
+            length: str.len() as u8 + base.length as u8,
+        }
+    }
+}
+
+// code borrowed from [const-crc32](https://git.shipyard.rs/jstrong/const-crc32/src/branch/master/LICENSE)
+const fn crc32(buf: &[u8], seed: u32) -> u32 {
+    let mut out = !seed;
+    let mut i = 0usize;
+    while i < buf.len() {
+        out = (out >> 8) ^ super::crc32_table::TABLE[((out & 0xff) ^ (buf[i] as u32)) as usize];
+        i += 1;
+    }
+    !out
+}
+
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct REDString {
