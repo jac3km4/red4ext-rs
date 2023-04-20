@@ -57,7 +57,7 @@ pub fn register_function(name: &str, func: REDFunction, args: &[CName], ret: CNa
     }
 }
 
-#[inline(always)]
+#[inline]
 pub fn get_invokable_types<F: REDInvokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
     (F::ARG_TYPES, F::RETURN_TYPE)
 }
