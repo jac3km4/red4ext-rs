@@ -54,10 +54,7 @@ pub fn invoke<R: FromRED, const N: usize>(
     fun: *mut ffi::CBaseFunction,
     args: [(REDType, ErasedPtr); N],
 ) -> R {
-    let arg_iter = args
-        .into_iter()
-        .map(|(typ, val)| StackArg::new(typ, val.as_ptr() as Mem));
-    let args: [StackArg; N] = array_init::from_iter(arg_iter).unwrap();
+    let args = args.map(|(typ, val)| StackArg::new(typ, val.as_ptr() as Mem));
     let mut ret = R::Repr::default();
 
     unsafe {
