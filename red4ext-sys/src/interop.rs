@@ -61,7 +61,7 @@ impl TweakDBID {
     #[inline]
     pub const fn new(str: &str) -> Self {
         assert!(str.len() <= u8::MAX as usize);
-        let hash = crc32(str.as_bytes()).to_ne_bytes() as [u8; 4];
+        let hash = crc32(str.as_bytes()).to_ne_bytes();
         let length = str.len() as u8;
         Self {
             hash: u64::from_ne_bytes([hash[0], hash[1], hash[2], hash[3], length, 0u8, 0u8, 0u8]),
@@ -69,10 +69,10 @@ impl TweakDBID {
     }
     #[inline]
     pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
-        let bytes = base.hash.to_ne_bytes() as [u8; 8];
+        let bytes = base.hash.to_ne_bytes();
         assert!((bytes[4] as usize + str.len()) <= u8::MAX as usize);
         let seed = u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-        let hash = crc32_seed(str.as_bytes(), seed).to_ne_bytes() as [u8; 4];
+        let hash = crc32_seed(str.as_bytes(), seed).to_ne_bytes();
         Self {
             hash: u64::from_ne_bytes([
                 hash[0],
