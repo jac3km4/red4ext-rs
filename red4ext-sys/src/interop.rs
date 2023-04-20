@@ -53,8 +53,8 @@ pub struct TweakDBID {
 
 impl From<u64> for TweakDBID {
     fn from(value: u64) -> Self {
-        let hash = u32::from_ne_bytes(value.to_ne_bytes()[0..=3].try_into().unwrap());
-        let length = value.to_ne_bytes()[4];
+        let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
+        let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
         Self { hash, length }
     }
 }
