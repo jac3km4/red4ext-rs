@@ -1,6 +1,5 @@
-use std::io::Read;
 use std::ptr;
-use std::{ffi::CStr, fmt::write};
+use std::{ffi::CStr};
 
 use cxx::{type_id, ExternType};
 
