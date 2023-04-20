@@ -1,6 +1,5 @@
 #![allow(clippy::missing_safety_doc)]
 
-mod crc32_table;
 pub mod interop;
 
 #[cxx::bridge]

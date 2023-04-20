@@ -1,6 +1,7 @@
 use std::ptr;
 use std::{ffi::CStr};
 
+use const_crc32::{crc32_seed, crc32};
 use cxx::{type_id, ExternType};
 
 use crate::ffi;
@@ -60,7 +61,7 @@ impl TweakDBID {
     #[inline]
     pub const fn new(str: &str) -> Self {
         assert!(str.len() <= u8::MAX as usize);
-        let hash = crc32(str.as_bytes(), 0).to_ne_bytes() as [u8; 4];
+        let hash = crc32(str.as_bytes()).to_ne_bytes() as [u8; 4];
         let length = str.len() as u8;
         Self {
             hash: u64::from_ne_bytes([hash[0], hash[1], hash[2], hash[3], length, 0u8, 0u8, 0u8]),
@@ -71,7 +72,7 @@ impl TweakDBID {
         let bytes = base.hash.to_ne_bytes() as [u8; 8];
         assert!((bytes[4] as usize + str.len()) <= u8::MAX as usize);
         let seed = u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-        let hash = crc32(str.as_bytes(), seed).to_ne_bytes() as [u8; 4];
+        let hash = crc32_seed(str.as_bytes(), seed).to_ne_bytes() as [u8; 4];
         Self {
             hash: u64::from_ne_bytes([
                 hash[0],
@@ -90,17 +91,6 @@ impl TweakDBID {
 unsafe impl ExternType for TweakDBID {
     type Id = type_id!("RED4ext::TweakDBID");
     type Kind = cxx::kind::Trivial;
-}
-
-// code borrowed from [const-crc32](https://git.shipyard.rs/jstrong/const-crc32/src/branch/master/LICENSE)
-const fn crc32(buf: &[u8], seed: u32) -> u32 {
-    let mut out = !seed;
-    let mut i = 0usize;
-    while i < buf.len() {
-        out = (out >> 8) ^ super::crc32_table::TABLE[((out & 0xff) ^ (buf[i] as u32)) as usize];
-        i += 1;
-    }
-    !out
 }
 
 #[derive(Debug, Clone, Copy)]
