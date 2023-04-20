@@ -1,6 +1,7 @@
 use std::ffi::CStr;
 use std::ptr;
 
+use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
 
 use crate::ffi;
@@ -41,6 +42,45 @@ pub const fn fnv1a64(str: &str) -> u64 {
 
 unsafe impl ExternType for CName {
     type Id = type_id!("RED4ext::CName");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct TweakDBID {
+    hash: u32,
+    length: u8,
+}
+
+impl From<u64> for TweakDBID {
+    fn from(value: u64) -> Self {
+        let hash = u32::from_ne_bytes(value.to_ne_bytes()[0..=3].try_into().unwrap());
+        let length = value.to_ne_bytes()[4];
+        Self { hash, length }
+    }
+}
+
+impl TweakDBID {
+    #[inline]
+    pub const fn new(str: &str) -> Self {
+        assert!(str.len() <= u8::MAX as usize);
+        Self {
+            hash: crc32(str.as_bytes()),
+            length: str.len() as u8,
+        }
+    }
+    #[inline]
+    pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
+        assert!((base.length as usize + str.len()) <= u8::MAX as usize);
+        Self {
+            hash: crc32_seed(str.as_bytes(), base.hash),
+            length: str.len() as u8 + base.length,
+        }
+    }
+}
+
+unsafe impl ExternType for TweakDBID {
+    type Id = type_id!("RED4ext::TweakDBID");
     type Kind = cxx::kind::Trivial;
 }
 

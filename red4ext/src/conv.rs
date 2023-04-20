@@ -4,7 +4,9 @@ use const_combine::bounded::const_combine;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::Mem;
 
-use crate::types::{CName, Color, IScriptable, REDArray, REDString, Ref, Variant, Vector2};
+use crate::types::{
+    CName, Color, IScriptable, REDArray, REDString, Ref, TweakDBID, Variant, Vector2,
+};
 
 pub trait NativeRED {
     const NAME: &'static str;
@@ -188,6 +190,7 @@ iso_red_instance!(u16, "Uint16");
 iso_red_instance!(u8, "Uint8");
 iso_red_instance!(bool, "Bool");
 iso_red_instance!(CName, "CName");
+iso_red_instance!(TweakDBID, "TweakDBID");
 iso_red_instance!(Vector2, "Vector2");
 iso_red_instance!(Color, "Color");
 iso_red_instance!(Ref<IScriptable>, "handle:IScriptable");

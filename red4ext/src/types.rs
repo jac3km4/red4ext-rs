@@ -2,7 +2,7 @@ use std::{mem, pin, ptr};
 
 pub use ffi::IScriptable;
 use red4ext_sys::ffi;
-pub use red4ext_sys::interop::{CName, REDString, Variant, VoidPtr};
+pub use red4ext_sys::interop::{CName, REDString, TweakDBID, Variant, VoidPtr};
 
 use crate::conv::{FromRED, IntoRED};
 use crate::rtti;
