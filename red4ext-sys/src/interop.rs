@@ -69,6 +69,7 @@ impl TweakDBID {
             length: str.len() as u8,
         }
     }
+
     #[inline]
     pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
         assert!((base.length as usize + str.len()) <= u8::MAX as usize);
@@ -84,7 +85,7 @@ unsafe impl ExternType for TweakDBID {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
