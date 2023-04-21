@@ -148,7 +148,7 @@ unsafe impl ExternType for gameEItemIDFlag {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
 #[repr(u8)]
-#[allow(non_camel_case_types, dead_code)]
+#[allow(non_camel_case_types)]
 pub enum gamedataItemStructure {
     #[default]
     BlueprintStackable = 0,
