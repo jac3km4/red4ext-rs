@@ -84,7 +84,7 @@ unsafe impl ExternType for TweakDBID {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
