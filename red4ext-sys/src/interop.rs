@@ -101,31 +101,10 @@ pub struct ItemID {
 }
 
 impl ItemID {
-    pub fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
-    }
-    pub fn new_from_tdbid(id: TweakDBID, seed: impl Into<Seed>) -> Self {
+    pub fn new_from(id: TweakDBID) -> Self {
         Self {
             id,
-            seed: seed.into(),
             ..Default::default()
-        }
-    }
-    pub fn new_from_params(
-        id: TweakDBID,
-        seed: impl Into<Seed>,
-        counter: u16,
-        structure: gamedataItemStructure,
-        flags: gameEItemIDFlag,
-    ) -> Self {
-        Self {
-            id,
-            seed: seed.into(),
-            counter,
-            structure,
-            flags,
         }
     }
 }
