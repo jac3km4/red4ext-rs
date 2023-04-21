@@ -182,7 +182,7 @@ unsafe impl ExternType for ItemID {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
