@@ -4,7 +4,7 @@ pub use ffi::IScriptable;
 use red4ext_sys::ffi;
 pub use red4ext_sys::interop::{CName, REDString, TweakDBID, Variant, VoidPtr};
 
-use crate::conv::{FromRED, IntoRED};
+use crate::conv::{FromRED, IntoRED, NativeRepr};
 use crate::rtti::RTTI;
 
 #[derive(Debug, Clone)]
@@ -137,7 +137,7 @@ pub trait VariantExt {
 impl VariantExt for Variant {
     fn new<A: IntoRED>(val: A) -> Self {
         let mut this = Self::default();
-        let typ = RTTI::get().get_type(CName::new(A::NAME));
+        let typ = RTTI::get().get_type(CName::new(A::Repr::NAME));
         let repr = val.into_repr();
         unsafe {
             pin::Pin::new_unchecked(&mut this).fill(typ, VoidPtr(&repr as *const _ as *mut _));
@@ -146,7 +146,7 @@ impl VariantExt for Variant {
     }
 
     fn try_get<A: FromRED>(&self) -> Option<A> {
-        if RTTI::type_name_of(self.get_type()) == CName::new(A::NAME) {
+        if RTTI::type_name_of(self.get_type()) == CName::new(A::Repr::NAME) {
             let ptr = self.get_data_ptr().0 as *const <A as FromRED>::Repr;
             Some(A::from_repr(unsafe { &*ptr }))
         } else {

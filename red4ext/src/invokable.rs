@@ -3,7 +3,7 @@ use std::mem;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::{Mem, StackArg};
 
-use crate::conv::{FromRED, IntoRED};
+use crate::conv::{fill_memory, from_frame, FromRED, IntoRED, NativeRepr};
 use crate::rtti::RTTI;
 use crate::types::{CName, Ref, VoidPtr};
 
@@ -27,14 +27,14 @@ macro_rules! impl_invokable {
             $($types: FromRED,)*
             R: IntoRED
         {
-            const ARG_TYPES: &'static [CName] = &[$(CName::new($types::NAME),)*];
-            const RETURN_TYPE: CName = CName::new(R::NAME);
+            const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
+            const RETURN_TYPE: CName = CName::new(R::Repr::NAME);
 
             #[inline]
             fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
-                $(let $types = FromRED::from_red(frame);)*
+                $(let $types: $types = from_frame(frame);)*
                 let res = self($($types,)*);
-                IntoRED::into_red(res, mem);
+                fill_memory(res, mem);
             }
         }
     };
@@ -47,24 +47,6 @@ impl_invokable!(A, B, C);
 impl_invokable!(A, B, C, D);
 impl_invokable!(A, B, C, D, E);
 impl_invokable!(A, B, C, D, E, F);
-
-#[inline]
-pub fn invoke<R: FromRED, const N: usize>(
-    this: Ref<ffi::IScriptable>,
-    fun: *mut ffi::CBaseFunction,
-    args: [StackArg; N],
-) -> R {
-    let mut ret = R::Repr::default();
-    unsafe {
-        ffi::execute_function(
-            VoidPtr(this.instance as _),
-            fun,
-            mem::transmute(&mut ret),
-            &args,
-        )
-    };
-    R::from_repr(&ret)
-}
 
 #[macro_export]
 macro_rules! call {
@@ -102,8 +84,26 @@ macro_rules! invoke {
 }
 
 #[inline]
+pub fn invoke<R: FromRED, const N: usize>(
+    this: Ref<ffi::IScriptable>,
+    fun: *mut ffi::CBaseFunction,
+    args: [StackArg; N],
+) -> R {
+    let mut ret = R::Repr::default();
+    unsafe {
+        ffi::execute_function(
+            VoidPtr(this.instance as _),
+            fun,
+            mem::transmute(&mut ret),
+            &args,
+        )
+    };
+    R::from_repr(&ret)
+}
+
+#[inline]
 pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, A::Repr) {
-    (rtti.get_type(CName::new(A::NAME)), val.into_repr())
+    (rtti.get_type(CName::new(A::Repr::NAME)), val.into_repr())
 }
 
 #[inline]

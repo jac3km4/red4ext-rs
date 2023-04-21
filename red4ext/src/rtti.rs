@@ -5,8 +5,6 @@ use red4ext_sys::ffi;
 use crate::invokable::REDFunction;
 use crate::types::{CName, Ref, VoidPtr};
 
-pub type RegisterCallback = extern "C" fn();
-
 pub struct RTTI<'a> {
     inner: Pin<&'a mut ffi::IRTTISystem>,
 }
