@@ -55,6 +55,7 @@ macro_rules! impl_invokable {
 }
 
 impl_invokable!(
+    (),
     (A),
     (A, B),
     (A, B, C),
@@ -164,6 +165,7 @@ macro_rules! count_args {
 }
 
 impl_args!(
+    (),
     (A),
     (A, B),
     (A, B, C),
