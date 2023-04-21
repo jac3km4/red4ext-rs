@@ -7,7 +7,8 @@ use crate::conv::{FromRED, IntoRED};
 use crate::rtti::RTTI;
 use crate::types::{CName, Ref, VoidPtr};
 
-pub type REDFunction = unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
+pub(crate) type REDFunction =
+    unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
 type REDType = *const ffi::CBaseRTTIType;
 
 pub trait REDInvokable<A, R> {
@@ -65,22 +66,6 @@ pub fn invoke<R: FromRED, const N: usize>(
     R::from_repr(&ret)
 }
 
-#[inline]
-pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, A::Repr) {
-    (rtti.get_type(CName::new(A::NAME)), val.into_repr())
-}
-
-#[macro_export]
-macro_rules! invoke {
-    ($rtti:expr, $this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
-        {
-            let args = ($($crate::invokable::into_type_and_repr(&mut $rtti, $args)),*);
-            let res: $rett = $crate::invokable::invoke($this, $func, $crate::invokable::Args::to_stack_args(&args));
-            res
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! call {
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
@@ -102,6 +87,28 @@ macro_rules! call {
             ($($args),*) -> $rett
         )
     }};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! invoke {
+    ($rtti:expr, $this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
+        {
+            let args = ($($crate::invokable::into_type_and_repr(&mut $rtti, $args)),*);
+            let res: $rett = $crate::invokable::invoke($this, $func, $crate::invokable::Args::to_stack_args(&args));
+            res
+        }
+    };
+}
+
+#[inline]
+pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, A::Repr) {
+    (rtti.get_type(CName::new(A::NAME)), val.into_repr())
+}
+
+#[inline]
+pub fn get_invokable_types<F: REDInvokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
+    (F::ARG_TYPES, F::RETURN_TYPE)
 }
 
 pub trait Args {

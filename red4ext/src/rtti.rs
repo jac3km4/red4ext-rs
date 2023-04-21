@@ -2,7 +2,7 @@ use std::pin::Pin;
 
 use red4ext_sys::ffi;
 
-use crate::invokable::{REDFunction, REDInvokable};
+use crate::invokable::REDFunction;
 use crate::types::{CName, Ref, VoidPtr};
 
 pub type RegisterCallback = extern "C" fn();
@@ -66,11 +66,6 @@ impl<'a> RTTI<'a> {
     }
 }
 
-#[inline]
-pub fn get_invokable_types<F: REDInvokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
-    (F::ARG_TYPES, F::RETURN_TYPE)
-}
-
 #[macro_export]
 macro_rules! register_function {
     ($name:literal,$fun:expr) => {{
@@ -84,7 +79,7 @@ macro_rules! register_function {
             std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
         }
 
-        let (arg_types, ret_type) = $crate::rtti::get_invokable_types(&$fun);
+        let (arg_types, ret_type) = $crate::invokable::get_invokable_types(&$fun);
         $crate::rtti::RTTI::get().register_function($name, native_impl, arg_types, ret_type)
     }};
 }
