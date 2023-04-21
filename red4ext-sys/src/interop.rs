@@ -86,15 +86,17 @@ unsafe impl ExternType for TweakDBID {
 }
 
 /// see [its C++ representation](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/NativeTypes.hpp#L105)
+/// 
+/// CET has a [different naming convention for the last two fields](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct ItemID {
     id: TweakDBID,
     seed: Seed,
     counter: u16,
-    /// also called [`unknown` in CET](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid)
+    /// also called `unknown` in CET
     structure: gamedataItemStructure,
-    /// also called [`maybe_type` in CET](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid)
+    /// also called `maybe_type` in CET
     flags: gameEItemIDFlag,
 }
 
