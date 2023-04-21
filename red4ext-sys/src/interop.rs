@@ -94,6 +94,12 @@ pub struct REDString {
 }
 
 impl REDString {
+    pub fn new(str: impl AsRef<str>) -> Self {
+        let mut repr = REDString::default();
+        unsafe { ffi::construct_string_at(&mut repr, str.as_ref(), ptr::null_mut()) };
+        repr
+    }
+
     pub fn as_str(&self) -> &str {
         unsafe {
             let ptr = if self.length < 0x4000_0000 {

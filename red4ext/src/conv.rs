@@ -1,5 +1,3 @@
-use std::{mem, ptr};
-
 use const_combine::bounded::const_combine;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::Mem;
@@ -55,10 +53,9 @@ impl IntoRED for String {
 impl IntoRED for &str {
     type Repr = REDString;
 
+    #[inline]
     fn into_repr(self) -> REDString {
-        let mut str = REDString::default();
-        unsafe { ffi::construct_string_at(&mut str, self, ptr::null_mut()) };
-        str
+        REDString::new(self)
     }
 }
 
@@ -152,7 +149,7 @@ pub(crate) fn fill_memory<A: IntoRED>(val: A, mem: Mem) {
 #[inline]
 pub(crate) fn from_frame<A: FromRED>(frame: *mut ffi::CStackFrame) -> A {
     let mut init = A::Repr::default();
-    unsafe { ffi::get_parameter(frame, mem::transmute(&mut init)) };
+    unsafe { ffi::get_parameter(frame, std::mem::transmute(&mut init)) };
     A::from_repr(&init)
 }
 
