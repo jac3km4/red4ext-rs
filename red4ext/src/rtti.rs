@@ -73,7 +73,7 @@ macro_rules! register_function {
             ret: *mut std::ffi::c_void,
             _unk: i64,
         ) {
-            $crate::invokable::REDInvokable::invoke($fun, ctx, frame, ret);
+            $crate::invokable::Invokable::invoke($fun, ctx, frame, ret);
             std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
         }
 

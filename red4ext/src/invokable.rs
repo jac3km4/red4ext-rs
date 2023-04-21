@@ -11,7 +11,7 @@ pub(crate) type REDFunction =
     unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
 type REDType = *const ffi::CBaseRTTIType;
 
-pub trait REDInvokable<A, R> {
+pub trait Invokable<A, R>: private_invokable::Sealed<A, R> {
     const ARG_TYPES: &'static [CName];
     const RETURN_TYPE: CName;
 
@@ -19,34 +19,49 @@ pub trait REDInvokable<A, R> {
 }
 
 macro_rules! impl_invokable {
-    ($( $types:ident ),*) => {
-        #[allow(non_snake_case, unused_variables)]
-        impl<$($types,)* R, FN> REDInvokable<($($types,)*), R> for FN
-        where
-            FN: Fn($($types,)*) -> R,
-            $($types: FromRED,)*
-            R: IntoRED
-        {
-            const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
-            const RETURN_TYPE: CName = CName::new(R::Repr::NAME);
+    ($( ($( $types:ident ),*) ),*) => {
+        $(
+            #[allow(non_snake_case, unused_variables)]
+            impl<$($types,)* R, FN> Invokable<($($types,)*), R> for FN
+            where
+                FN: Fn($($types,)*) -> R,
+                $($types: FromRED,)*
+                R: IntoRED
+            {
+                const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
+                const RETURN_TYPE: CName = CName::new(R::Repr::NAME);
 
-            #[inline]
-            fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
-                $(let $types: $types = from_frame(frame);)*
-                let res = self($($types,)*);
-                fill_memory(res, mem);
+                #[inline]
+                fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
+                    $(let $types: $types = from_frame(frame);)*
+                    let res = self($($types,)*);
+                    fill_memory(res, mem);
+                }
             }
+        )*
+
+        mod private_invokable {
+            use super::*;
+            pub trait Sealed<A, R> {}
+            $(
+                impl<$($types,)* R, FN> Sealed<($($types,)*), R> for FN
+                    where
+                        FN: Fn($($types,)*) -> R,
+                        $($types: FromRED,)*
+                        R: IntoRED {}
+            )*
         }
     };
 }
 
-impl_invokable!();
-impl_invokable!(A);
-impl_invokable!(A, B);
-impl_invokable!(A, B, C);
-impl_invokable!(A, B, C, D);
-impl_invokable!(A, B, C, D, E);
-impl_invokable!(A, B, C, D, E, F);
+impl_invokable!(
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F)
+);
 
 #[macro_export]
 macro_rules! call {
@@ -107,42 +122,52 @@ pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, 
 }
 
 #[inline]
-pub fn get_invokable_types<F: REDInvokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
+pub fn get_invokable_types<F: Invokable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
     (F::ARG_TYPES, F::RETURN_TYPE)
 }
 
-pub trait Args {
+pub trait Args: private_args::Sealed {
     type StackArgs;
 
     fn to_stack_args(&self) -> Self::StackArgs;
 }
 
 macro_rules! impl_args {
-    ($($ids:ident),*) => {
-        #[allow(unused_parens, non_snake_case)]
-        impl <$($ids),*> Args for ($((REDType, $ids)),*) {
-            type StackArgs = [StackArg; count_args!($($ids)*)];
+    ($( ($( $ids:ident ),*) ),*) => {
+        $(
+            #[allow(unused_parens, non_snake_case)]
+            impl <$($ids),*> Args for ($((REDType, $ids)),*) {
+                type StackArgs = [StackArg; count_args!($($ids)*)];
 
-            #[inline]
-            fn to_stack_args(&self) -> Self::StackArgs {
-                let ($($ids),*) = self;
-                [$(StackArg::new($ids.0, &$ids.1 as *const _ as _)),*]
+                #[inline]
+                fn to_stack_args(&self) -> Self::StackArgs {
+                    let ($($ids),*) = self;
+                    [$(StackArg::new($ids.0, &$ids.1 as *const _ as _)),*]
+                }
             }
+        )*
+
+        #[allow(unused_parens)]
+        mod private_args {
+            use super::*;
+            pub trait Sealed {}
+            $(impl <$($ids),*> Sealed for ($((REDType, $ids)),*) {})*
         }
     };
 }
 
 macro_rules! count_args {
-    ($id:ident $($t:tt)*) => {
+    ($id:ident $( $t:tt )*) => {
         1 + count_args!($($t)*)
     };
     () => { 0 }
 }
 
-impl_args!();
-impl_args!(A);
-impl_args!(A, B);
-impl_args!(A, B, C);
-impl_args!(A, B, C, D);
-impl_args!(A, B, C, D, E);
-impl_args!(A, B, C, D, E, F);
+impl_args!(
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F)
+);
