@@ -104,9 +104,9 @@ impl ItemID {
             ..Default::default()
         }
     }
-    pub fn new_with(id: TweakDBID, seed: impl Into<Seed>) -> Self {
+    pub fn new_from_tdbid(id: &TweakDBID, seed: impl Into<Seed>) -> Self {
         Self {
-            id,
+            id: id.clone(),
             seed: seed.into(),
             ..Default::default()
         }
