@@ -85,7 +85,89 @@ unsafe impl ExternType for TweakDBID {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone)]
+/// see [its C++ representation](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/NativeTypes.hpp#L105)
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct ItemID {
+    id: TweakDBID,
+    seed: Seed,
+    counter: u16,
+    /// also called [`unknown` in CET](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid)
+    structure: gamedataItemStructure,
+    /// also called [`maybe_type` in CET](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid)
+    flags: gameEItemIDFlag,
+}
+
+impl ItemID {
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
+    pub fn new_with(id: TweakDBID, seed: impl Into<Seed>) -> Self {
+        Self {
+            id,
+            seed: seed.into(),
+            ..Default::default()
+        }
+    }
+}
+
+/// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
+#[repr(u8)]
+#[allow(non_camel_case_types, dead_code)]
+pub enum gameEItemIDFlag {
+    #[default]
+    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
+    None = 0,
+    Preview = 1,
+}
+
+unsafe impl ExternType for gameEItemIDFlag {
+    type Id = type_id!("RED4ext::gameEItemIDFlag");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
+#[repr(u8)]
+#[allow(non_camel_case_types, dead_code)]
+pub enum gamedataItemStructure {
+    #[default]
+    BlueprintStackable = 0,
+    Stackable = 1,
+    Unique = 2,
+    Count = 3,
+    Invalid = 4,
+}
+
+unsafe impl ExternType for gamedataItemStructure {
+    type Id = type_id!("RED4ext::gamedataItemStructure");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Seed(u32);
+
+impl Default for Seed {
+    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
+    fn default() -> Self {
+        Self(2)
+    }
+}
+
+impl From<u32> for Seed {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+unsafe impl ExternType for ItemID {
+    type Id = type_id!("RED4ext::ItemID");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct REDString {
     data: [i8; 0x14],
