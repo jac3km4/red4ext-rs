@@ -71,7 +71,7 @@ impl TweakDBID {
     }
 
     #[inline]
-    pub const fn new_from_base(base: &TweakDBID, str: &str) -> Self {
+    pub const fn new_from_base(base: TweakDBID, str: &str) -> Self {
         assert!((base.length as usize + str.len()) <= u8::MAX as usize);
         Self {
             hash: crc32_seed(str.as_bytes(), base.hash),
@@ -106,22 +106,22 @@ impl ItemID {
             ..Default::default()
         }
     }
-    pub fn new_from_tdbid(id: &TweakDBID, seed: impl Into<Seed>) -> Self {
+    pub fn new_from_tdbid(id: TweakDBID, seed: impl Into<Seed>) -> Self {
         Self {
-            id: id.clone(),
+            id,
             seed: seed.into(),
             ..Default::default()
         }
     }
     pub fn new_from_params(
-        id: &TweakDBID,
+        id: TweakDBID,
         seed: impl Into<Seed>,
         counter: u16,
         structure: gamedataItemStructure,
         flags: gameEItemIDFlag,
     ) -> Self {
         Self {
-            id: id.clone(),
+            id,
             seed: seed.into(),
             counter,
             structure,
