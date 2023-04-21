@@ -7,53 +7,62 @@ use crate::types::{CName, Ref, VoidPtr};
 
 pub type RegisterCallback = extern "C" fn();
 
-#[inline]
-pub fn get_rtti<'a>() -> Pin<&'a mut ffi::IRTTISystem> {
-    unsafe { Pin::new_unchecked(&mut *ffi::get_rtti()) }
+pub struct RTTI<'a> {
+    inner: Pin<&'a mut ffi::IRTTISystem>,
 }
 
-#[inline]
-pub fn get_class(name: CName) -> *const ffi::CClass {
-    get_rtti().get_class(name)
-}
-
-#[inline]
-pub fn get_type(name: CName) -> *const ffi::CBaseRTTIType {
-    get_rtti().get_type(name)
-}
-
-#[inline]
-pub fn class_of(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
-    unsafe { Pin::new_unchecked(&mut *this.instance).get_class() }
-}
-
-#[inline]
-pub fn get_type_name(typ: *const ffi::CBaseRTTIType) -> CName {
-    unsafe { (*typ).get_name() }
-}
-
-pub fn get_function(fn_name: CName) -> *mut ffi::CBaseFunction {
-    get_rtti().get_function(fn_name) as *mut _
-}
-
-pub fn get_method(this: Ref<ffi::IScriptable>, fn_name: CName) -> *mut ffi::CBaseFunction {
-    unsafe {
-        let typ = class_of(this);
-        (*typ).get_function(fn_name) as *mut _
+impl<'a> RTTI<'a> {
+    #[inline]
+    pub fn get() -> Self {
+        Self {
+            inner: unsafe { Pin::new_unchecked(&mut *ffi::get_rtti()) },
+        }
     }
-}
 
-pub fn get_static_method(class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
-    unsafe {
-        let typ = get_class(class);
-        (*typ).get_function(fn_name) as *mut _
+    #[inline]
+    pub fn get_class(&mut self, name: CName) -> *const ffi::CClass {
+        self.inner.as_mut().get_class(name)
     }
-}
 
-pub fn register_function(name: &str, func: REDFunction, args: &[CName], ret: CName) {
-    unsafe {
-        let func = ffi::new_native_function(name, name, VoidPtr(func as *mut _), args, ret);
-        get_rtti().register_function(func);
+    #[inline]
+    pub fn get_type(&mut self, name: CName) -> *const ffi::CBaseRTTIType {
+        self.inner.as_mut().get_type(name)
+    }
+
+    #[inline]
+    pub fn get_function(&mut self, fn_name: CName) -> *mut ffi::CBaseFunction {
+        self.inner.as_mut().get_function(fn_name) as *mut _
+    }
+
+    pub fn get_method(this: Ref<ffi::IScriptable>, fn_name: CName) -> *mut ffi::CBaseFunction {
+        unsafe {
+            let typ = Self::class_of(this);
+            (*typ).get_function(fn_name) as *mut _
+        }
+    }
+
+    pub fn get_static_method(&mut self, class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
+        unsafe {
+            let typ = self.get_class(class);
+            (*typ).get_function(fn_name) as *mut _
+        }
+    }
+
+    pub fn register_function(&mut self, name: &str, func: REDFunction, args: &[CName], ret: CName) {
+        unsafe {
+            let func = ffi::new_native_function(name, name, VoidPtr(func as *mut _), args, ret);
+            self.inner.as_mut().register_function(func);
+        }
+    }
+
+    #[inline]
+    pub fn class_of(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
+        unsafe { Pin::new_unchecked(&mut *this.instance).get_class() }
+    }
+
+    #[inline]
+    pub fn type_name_of(typ: *const ffi::CBaseRTTIType) -> CName {
+        unsafe { (*typ).get_name() }
     }
 }
 
@@ -76,6 +85,6 @@ macro_rules! register_function {
         }
 
         let (arg_types, ret_type) = $crate::rtti::get_invokable_types(&$fun);
-        $crate::rtti::register_function($name, native_impl, arg_types, ret_type)
+        $crate::rtti::RTTI::get().register_function($name, native_impl, arg_types, ret_type)
     }};
 }

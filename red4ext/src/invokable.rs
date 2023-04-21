@@ -4,7 +4,7 @@ use red4ext_sys::ffi;
 use red4ext_sys::interop::{Mem, StackArg};
 
 use crate::conv::{FromRED, IntoRED};
-use crate::rtti;
+use crate::rtti::RTTI;
 use crate::types::{CName, Ref, VoidPtr};
 
 pub type REDFunction = unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
@@ -66,15 +66,15 @@ pub fn invoke<R: FromRED, const N: usize>(
 }
 
 #[inline]
-pub fn into_repr_and_type<A: IntoRED>(val: A) -> (REDType, A::Repr) {
-    (rtti::get_type(CName::new(A::NAME)), val.into_repr())
+pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, A::Repr) {
+    (rtti.get_type(CName::new(A::NAME)), val.into_repr())
 }
 
 #[macro_export]
 macro_rules! invoke {
-    ($this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
+    ($rtti:expr, $this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
         {
-            let args = ($($crate::invokable::into_repr_and_type($args)),*);
+            let args = ($($crate::invokable::into_type_and_repr(&mut $rtti, $args)),*);
             let res: $rett = $crate::invokable::invoke($this, $func, $crate::invokable::Args::to_stack_args(&args));
             res
         }
@@ -83,20 +83,25 @@ macro_rules! invoke {
 
 #[macro_export]
 macro_rules! call {
-    ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+    ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
+        let mut rtti = $crate::rtti::RTTI::get();
         $crate::invoke!(
+            rtti,
             $crate::types::Ref::null(),
-            $crate::rtti::get_function($crate::types::CName::new($fn_name)),
+            rtti.get_function($crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         )
-    };
-    ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+    }};
+    ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
+        let mut rtti = $crate::rtti::RTTI::get();
+        let this = $this;
         $crate::invoke!(
-            $this,
-            $crate::rtti::get_method($this, $crate::types::CName::new($fn_name)),
+            rtti,
+            this.clone(),
+            $crate::rtti::RTTI::get_method(this, $crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         )
-    };
+    }};
 }
 
 pub trait Args {
