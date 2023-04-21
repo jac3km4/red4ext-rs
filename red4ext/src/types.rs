@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::{mem, pin, ptr};
 
 pub use ffi::IScriptable;
@@ -59,8 +60,8 @@ impl<A> Default for REDArray<A> {
 #[derive(Debug)]
 #[repr(C)]
 pub struct Ref<A> {
-    pub instance: *mut A,
-    pub count: *mut RefCount,
+    ptr: *mut A,
+    count: *mut RefCount,
 }
 
 impl<A> Ref<A> {
@@ -68,13 +69,17 @@ impl<A> Ref<A> {
     pub fn null() -> Self {
         Self::default()
     }
+
+    pub(crate) fn as_ptr(&self) -> *mut A {
+        self.ptr
+    }
 }
 
 impl<A> Default for Ref<A> {
     #[inline]
     fn default() -> Self {
         Self {
-            instance: ptr::null_mut(),
+            ptr: ptr::null_mut(),
             count: ptr::null_mut(),
         }
     }
@@ -83,7 +88,7 @@ impl<A> Default for Ref<A> {
 impl<A> Clone for Ref<A> {
     fn clone(&self) -> Self {
         Self {
-            instance: self.instance,
+            ptr: self.ptr,
             count: self.count,
         }
     }
@@ -94,6 +99,34 @@ impl<A> Clone for Ref<A> {
 pub struct RefCount {
     strong_refs: u32,
     weak_refs: u32,
+}
+
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct ScriptRef<'a, A> {
+    unknown: [u8; 0x10],
+    inner: *mut ffi::CBaseRTTIType,
+    ptr: &'a A,
+    hash: CName,
+}
+
+impl<'a, A> ScriptRef<'a, A>
+where
+    A: NativeRepr,
+{
+    pub fn new(ptr: &'a A) -> Self {
+        Self {
+            unknown: [0; 0x10],
+            inner: RTTI::get().get_type(CName::new(A::NAME)),
+            ptr,
+            hash: CName::default(),
+        }
+    }
+
+    #[inline]
+    pub fn as_inner(&self) -> &'a A {
+        self.ptr
+    }
 }
 
 #[derive(Debug, Default, Clone)]

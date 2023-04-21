@@ -23,7 +23,7 @@ impl<'a> RTTI<'a> {
     }
 
     #[inline]
-    pub fn get_type(&mut self, name: CName) -> *const ffi::CBaseRTTIType {
+    pub fn get_type(&mut self, name: CName) -> *mut ffi::CBaseRTTIType {
         self.inner.as_mut().get_type(name)
     }
 
@@ -55,7 +55,7 @@ impl<'a> RTTI<'a> {
 
     #[inline]
     pub fn class_of(this: Ref<ffi::IScriptable>) -> *const ffi::CClass {
-        unsafe { Pin::new_unchecked(&mut *this.instance).get_class() }
+        unsafe { Pin::new_unchecked(&mut *this.as_ptr()).get_class() }
     }
 
     #[inline]

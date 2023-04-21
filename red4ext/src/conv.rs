@@ -3,14 +3,14 @@ use red4ext_sys::ffi;
 use red4ext_sys::interop::Mem;
 
 use crate::types::{
-    CName, Color, IScriptable, REDArray, REDString, Ref, TweakDBID, Variant, Vector2,
+    CName, Color, IScriptable, REDArray, REDString, Ref, ScriptRef, TweakDBID, Variant, Vector2,
 };
 
 /// # Safety
 ///
 /// Implementations of this trait are only valid if the memory representation of Self
 /// is idetical to the representation of type with name Self::NAME in-game.
-pub unsafe trait NativeRepr: Default {
+pub unsafe trait NativeRepr {
     const NAME: &'static str;
 }
 
@@ -28,6 +28,10 @@ unsafe impl<A: NativeRepr> NativeRepr for REDArray<A> {
 
 unsafe impl NativeRepr for Variant {
     const NAME: &'static str = "Variant";
+}
+
+unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
+    const NAME: &'static str = const_combine!("script_ref:", A::NAME);
 }
 
 pub trait IntoRED: Sized {
@@ -151,7 +155,11 @@ pub(crate) fn fill_memory<A: IntoRED>(val: A, mem: Mem) {
 }
 
 #[inline]
-pub(crate) fn from_frame<A: FromRED>(frame: *mut ffi::CStackFrame) -> A {
+pub(crate) fn from_frame<A>(frame: *mut ffi::CStackFrame) -> A
+where
+    A: FromRED,
+    A::Repr: Default,
+{
     let mut init = A::Repr::default();
     unsafe { ffi::get_parameter(frame, std::mem::transmute(&mut init)) };
     A::from_repr(&init)

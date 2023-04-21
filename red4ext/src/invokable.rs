@@ -5,7 +5,7 @@ use red4ext_sys::interop::{Mem, StackArg};
 
 use crate::conv::{fill_memory, from_frame, FromRED, IntoRED, NativeRepr};
 use crate::rtti::RTTI;
-use crate::types::{CName, Ref, VoidPtr};
+use crate::types::{CName, IScriptable, Ref, VoidPtr};
 
 pub(crate) type REDFunction =
     unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
@@ -25,7 +25,7 @@ macro_rules! impl_invokable {
             impl<$($types,)* R, FN> Invokable<($($types,)*), R> for FN
             where
                 FN: Fn($($types,)*) -> R,
-                $($types: FromRED,)*
+                $($types: FromRED, $types::Repr: Default,)*
                 R: IntoRED
             {
                 const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
@@ -41,14 +41,11 @@ macro_rules! impl_invokable {
         )*
 
         mod private_invokable {
-            use super::*;
             pub trait Sealed<A, R> {}
             $(
                 impl<$($types,)* R, FN> Sealed<($($types,)*), R> for FN
                     where
-                        FN: Fn($($types,)*) -> R,
-                        $($types: FromRED,)*
-                        R: IntoRED {}
+                        FN: Fn($($types,)*) -> R {}
             )*
         }
     };
@@ -100,15 +97,19 @@ macro_rules! invoke {
 }
 
 #[inline]
-pub fn invoke<R: FromRED, const N: usize>(
-    this: Ref<ffi::IScriptable>,
+pub fn invoke<R, const N: usize>(
+    this: Ref<IScriptable>,
     fun: *mut ffi::CBaseFunction,
     args: [StackArg; N],
-) -> R {
+) -> R
+where
+    R: FromRED,
+    R::Repr: Default,
+{
     let mut ret = R::Repr::default();
     unsafe {
         ffi::execute_function(
-            VoidPtr(this.instance as _),
+            VoidPtr(this.as_ptr() as _),
             fun,
             mem::transmute(&mut ret),
             &args,
