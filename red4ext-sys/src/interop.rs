@@ -179,6 +179,12 @@ impl From<u32> for Seed {
     }
 }
 
+impl From<Seed> for u32 {
+    fn from(value: Seed) -> Self {
+        value.0
+    }
+}
+
 unsafe impl ExternType for ItemID {
     type Id = type_id!("RED4ext::ItemID");
     type Kind = cxx::kind::Trivial;
