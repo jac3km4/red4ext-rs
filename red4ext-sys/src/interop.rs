@@ -111,6 +111,21 @@ impl ItemID {
             ..Default::default()
         }
     }
+    pub fn new_from_params(
+        id: &TweakDBID,
+        seed: impl Into<Seed>,
+        counter: u16,
+        structure: gamedataItemStructure,
+        flags: gameEItemIDFlag,
+    ) -> Self {
+        Self {
+            id: id.clone(),
+            seed: seed.into(),
+            counter,
+            structure,
+            flags,
+        }
+    }
 }
 
 /// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
