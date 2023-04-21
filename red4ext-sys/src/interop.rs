@@ -131,12 +131,12 @@ impl ItemID {
 }
 
 /// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
+/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
 #[repr(u8)]
 #[allow(non_camel_case_types)]
 pub enum gameEItemIDFlag {
     #[default]
-    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
     None = 0,
     Preview = 1,
 }
