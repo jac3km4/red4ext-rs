@@ -9,4 +9,4 @@ pub mod rtti;
 pub mod types;
 
 pub use red4ext_sys::ffi;
-pub use {erasable, wchar};
+pub use wchar;

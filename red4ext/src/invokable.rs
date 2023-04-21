@@ -1,6 +1,5 @@
 use std::mem;
 
-use erasable::ErasedPtr;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::{Mem, StackArg};
 
@@ -52,11 +51,9 @@ impl_invokable!(A, B, C, D, E, F);
 pub fn invoke<R: FromRED, const N: usize>(
     this: Ref<ffi::IScriptable>,
     fun: *mut ffi::CBaseFunction,
-    args: [(REDType, ErasedPtr); N],
+    args: [StackArg; N],
 ) -> R {
-    let args = args.map(|(typ, val)| StackArg::new(typ, val.as_ptr() as Mem));
     let mut ret = R::Repr::default();
-
     unsafe {
         ffi::execute_function(
             VoidPtr(this.instance as _),
@@ -69,21 +66,16 @@ pub fn invoke<R: FromRED, const N: usize>(
 }
 
 #[inline]
-pub fn get_argument_type<A: IntoRED>(_val: &A) -> *const ffi::CBaseRTTIType {
-    rtti::get_type(CName::new(A::NAME))
+pub fn into_repr_and_type<A: IntoRED>(val: A) -> (REDType, A::Repr) {
+    (rtti::get_type(CName::new(A::NAME)), val.into_repr())
 }
 
 #[macro_export]
 macro_rules! invoke {
     ($this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {
         {
-            let args = [
-                $(
-                    ($crate::invokable::get_argument_type(&$args),
-                     $crate::erasable::ErasablePtr::erase(std::boxed::Box::new($crate::conv::IntoRED::into_repr($args))))
-                 ),*
-            ];
-            let res: $rett = $crate::invokable::invoke($this, $func, args);
+            let args = ($($crate::invokable::into_repr_and_type($args)),*);
+            let res: $rett = $crate::invokable::invoke($this, $func, $crate::invokable::Args::to_stack_args(&args));
             res
         }
     };
@@ -106,3 +98,39 @@ macro_rules! call {
         )
     };
 }
+
+pub trait Args {
+    type StackArgs;
+
+    fn to_stack_args(&self) -> Self::StackArgs;
+}
+
+macro_rules! impl_args {
+    ($($ids:ident),*) => {
+        #[allow(unused_parens, non_snake_case)]
+        impl <$($ids),*> Args for ($((REDType, $ids)),*) {
+            type StackArgs = [StackArg; count_args!($($ids)*)];
+
+            #[inline]
+            fn to_stack_args(&self) -> Self::StackArgs {
+                let ($($ids),*) = self;
+                [$(StackArg::new($ids.0, &$ids.1 as *const _ as _)),*]
+            }
+        }
+    };
+}
+
+macro_rules! count_args {
+    ($id:ident $($t:tt)*) => {
+        1 + count_args!($($t)*)
+    };
+    () => { 0 }
+}
+
+impl_args!();
+impl_args!(A);
+impl_args!(A, B);
+impl_args!(A, B, C);
+impl_args!(A, B, C, D);
+impl_args!(A, B, C, D, E);
+impl_args!(A, B, C, D, E, F);
