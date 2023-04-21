@@ -1,4 +1,4 @@
-pub use red4ext_sys::interop::MainReason;
+pub use red4ext_sys::interop::EMainReason as MainReason;
 
 use crate::logger::SdkLogger;
 
@@ -35,7 +35,7 @@ macro_rules! define_plugin {
 
                         $crate::ffi::add_rtti_callback($crate::types::VoidPtr(Register as *mut _), $crate::types::VoidPtr(PostRegister as *mut _), true)
                     }
-                    $crate::plugin::MainReason::Unload => {}
+                    _ => {}
                 }
             }
 
@@ -90,6 +90,7 @@ macro_rules! define_trait_plugin {
                     $crate::plugin::MainReason::Unload => {
                         <$ty as $crate::plugin::Plugin>::unload();
                     }
+                    _ => {}
                 }
             }
 

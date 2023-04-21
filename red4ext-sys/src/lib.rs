@@ -4,6 +4,13 @@ pub mod interop;
 
 #[cxx::bridge]
 pub mod ffi {
+    // define extern enums here
+    #[repr(u8)]
+    pub enum EMainReason {
+        Load = 0,
+        Unload = 1,
+    }
+
     #[namespace = "RED4ext"]
     unsafe extern "C++" {
         include!("RED4ext/RED4ext.hpp");
@@ -21,8 +28,8 @@ pub mod ffi {
         type CStackFrame;
         type PluginInfo;
         type Sdk;
+        type EMainReason;
 
-        type EMainReason = crate::interop::MainReason;
         type CName = crate::interop::CName;
         type CString = crate::interop::REDString;
         type TweakDBID = crate::interop::TweakDBID;

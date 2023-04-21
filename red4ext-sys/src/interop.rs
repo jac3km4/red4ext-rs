@@ -3,6 +3,7 @@ use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
+pub use ffi::EMainReason;
 
 use crate::ffi;
 
@@ -147,17 +148,6 @@ impl Default for Variant {
 
 unsafe impl ExternType for Variant {
     type Id = type_id!("RED4ext::Variant");
-    type Kind = cxx::kind::Trivial;
-}
-
-#[repr(u8)]
-pub enum MainReason {
-    Load = 0,
-    Unload = 1,
-}
-
-unsafe impl ExternType for MainReason {
-    type Id = type_id!("RED4ext::EMainReason");
     type Kind = cxx::kind::Trivial;
 }
 
