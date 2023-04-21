@@ -1,7 +1,6 @@
-#![allow(clippy::missing_safety_doc)]
-
 pub mod interop;
 
+#[allow(clippy::missing_safety_doc)]
 #[cxx::bridge]
 pub mod ffi {
     // define extern enums here

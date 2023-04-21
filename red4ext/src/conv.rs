@@ -6,6 +6,10 @@ use crate::types::{
     CName, Color, IScriptable, REDArray, REDString, Ref, TweakDBID, Variant, Vector2,
 };
 
+/// # Safety
+///
+/// Implementations of this trait are only valid if the memory representation of Self
+/// is idetical to the representation of type with name Self::NAME in-game.
 pub unsafe trait NativeRepr: Default {
     const NAME: &'static str;
 }
