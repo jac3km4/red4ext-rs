@@ -70,7 +70,7 @@ macro_rules! register_function {
         unsafe extern "C" fn native_impl(
             ctx: *mut $crate::ffi::IScriptable,
             frame: *mut $crate::ffi::CStackFrame,
-            ret: *mut std::ffi::c_void,
+            ret: *mut ::std::ffi::c_void,
             _unk: i64,
         ) {
             #[cfg(debug_assertions)]
@@ -78,7 +78,7 @@ macro_rules! register_function {
                 $crate::invocable::Invocable::invoke($fun, ctx, frame, ret)
             })
             .err()
-            .and_then(|err| err.downcast::<String>().ok())
+            .and_then(|err| err.downcast::<::std::string::String>().ok())
             {
                 $crate::error!("{} function panicked: {err}", $name);
             }
@@ -86,7 +86,7 @@ macro_rules! register_function {
             #[cfg(not(debug_assertions))]
             $crate::invocable::Invocable::invoke($fun, ctx, frame, ret);
 
-            std::pin::Pin::new_unchecked(&mut *frame).step();
+            ::std::pin::Pin::new_unchecked(&mut *frame).step();
         }
 
         let (arg_types, ret_type) = $crate::invocable::get_invocable_types(&$fun);
