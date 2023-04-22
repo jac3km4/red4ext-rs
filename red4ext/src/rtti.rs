@@ -2,7 +2,7 @@ use std::pin::Pin;
 
 use red4ext_sys::ffi;
 
-use crate::invokable::REDFunction;
+use crate::invocable::REDFunction;
 use crate::types::{CName, Ref, VoidPtr};
 
 pub struct RTTI<'a> {
@@ -73,11 +73,23 @@ macro_rules! register_function {
             ret: *mut std::ffi::c_void,
             _unk: i64,
         ) {
-            $crate::invokable::Invokable::invoke($fun, ctx, frame, ret);
-            std::pin::Pin::new_unchecked(&mut *frame).as_mut().step();
+            #[cfg(debug_assertions)]
+            if let Some(err) = ::std::panic::catch_unwind(|| {
+                $crate::invocable::Invocable::invoke($fun, ctx, frame, ret)
+            })
+            .err()
+            .and_then(|err| err.downcast::<String>().ok())
+            {
+                $crate::error!("{} function panicked: {err}", $name);
+            }
+
+            #[cfg(not(debug_assertions))]
+            $crate::invocable::Invocable::invoke($fun, ctx, frame, ret);
+
+            std::pin::Pin::new_unchecked(&mut *frame).step();
         }
 
-        let (arg_types, ret_type) = $crate::invokable::get_invokable_types(&$fun);
+        let (arg_types, ret_type) = $crate::invocable::get_invocable_types(&$fun);
         $crate::rtti::RTTI::get().register_function($name, native_impl, arg_types, ret_type)
     }};
 }

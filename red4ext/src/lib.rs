@@ -1,8 +1,9 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 pub mod conv;
+pub mod error;
 #[doc(hidden)]
-pub mod invokable;
+pub mod invocable;
 #[doc(hidden)]
 pub mod logger;
 pub mod plugin;

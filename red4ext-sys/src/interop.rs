@@ -169,6 +169,10 @@ impl StackArg {
     pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
         StackArg { typ, value }
     }
+
+    pub fn inner_type(&self) -> *const ffi::CBaseRTTIType {
+        self.typ
+    }
 }
 
 unsafe impl ExternType for StackArg {

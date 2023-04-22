@@ -34,10 +34,10 @@ namespace glue {
     *addr = CString(std::string(aText).c_str(), aAllocator);
   }
 
-  bool Execute(ScriptInstance aInstance, CBaseFunction* aFunc, VoidPtr aOut, rust::Slice<const CStackType> args)
+  bool Execute(ScriptInstance aInstance, CBaseFunction& aFunc, VoidPtr aOut, rust::Slice<const CStackType> args)
   {
     std::vector<CStackType> vec(args.data(), args.data() + args.length());
-    return ExecuteFunction(aInstance, aFunc, aOut, vec);
+    return ExecuteFunction(aInstance, &aFunc, aOut, vec);
   }
 
   void DefinePlugin(PluginInfo* aInfo, const uint16_t* name, const uint16_t* author, uint8_t major, uint16_t minor, uint32_t patch)
@@ -60,5 +60,21 @@ namespace glue {
     using func_t = void (*)(VoidPtr aThis, uint32_t aCapacity, uint32_t aElementSize, uint32_t aAlignment, void (*a5)(int64_t, int64_t, int64_t, int64_t));
     RelocFunc<func_t> func(Addresses::DynArray_Realloc);
     func(array, cap, elemSize, alignment, nullptr);
+  }
+
+  rust::Slice<const CProperty* const> GetParameters(const CBaseFunction& func) {
+    return rust::Slice<const CProperty* const>(func.params.entries, func.params.size);
+  }
+
+  const CProperty* GetReturn(const CBaseFunction& func) {
+    return func.returnType;
+  }
+
+  const CBaseRTTIType* GetPropertyType(const CProperty* prop) {
+    return prop->type;
+  }
+
+  rust::Str ResolveCName(const CName& cname) {
+    return rust::Str(CNamePool::Get(cname));
   }
 }

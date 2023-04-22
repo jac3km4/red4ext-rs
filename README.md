@@ -25,5 +25,11 @@ native func SumInts(ints: array<Int32>) -> Int32;
 
 A complete example project is available [here](https://github.com/jac3km4/red4ext-rs-example).
 
+## debugging
+When compiled in debug mode, a panic handler is installed for each function. It helps with debugging common issues like function invokation errors:
+```log
+[2023-04-22 16:38:41.896] [example] [error] PrintDebug function panicked: OperatorAdd;Uint32Uint32;Uint32: ArgMismatch { expected: "Uint32", index: 1 }
+```
+
 ## credits
 - WopsS for [RED4ext](https://github.com/WopsS/RED4ext.SDK)

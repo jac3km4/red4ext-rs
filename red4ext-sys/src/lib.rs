@@ -16,6 +16,7 @@ pub mod ffi {
 
         #[namespace = "RED4ext::Memory"]
         type IAllocator;
+
         type IScriptable;
         type CClass;
         type CBaseFunction;
@@ -25,6 +26,7 @@ pub mod ffi {
         type CRTTISystem;
         type CBaseRTTIType;
         type CStackFrame;
+        type CProperty;
         type PluginInfo;
         type Sdk;
         type EMainReason;
@@ -99,7 +101,7 @@ pub mod ffi {
         #[cxx_name = "Execute"]
         unsafe fn execute_function(
             instance: VoidPtr,
-            func: *mut CBaseFunction,
+            func: Pin<&mut CBaseFunction>,
             mem: VoidPtr,
             args: &[CStackType],
         ) -> bool;
@@ -119,5 +121,17 @@ pub mod ffi {
 
         #[cxx_name = "AllocArray"]
         fn alloc_array(arr: VoidPtr, cap: u32, elem_size: u32);
+
+        #[cxx_name = "GetParameters"]
+        fn get_parameters(func: &CBaseFunction) -> &[*const CProperty];
+
+        #[cxx_name = "GetReturn"]
+        fn get_return(func: &CBaseFunction) -> *const CProperty;
+
+        #[cxx_name = "GetPropertyType"]
+        unsafe fn get_property_type(prop: *const CProperty) -> *const CBaseRTTIType;
+
+        #[cxx_name = "ResolveCName"]
+        fn resolve_cname(cname: &CName) -> &'static str;
     }
 }
