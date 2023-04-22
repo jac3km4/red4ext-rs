@@ -1,3 +1,5 @@
+pub use red4ext_sys::interop::gameEItemIDFlag as EItemIDFlag;
+pub use red4ext_sys::interop::gamedataItemStructure as ItemStructure;
 pub use red4ext_sys::interop::EMainReason as MainReason;
 
 use crate::logger::SdkLogger;

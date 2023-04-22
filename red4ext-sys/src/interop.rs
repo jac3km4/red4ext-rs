@@ -3,6 +3,8 @@ use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
+pub use ffi::gameEItemIDFlag;
+pub use ffi::gamedataItemStructure;
 pub use ffi::EMainReason;
 
 use crate::ffi;
@@ -100,6 +102,21 @@ pub struct ItemID {
     flags: gameEItemIDFlag,
 }
 
+impl Default for gamedataItemStructure {
+    fn default() -> Self {
+        Self {
+            repr: Self::BlueprintStackable.repr,
+        }
+    }
+}
+impl Default for gameEItemIDFlag {
+    fn default() -> Self {
+        Self {
+            repr: Self::None.repr,
+        }
+    }
+}
+
 impl ItemID {
     pub fn new_from(id: TweakDBID) -> Self {
         Self {
@@ -107,39 +124,6 @@ impl ItemID {
             ..Default::default()
         }
     }
-}
-
-/// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
-/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
-#[repr(u8)]
-#[allow(non_camel_case_types)]
-pub enum gameEItemIDFlag {
-    #[default]
-    None = 0,
-    Preview = 1,
-}
-
-unsafe impl ExternType for gameEItemIDFlag {
-    type Id = type_id!("RED4ext::gameEItemIDFlag");
-    type Kind = cxx::kind::Trivial;
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq)]
-#[repr(u8)]
-#[allow(non_camel_case_types)]
-pub enum gamedataItemStructure {
-    #[default]
-    BlueprintStackable = 0,
-    Stackable = 1,
-    Unique = 2,
-    Count = 3,
-    Invalid = 4,
-}
-
-unsafe impl ExternType for gamedataItemStructure {
-    type Id = type_id!("RED4ext::gamedataItemStructure");
-    type Kind = cxx::kind::Trivial;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
