@@ -109,6 +109,7 @@ macro_rules! call_direct {
     }}
 }
 
+#[inline]
 pub fn invoke<R>(
     this: Ref<IScriptable>,
     fun: *mut ffi::CBaseFunction,
@@ -118,21 +119,28 @@ where
     R: FromRED,
     R::Repr: Default,
 {
-    let mut ret = R::Repr::default();
-
-    unsafe {
-        let Some(fun_ref) = fun.as_mut() else {
+    // don't inline to avoid exploding code size of macros
+    #[inline(never)]
+    fn invoke_shared(
+        this: Ref<IScriptable>,
+        fun: *mut ffi::CBaseFunction,
+        args: &[StackArg],
+        name: CName,
+        out: VoidPtr,
+    ) -> Result<(), InvokeError> {
+        let fun_ref = unsafe { fun.as_mut() };
+        let Some(fun_ref) = fun_ref else {
             return Err(InvokeError::FunctionNotFound);
         };
-        validate_invocation(args, CName::new(R::Repr::NAME), fun_ref)?;
+        validate_invocation(args, name, fun_ref)?;
+        let this = VoidPtr(this.as_ptr() as _);
+        unsafe { ffi::execute_function(this, Pin::new_unchecked(fun_ref), out, args) };
+        Ok(())
+    }
 
-        ffi::execute_function(
-            VoidPtr(this.as_ptr() as _),
-            Pin::new_unchecked(fun_ref),
-            mem::transmute(&mut ret),
-            args,
-        )
-    };
+    let mut ret = R::Repr::default();
+    let ret_ptr = unsafe { mem::transmute(&mut ret) };
+    invoke_shared(this, fun, args, CName::new(R::Repr::NAME), ret_ptr)?;
     Ok(R::from_repr(&ret))
 }
 
