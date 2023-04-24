@@ -3,9 +3,8 @@ use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
-pub use ffi::gameEItemIDFlag;
-pub use ffi::gamedataItemStructure;
 pub use ffi::EMainReason;
+use num_enum::TryFromPrimitive;
 
 use crate::ffi;
 
@@ -97,24 +96,9 @@ pub struct ItemID {
     seed: Seed,
     counter: u16,
     /// also called `unknown` in CET
-    structure: gamedataItemStructure,
+    structure: u8,
     /// also called `maybe_type` in CET
-    flags: gameEItemIDFlag,
-}
-
-impl Default for gamedataItemStructure {
-    fn default() -> Self {
-        Self {
-            repr: Self::BlueprintStackable.repr,
-        }
-    }
-}
-impl Default for gameEItemIDFlag {
-    fn default() -> Self {
-        Self {
-            repr: Self::None.repr,
-        }
-    }
+    flags: u8,
 }
 
 impl ItemID {
@@ -124,6 +108,40 @@ impl ItemID {
             ..Default::default()
         }
     }
+
+    pub fn structure(&self) -> Option<GamedataItemStructure> {
+        self.structure.try_into().ok()
+    }
+
+    pub fn flags(&self) -> Option<GameEItemIDFlag> {
+        self.flags.try_into().ok()
+    }
+}
+
+unsafe impl ExternType for ItemID {
+    type Id = type_id!("RED4ext::ItemID");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, TryFromPrimitive)]
+#[repr(u8)]
+pub enum GamedataItemStructure {
+    #[default]
+    BlueprintStackable = 0,
+    Stackable = 1,
+    Unique = 2,
+    Count = 3,
+    Invalid = 4,
+}
+
+/// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
+/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, TryFromPrimitive)]
+#[repr(u8)]
+pub enum GameEItemIDFlag {
+    #[default]
+    None = 0,
+    Preview = 1,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,11 +164,6 @@ impl From<Seed> for u32 {
     fn from(value: Seed) -> Self {
         value.0
     }
-}
-
-unsafe impl ExternType for ItemID {
-    type Id = type_id!("RED4ext::ItemID");
-    type Kind = cxx::kind::Trivial;
 }
 
 #[derive(Debug, Clone)]

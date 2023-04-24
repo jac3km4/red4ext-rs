@@ -3,7 +3,7 @@ pub use crate::conv::{FromRED, IntoRED, NativeRepr};
 pub use crate::macros::{redscript_global, redscript_import};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::types::{
-    gameEItemIDFlag, gamedataItemStructure, CName, IScriptable, ItemID, REDArray, REDString, Ref,
+    CName, GameEItemIDFlag, GamedataItemStructure, IScriptable, ItemID, REDArray, REDString, Ref,
     ScriptRef, TweakDBID, VariantExt,
 };
 pub use crate::{

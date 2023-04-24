@@ -10,27 +10,6 @@ pub mod ffi {
         Unload = 1,
     }
 
-    /// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
-    /// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
-    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq)]
-    #[repr(u8)]
-    #[allow(non_camel_case_types)]
-    pub enum gameEItemIDFlag {
-        None = 0,
-        Preview = 1,
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq)]
-    #[repr(u8)]
-    #[allow(non_camel_case_types)]
-    pub enum gamedataItemStructure {
-        BlueprintStackable = 0,
-        Stackable = 1,
-        Unique = 2,
-        Count = 3,
-        Invalid = 4,
-    }
-
     #[namespace = "RED4ext"]
     unsafe extern "C++" {
         include!("RED4ext/RED4ext.hpp");
