@@ -21,8 +21,6 @@ jobs:
       - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with:
-          key: red4ext-rs
       - run: cargo clippy -- -Dwarnings
 
   build:
@@ -35,8 +33,6 @@ jobs:
       - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with:
-          key: red4ext-rs
       - run: cargo build --release
       - uses: actions/upload-artifact@v3
         with:
