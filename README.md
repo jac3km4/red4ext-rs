@@ -5,6 +5,8 @@ Automagical Rust binding to [RED4ext](https://github.com/WopsS/RED4ext.SDK)
 ```rust
 use red4ext_rs::prelude::*;
 
+// this plugin registers a single function called SumInts
+// you'll be able to refer to it from both redscript and CET
 define_plugin! {
     name: "example",
     author: "jekky",
@@ -18,15 +20,15 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
     ints.iter().sum()
 }
 ```
-
 ```swift
+// this native definition will be required if you want to call it from redscript
 native func SumInts(ints: array<Int32>) -> Int32;
 ```
 
 A complete example project is available [here](https://github.com/jac3km4/red4ext-rs-example).
 
 ## macros
-You can enable proc macros that automatically import/export functions with the `macros` feature.
+Additionally, you can enable the `macros` feature for some convenience import/export proc macros.
 ```rs
 // import a global operator
 // function names gets automatically mangled
