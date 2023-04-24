@@ -22,8 +22,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: red4ext-rs
-          key: clippy
+          key: red4ext-rs-clippy
       - run: cargo clippy -- -Dwarnings
 
   build:
@@ -37,8 +36,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: red4ext-rs
-          key: build
+          key: red4ext-rs-build
       - run: cargo build --release
       - uses: actions/upload-artifact@v3
         with:
