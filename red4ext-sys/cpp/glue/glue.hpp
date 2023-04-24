@@ -80,28 +80,13 @@ namespace glue {
 
   CClassFunction* GetMethod(const CClass& cls, const CName& fullName)
   {
-    // should use cls.funcsByName.Get(fullName) but that seems broken atm
-    for (auto func : cls.staticFuncs)
-    {
-        if (func->fullName == fullName)
-        {
-            return func;
-        }
+    auto res = cls.funcsByName.Get(fullName);
+    if (res) {
+      return *res;
     }
-
-    for (auto func : cls.funcs)
-    {
-        if (func->fullName == fullName)
-        {
-            return func;
-        }
+    if (cls.parent) {
+      return GetMethod(*cls.parent, fullName);
     }
-
-    if (cls.parent)
-    {
-        return GetMethod(*cls.parent, fullName);
-    }
-
     return nullptr;
   }
 }
