@@ -1,16 +1,18 @@
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum InvokeError {
+    #[error("function not found")]
     FunctionNotFound,
+    #[error("function is not valid")]
     InvalidFunction,
-    InvalidArgCount {
-        given: usize,
-        expected: usize,
-    },
+    #[error("expected {expected} arguments, but {given} given")]
+    InvalidArgCount { given: usize, expected: usize },
+    #[error("expected {expected} argument at index {index}")]
     ArgMismatch {
         expected: &'static str,
         index: usize,
     },
-    ReturnMismatch {
-        expected: &'static str,
-    },
+    #[error("return type mismatch, expected {expected}")]
+    ReturnMismatch { expected: &'static str },
 }

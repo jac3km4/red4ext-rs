@@ -73,22 +73,28 @@ macro_rules! call {
     }};
     ([$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::RTTI::get();
-        $crate::call_direct!(
+        match $crate::call_direct!(
             rtti,
             $crate::types::Ref::null(),
             rtti.get_function($crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
-        ).expect($fn_name)
+        ) {
+            Ok(res) => res,
+            Err(err) => $crate::invocable::raise_invoke_error($fn_name, err)
+        }
     }};
     ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::RTTI::get();
         let this = $this;
-        $crate::call_direct!(
+        match $crate::call_direct!(
             rtti,
             this.clone(),
             $crate::rtti::RTTI::get_method(this, $crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
-        ).expect($fn_name)
+        ) {
+            Ok(res) => res,
+            Err(err) => $crate::invocable::raise_invoke_error($fn_name, err)
+        }
     }};
 }
 
@@ -177,6 +183,12 @@ pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, 
 #[inline]
 pub fn get_invocable_types<F: Invocable<A, R>, A, R>(_f: &F) -> (&[CName], CName) {
     (F::ARG_TYPES, F::RETURN_TYPE)
+}
+
+// don't inline to avoid exploding code size of macros
+#[inline(never)]
+pub fn raise_invoke_error<A>(source: &str, error: InvokeError) -> A {
+    panic!("failed to invoke {source}: {error}")
 }
 
 pub trait Args: private_args::Sealed {
