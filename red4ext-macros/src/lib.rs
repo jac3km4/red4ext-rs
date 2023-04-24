@@ -99,7 +99,10 @@ fn generate_forwader(
         .chain(meta)
         .collect();
 
-    let attrs = FunctionAttrs::from_list(&meta).unwrap();
+    let attrs = match FunctionAttrs::from_list(&meta) {
+        Ok(res) => res,
+        Err(err) => return err.write_errors(),
+    };
 
     let mut types = vec![];
     let mut idents = vec![];
