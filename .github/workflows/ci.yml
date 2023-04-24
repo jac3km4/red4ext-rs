@@ -6,26 +6,25 @@ on:
   pull_request:
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0 # Incremental not supported by our caching
+  CARGO_TERM_COLOR: always # GH action logs support terminal colors
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse # New format as of 2023-03-09
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Set LIBCLANG_PATH
         run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
-      - name: Prepare Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          toolchain: stable
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
+          shared-key: red4ext-rs
+      - run: cargo clippy -- -Dwarnings
+      - run: cargo build --release
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
