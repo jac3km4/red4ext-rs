@@ -40,6 +40,6 @@ jobs:
           shared-key: red4ext-rs
           key: build
       - run: cargo build --release
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: target/release/red4ext_example.dll
