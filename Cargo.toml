@@ -1,5 +1,5 @@
 [workspace]
-members = ["red4ext", "red4ext-sys"]
+members = ["red4ext", "red4ext-sys", "red4ext-macros"]
 
 [workspace.package]
 version = "0.1.0"

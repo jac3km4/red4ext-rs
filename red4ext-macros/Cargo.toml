@@ -1,0 +1,17 @@
+[package]
+name = "red4ext-macros"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1", features = ["full"] }
+proc-macro2 = "1"
+quote = "1"
+darling = "0.14"
+heck = "0.4"

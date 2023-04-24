@@ -66,6 +66,12 @@ impl_invocable!(
 #[macro_export]
 macro_rules! call {
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
+        $crate::call!([$fn_name] ($($args),*) -> $rett)
+    }};
+    ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
+        $crate::call!($this, [$fn_name] ($($args),*) -> $rett)
+    }};
+    ([$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::RTTI::get();
         $crate::call_direct!(
             rtti,
@@ -74,7 +80,7 @@ macro_rules! call {
             ($($args),*) -> $rett
         ).expect($fn_name)
     }};
-    ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
+    ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::RTTI::get();
         let this = $this;
         $crate::call_direct!(
@@ -118,7 +124,7 @@ where
             VoidPtr(this.as_ptr() as _),
             Pin::new_unchecked(fun_ref),
             mem::transmute(&mut ret),
-            &args,
+            args,
         )
     };
     Ok(R::from_repr(&ret))

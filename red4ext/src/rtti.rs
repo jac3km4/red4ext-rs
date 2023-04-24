@@ -35,14 +35,14 @@ impl<'a> RTTI<'a> {
     pub fn get_method(this: Ref<ffi::IScriptable>, fn_name: CName) -> *mut ffi::CBaseFunction {
         unsafe {
             let typ = Self::class_of(this);
-            (*typ).get_function(fn_name) as *mut _
+            ffi::get_method(&*typ, &fn_name) as _
         }
     }
 
     pub fn get_static_method(&mut self, class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
         unsafe {
             let typ = self.get_class(class);
-            (*typ).get_function(fn_name) as *mut _
+            ffi::get_method(&*typ, &fn_name) as _
         }
     }
 

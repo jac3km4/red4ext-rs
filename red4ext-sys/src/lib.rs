@@ -55,9 +55,6 @@ pub mod ffi {
         #[cxx_name = "GetName"]
         fn get_name(self: &CBaseRTTIType) -> CName;
 
-        #[cxx_name = "GetFunction"]
-        fn get_function(self: &CClass, name: CName) -> *mut CClassFunction;
-
         #[cxx_name = "GetParameter"]
         unsafe fn get_parameter(frame: *mut CStackFrame, mem: VoidPtr);
 
@@ -133,5 +130,8 @@ pub mod ffi {
 
         #[cxx_name = "ResolveCName"]
         fn resolve_cname(cname: &CName) -> &'static str;
+
+        #[cxx_name = "GetMethod"]
+        fn get_method(cls: &CClass, name: &CName) -> *mut CClassFunction;
     }
 }
