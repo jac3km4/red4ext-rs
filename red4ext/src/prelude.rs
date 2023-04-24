@@ -1,7 +1,6 @@
-#[cfg(feature = "macros")]
-pub use red4ext_macros::*;
-
 pub use crate::conv::{FromRED, IntoRED, NativeRepr};
+#[cfg(feature = "macros")]
+pub use crate::macros::{redscript_global, redscript_import};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::types::{
     CName, IScriptable, REDArray, REDString, Ref, ScriptRef, TweakDBID, VariantExt,

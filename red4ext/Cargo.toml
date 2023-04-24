@@ -6,11 +6,6 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
-[[example]]
-name = "example"
-crate-type = ["cdylib"]
-required-features = ["macros"]
-
 [dependencies]
 once_cell = "1"
 wchar = "0.11"

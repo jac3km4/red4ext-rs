@@ -136,12 +136,12 @@ fn generate_forwader(
             syn::ReturnType::Default => None,
             syn::ReturnType::Type(_, typ) => Some(type_name(typ)),
         };
-        quote!(::red4ext_macros::concat_str!(#name, ";", #(#args),*, ";", #ret))
+        quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*, ";", #ret))
     } else if attrs.cb || attrs.native {
         name.to_token_stream()
     } else {
         let args = types.iter().map(|typ| type_name(typ));
-        quote!(::red4ext_macros::concat_str!(#name, ";", #(#args),*))
+        quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*))
     };
 
     let ret = &sig.output;

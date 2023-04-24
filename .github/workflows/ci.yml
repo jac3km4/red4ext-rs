@@ -25,9 +25,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --examples
+          args: --release
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
           path: |
-            target/release/examples/example.dll
+            target/release/red4ext_example.dll

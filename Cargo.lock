@@ -159,6 +159,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "red4ext-example"
+version = "0.1.0"
+dependencies = [
+ "red4ext-rs",
+]
+
+[[package]]
 name = "red4ext-macros"
 version = "0.1.0"
 dependencies = [

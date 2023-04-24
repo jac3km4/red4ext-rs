@@ -12,6 +12,8 @@ pub mod prelude;
 pub mod rtti;
 pub mod types;
 
+#[cfg(feature = "macros")]
+pub use red4ext_macros as macros;
 #[doc(hidden)]
 pub use red4ext_sys::ffi;
 pub use wchar;
