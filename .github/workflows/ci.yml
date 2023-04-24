@@ -11,22 +11,33 @@ env:
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse # New format as of 2023-03-09
 
 jobs:
+  lint:
+    name: Run clippy
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: red4ext-rs
+          key: clippy
+      - run: cargo clippy -- -Dwarnings
+
   build:
+    name: Build an artifact
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Set LIBCLANG_PATH
-        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+      - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: red4ext-rs
-      - run: cargo clippy -- -Dwarnings
+          key: build
       - run: cargo build --release
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
-          path: |
-            target/release/red4ext_example.dll
+          path: target/release/red4ext_example.dll
