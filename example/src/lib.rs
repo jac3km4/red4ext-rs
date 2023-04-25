@@ -2,8 +2,8 @@ use red4ext_rs::prelude::*;
 
 define_plugin! {
     name: "example",
-    author: "jekky",
-    version: 1:0:0,
+    author: "author",
+    version: 0:1:0,
     on_register: {
         register_function!("SumInts", sum_ints);
         register_function!("CallDemo", call_demo);
