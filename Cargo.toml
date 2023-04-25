@@ -2,7 +2,7 @@
 members = ["red4ext", "red4ext-sys", "red4ext-macros", "example"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 rust-version = "1.69"
 edition = "2021"
 license = "MIT"
@@ -10,3 +10,10 @@ authors = ["jekky"]
 
 [profile.release]
 lto = "thin"
+
+[workspace.metadata.release]
+pre-release-commit-message = "chore: release {{version}}"
+tag-message = "chore: release {{crate_name}} {{version}}"
+tag-prefix = ""
+shared-version = true
+publish = false
