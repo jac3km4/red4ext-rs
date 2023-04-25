@@ -47,7 +47,7 @@ fn is_player(scriptable: Ref<IScriptable>) -> bool {
 }
 ```
 It works OK if you don't need to invoke game functions frequently, but for larger projects a more
-convenient, [proc macro](#macros-feature) approach is described in the next section.
+convenient, [proc macro](#proc-macros) approach is described in the next section.
 
 ## proc macros
 The `macros` crate feature enables a few proc macros that make interop even easier.
