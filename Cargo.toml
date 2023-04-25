@@ -13,7 +13,6 @@ lto = "thin"
 
 [workspace.metadata.release]
 pre-release-commit-message = "chore: release {{version}}"
-tag-message = "chore: release {{crate_name}} {{version}}"
 tag-prefix = ""
 shared-version = true
 publish = false
