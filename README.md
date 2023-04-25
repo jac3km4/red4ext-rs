@@ -79,7 +79,6 @@ Available macros:
   
   Example:
     ```rs
-    #[derive(Clone, Default)]
     #[repr(transparent)]
     struct PlayerPuppet(Ref<IScriptable>);
 
