@@ -34,6 +34,7 @@ pub mod ffi {
         type CName = crate::interop::CName;
         type CString = crate::interop::REDString;
         type TweakDBID = crate::interop::TweakDBID;
+        type ItemID = crate::interop::ItemID;
         type CStackType = crate::interop::StackArg;
         type Variant = crate::interop::Variant;
 

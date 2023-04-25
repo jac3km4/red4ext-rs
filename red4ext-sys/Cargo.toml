@@ -7,6 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+num_enum = { version = "0.6", default-features = false }
 cxx = "1"
 const-crc32 = { git = "https://git.shipyard.rs/Roms1383/const-crc32", rev = "9c688f3ad1" }
 
