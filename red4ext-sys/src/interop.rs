@@ -48,12 +48,12 @@ unsafe impl ExternType for CName {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
-pub struct TweakDBID {
+pub struct TweakDbId {
     hash: u32,
     length: u8,
 }
 
-impl From<u64> for TweakDBID {
+impl From<u64> for TweakDbId {
     fn from(value: u64) -> Self {
         let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
         let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
@@ -61,7 +61,7 @@ impl From<u64> for TweakDBID {
     }
 }
 
-impl TweakDBID {
+impl TweakDbId {
     #[inline]
     pub const fn new(str: &str) -> Self {
         assert!(str.len() <= u8::MAX as usize);
@@ -72,7 +72,7 @@ impl TweakDBID {
     }
 
     #[inline]
-    pub const fn new_from_base(base: TweakDBID, str: &str) -> Self {
+    pub const fn new_from_base(base: TweakDbId, str: &str) -> Self {
         assert!((base.length as usize + str.len()) <= u8::MAX as usize);
         Self {
             hash: crc32_seed(str.as_bytes(), base.hash),
@@ -81,7 +81,7 @@ impl TweakDBID {
     }
 }
 
-unsafe impl ExternType for TweakDBID {
+unsafe impl ExternType for TweakDbId {
     type Id = type_id!("RED4ext::TweakDBID");
     type Kind = cxx::kind::Trivial;
 }
@@ -91,8 +91,8 @@ unsafe impl ExternType for TweakDBID {
 /// CET has a [different naming convention for the last two fields](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
-pub struct ItemID {
-    id: TweakDBID,
+pub struct ItemId {
+    id: TweakDbId,
     seed: Seed,
     counter: u16,
     /// also called `unknown` in CET
@@ -101,8 +101,8 @@ pub struct ItemID {
     flags: u8,
 }
 
-impl ItemID {
-    pub fn new_from(id: TweakDBID) -> Self {
+impl ItemId {
+    pub fn new_from(id: TweakDbId) -> Self {
         Self {
             id,
             ..Default::default()
@@ -113,12 +113,12 @@ impl ItemID {
         self.structure.try_into().ok()
     }
 
-    pub fn flags(&self) -> Option<GameEItemIDFlag> {
+    pub fn flags(&self) -> Option<GameEItemIdFlag> {
         self.flags.try_into().ok()
     }
 }
 
-unsafe impl ExternType for ItemID {
+unsafe impl ExternType for ItemId {
     type Id = type_id!("RED4ext::ItemID");
     type Kind = cxx::kind::Trivial;
 }
@@ -138,7 +138,7 @@ pub enum GamedataItemStructure {
 /// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, TryFromPrimitive)]
 #[repr(u8)]
-pub enum GameEItemIDFlag {
+pub enum GameEItemIdFlag {
     #[default]
     None = 0,
     Preview = 1,
@@ -168,15 +168,15 @@ impl From<Seed> for u32 {
 
 #[derive(Debug, Clone)]
 #[repr(C, packed)]
-pub struct REDString {
+pub struct RedString {
     data: [i8; 0x14],
     length: u32,
     _allocator: Mem,
 }
 
-impl REDString {
+impl RedString {
     pub fn new(str: impl AsRef<str>) -> Self {
-        let mut repr = REDString::default();
+        let mut repr = RedString::default();
         unsafe { ffi::construct_string_at(&mut repr, str.as_ref(), ptr::null_mut()) };
         repr
     }
@@ -193,7 +193,7 @@ impl REDString {
     }
 }
 
-impl Default for REDString {
+impl Default for RedString {
     #[inline]
     fn default() -> Self {
         Self {
@@ -204,7 +204,7 @@ impl Default for REDString {
     }
 }
 
-unsafe impl ExternType for REDString {
+unsafe impl ExternType for RedString {
     type Id = type_id!("RED4ext::CString");
     type Kind = cxx::kind::Trivial;
 }
@@ -212,7 +212,7 @@ unsafe impl ExternType for REDString {
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Variant {
-    typ: *const ffi::CBaseRTTIType,
+    typ: *const ffi::CBaseRttiType,
     data: [u8; 0x10],
 }
 
@@ -241,17 +241,17 @@ unsafe impl ExternType for Variant {
 #[derive(Debug)]
 #[repr(C)]
 pub struct StackArg {
-    typ: *const ffi::CBaseRTTIType,
+    typ: *const ffi::CBaseRttiType,
     value: Mem,
 }
 
 impl StackArg {
     #[inline]
-    pub fn new(typ: *const ffi::CBaseRTTIType, value: Mem) -> StackArg {
+    pub fn new(typ: *const ffi::CBaseRttiType, value: Mem) -> StackArg {
         StackArg { typ, value }
     }
 
-    pub fn inner_type(&self) -> *const ffi::CBaseRTTIType {
+    pub fn inner_type(&self) -> *const ffi::CBaseRttiType {
         self.typ
     }
 }

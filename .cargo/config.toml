@@ -17,6 +17,7 @@ rustflags = [
     "-Wclippy::explicit_iter_loop",
     "-Wclippy::inefficient_to_string",
     "-Wclippy::match_bool",
+    "-Wclippy::upper_case_acronyms",
     "-Dfuture-incompatible",
     "-Dlet-underscore",
     "-Dnonstandard-style",

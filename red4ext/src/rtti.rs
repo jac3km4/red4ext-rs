@@ -2,14 +2,14 @@ use std::pin::Pin;
 
 use red4ext_sys::ffi;
 
-use crate::invocable::REDFunction;
+use crate::invocable::RedFunction;
 use crate::types::{CName, Ref, VoidPtr};
 
-pub struct RTTI<'a> {
-    inner: Pin<&'a mut ffi::IRTTISystem>,
+pub struct Rtti<'a> {
+    inner: Pin<&'a mut ffi::IRttiSystem>,
 }
 
-impl<'a> RTTI<'a> {
+impl<'a> Rtti<'a> {
     #[inline]
     pub fn get() -> Self {
         Self {
@@ -23,7 +23,7 @@ impl<'a> RTTI<'a> {
     }
 
     #[inline]
-    pub fn get_type(&mut self, name: CName) -> *mut ffi::CBaseRTTIType {
+    pub fn get_type(&mut self, name: CName) -> *mut ffi::CBaseRttiType {
         self.inner.as_mut().get_type(name)
     }
 
@@ -46,7 +46,7 @@ impl<'a> RTTI<'a> {
         }
     }
 
-    pub fn register_function(&mut self, name: &str, func: REDFunction, args: &[CName], ret: CName) {
+    pub fn register_function(&mut self, name: &str, func: RedFunction, args: &[CName], ret: CName) {
         unsafe {
             let func = ffi::new_native_function(name, name, VoidPtr(func as *mut _), args, ret);
             self.inner.as_mut().register_function(func);
@@ -59,7 +59,7 @@ impl<'a> RTTI<'a> {
     }
 
     #[inline]
-    pub fn type_name_of(typ: *const ffi::CBaseRTTIType) -> CName {
+    pub fn type_name_of(typ: *const ffi::CBaseRttiType) -> CName {
         unsafe { (*typ).get_name() }
     }
 }
@@ -90,6 +90,6 @@ macro_rules! register_function {
         }
 
         let (arg_types, ret_type) = $crate::invocable::get_invocable_types(&$fun);
-        $crate::rtti::RTTI::get().register_function($name, native_impl, arg_types, ret_type)
+        $crate::rtti::Rtti::get().register_function($name, native_impl, arg_types, ret_type)
     }};
 }

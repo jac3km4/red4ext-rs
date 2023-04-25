@@ -22,9 +22,10 @@ pub mod ffi {
         type CBaseFunction;
         type CGlobalFunction;
         type CClassFunction;
-        type IRTTISystem;
-        type CRTTISystem;
-        type CBaseRTTIType;
+        #[cxx_name = "IRTTISystem"]
+        type IRttiSystem;
+        #[cxx_name = "CBaseRTTIType"]
+        type CBaseRttiType;
         type CStackFrame;
         type CProperty;
         type PluginInfo;
@@ -32,29 +33,31 @@ pub mod ffi {
         type EMainReason;
 
         type CName = crate::interop::CName;
-        type CString = crate::interop::REDString;
-        type TweakDBID = crate::interop::TweakDBID;
-        type ItemID = crate::interop::ItemID;
+        type CString = crate::interop::RedString;
+        #[cxx_name = "TweakDBID"]
+        type TweakDbId = crate::interop::TweakDbId;
+        #[cxx_name = "ItemID"]
+        type ItemId = crate::interop::ItemId;
         type CStackType = crate::interop::StackArg;
         type Variant = crate::interop::Variant;
 
         #[cxx_name = "GetFunction"]
-        fn get_function(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CGlobalFunction;
+        fn get_function(self: Pin<&mut IRttiSystem>, name: CName) -> *mut CGlobalFunction;
 
         #[cxx_name = "GetClass"]
-        fn get_class(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CClass;
+        fn get_class(self: Pin<&mut IRttiSystem>, name: CName) -> *mut CClass;
 
         #[cxx_name = "GetType"]
-        fn get_type(self: Pin<&mut IRTTISystem>, name: CName) -> *mut CBaseRTTIType;
+        fn get_type(self: Pin<&mut IRttiSystem>, name: CName) -> *mut CBaseRttiType;
 
         #[cxx_name = "RegisterFunction"]
-        unsafe fn register_function(self: Pin<&mut IRTTISystem>, func: *mut CGlobalFunction);
+        unsafe fn register_function(self: Pin<&mut IRttiSystem>, func: *mut CGlobalFunction);
 
         #[cxx_name = "GetType"]
         fn get_class(self: Pin<&mut IScriptable>) -> *mut CClass;
 
         #[cxx_name = "GetName"]
-        fn get_name(self: &CBaseRTTIType) -> CName;
+        fn get_name(self: &CBaseRttiType) -> CName;
 
         #[cxx_name = "GetParameter"]
         unsafe fn get_parameter(frame: *mut CStackFrame, mem: VoidPtr);
@@ -63,13 +66,13 @@ pub mod ffi {
         fn step(self: Pin<&mut CStackFrame>);
 
         #[cxx_name = "GetType"]
-        fn get_type(self: &Variant) -> *mut CBaseRTTIType;
+        fn get_type(self: &Variant) -> *mut CBaseRttiType;
 
         #[cxx_name = "GetDataPtr"]
         fn get_data_ptr(self: &Variant) -> VoidPtr;
 
         #[cxx_name = "Fill"]
-        unsafe fn fill(self: Pin<&mut Variant>, typ: *const CBaseRTTIType, data: VoidPtr) -> bool;
+        unsafe fn fill(self: Pin<&mut Variant>, typ: *const CBaseRttiType, data: VoidPtr) -> bool;
     }
 
     #[namespace = "glue"]
@@ -88,7 +91,7 @@ pub mod ffi {
         ) -> *mut CGlobalFunction;
 
         #[cxx_name = "GetRTTI"]
-        fn get_rtti() -> *mut IRTTISystem;
+        fn get_rtti() -> *mut IRttiSystem;
 
         #[cxx_name = "AddRTTICallback"]
         fn add_rtti_callback(reg_func: VoidPtr, post_reg_func: VoidPtr, unused: bool);
@@ -127,7 +130,7 @@ pub mod ffi {
         fn get_return(func: &CBaseFunction) -> *const CProperty;
 
         #[cxx_name = "GetPropertyType"]
-        unsafe fn get_property_type(prop: *const CProperty) -> *const CBaseRTTIType;
+        unsafe fn get_property_type(prop: *const CProperty) -> *const CBaseRttiType;
 
         #[cxx_name = "ResolveCName"]
         fn resolve_cname(cname: &CName) -> &'static str;

@@ -3,7 +3,7 @@ use red4ext_sys::ffi;
 use red4ext_sys::interop::Mem;
 
 use crate::types::{
-    CName, Color, IScriptable, REDArray, REDString, Ref, ScriptRef, TweakDBID, Variant, Vector2,
+    CName, Color, IScriptable, RedArray, RedString, Ref, ScriptRef, TweakDbId, Variant, Vector2,
 };
 
 /// # Safety
@@ -18,11 +18,11 @@ unsafe impl NativeRepr for () {
     const NAME: &'static str = "Void";
 }
 
-unsafe impl NativeRepr for REDString {
+unsafe impl NativeRepr for RedString {
     const NAME: &'static str = "String";
 }
 
-unsafe impl<A: NativeRepr> NativeRepr for REDArray<A> {
+unsafe impl<A: NativeRepr> NativeRepr for RedArray<A> {
     const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
@@ -34,13 +34,13 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = const_combine!("script_ref:", A::NAME);
 }
 
-pub trait IntoRED: Sized {
+pub trait IntoRepr: Sized {
     type Repr: NativeRepr;
 
     fn into_repr(self) -> Self::Repr;
 }
 
-impl<A: NativeRepr> IntoRED for A {
+impl<A: NativeRepr> IntoRepr for A {
     type Repr = A;
 
     #[inline]
@@ -49,8 +49,8 @@ impl<A: NativeRepr> IntoRED for A {
     }
 }
 
-impl IntoRED for String {
-    type Repr = REDString;
+impl IntoRepr for String {
+    type Repr = RedString;
 
     #[inline]
     fn into_repr(self) -> Self::Repr {
@@ -58,44 +58,44 @@ impl IntoRED for String {
     }
 }
 
-impl IntoRED for &str {
-    type Repr = REDString;
+impl IntoRepr for &str {
+    type Repr = RedString;
 
     #[inline]
-    fn into_repr(self) -> REDString {
-        REDString::new(self)
+    fn into_repr(self) -> RedString {
+        RedString::new(self)
     }
 }
 
-impl<A> IntoRED for Vec<A>
+impl<A> IntoRepr for Vec<A>
 where
-    A: IntoRED,
+    A: IntoRepr,
 {
-    type Repr = REDArray<A::Repr>;
+    type Repr = RedArray<A::Repr>;
 
     fn into_repr(self) -> Self::Repr {
-        REDArray::from_sized_iter(self.into_iter().map(IntoRED::into_repr))
+        RedArray::from_sized_iter(self.into_iter().map(IntoRepr::into_repr))
     }
 }
 
-impl<A> IntoRED for &[A]
+impl<A> IntoRepr for &[A]
 where
-    A: IntoRED + Clone,
+    A: IntoRepr + Clone,
 {
-    type Repr = REDArray<A::Repr>;
+    type Repr = RedArray<A::Repr>;
 
     fn into_repr(self) -> Self::Repr {
-        REDArray::from_sized_iter(self.iter().cloned().map(IntoRED::into_repr))
+        RedArray::from_sized_iter(self.iter().cloned().map(IntoRepr::into_repr))
     }
 }
 
-pub trait FromRED: Sized {
+pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 
     fn from_repr(repr: &Self::Repr) -> Self;
 }
 
-impl<A: NativeRepr + Clone> FromRED for A {
+impl<A: NativeRepr + Clone> FromRepr for A {
     type Repr = A;
 
     #[inline]
@@ -104,8 +104,8 @@ impl<A: NativeRepr + Clone> FromRED for A {
     }
 }
 
-impl FromRED for String {
-    type Repr = REDString;
+impl FromRepr for String {
+    type Repr = RedString;
 
     #[inline]
     fn from_repr(repr: &Self::Repr) -> Self {
@@ -113,14 +113,14 @@ impl FromRED for String {
     }
 }
 
-impl<A> FromRED for Vec<A>
+impl<A> FromRepr for Vec<A>
 where
-    A: FromRED,
+    A: FromRepr,
 {
-    type Repr = REDArray<A::Repr>;
+    type Repr = RedArray<A::Repr>;
 
     fn from_repr(repr: &Self::Repr) -> Self {
-        repr.as_slice().iter().map(FromRED::from_repr).collect()
+        repr.as_slice().iter().map(FromRepr::from_repr).collect()
     }
 }
 
@@ -144,20 +144,20 @@ impl_native_repr!(u16, "Uint16");
 impl_native_repr!(u8, "Uint8");
 impl_native_repr!(bool, "Bool");
 impl_native_repr!(CName, "CName");
-impl_native_repr!(TweakDBID, "TweakDBID");
+impl_native_repr!(TweakDbId, "TweakDBID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
 impl_native_repr!(Ref<IScriptable>, "handle:IScriptable");
 
 #[inline]
-pub(crate) fn fill_memory<A: IntoRED>(val: A, mem: Mem) {
+pub(crate) fn fill_memory<A: IntoRepr>(val: A, mem: Mem) {
     unsafe { (mem as *mut A::Repr).write(val.into_repr()) }
 }
 
 #[inline]
 pub(crate) fn from_frame<A>(frame: *mut ffi::CStackFrame) -> A
 where
-    A: FromRED,
+    A: FromRepr,
     A::Repr: Default,
 {
     let mut init = A::Repr::default();
@@ -172,11 +172,11 @@ mod tests {
     #[test]
     fn render_type_names() {
         assert_eq!(
-            <Vec<Vec<Vec<i32>>> as IntoRED>::Repr::NAME,
+            <Vec<Vec<Vec<i32>>> as IntoRepr>::Repr::NAME,
             "array:array:array:Int32"
         );
         assert_eq!(
-            <Vec<Ref<IScriptable>> as IntoRED>::Repr::NAME,
+            <Vec<Ref<IScriptable>> as IntoRepr>::Repr::NAME,
             "array:handle:IScriptable"
         );
     }

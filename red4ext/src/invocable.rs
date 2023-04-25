@@ -4,14 +4,14 @@ use std::pin::Pin;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::{Mem, StackArg};
 
-use crate::conv::{fill_memory, from_frame, FromRED, IntoRED, NativeRepr};
+use crate::conv::{fill_memory, from_frame, FromRepr, IntoRepr, NativeRepr};
 use crate::error::InvokeError;
-use crate::rtti::RTTI;
+use crate::rtti::Rtti;
 use crate::types::{CName, IScriptable, Ref, VoidPtr};
 
-pub(crate) type REDFunction =
+pub(crate) type RedFunction =
     unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
-type REDType = *const ffi::CBaseRTTIType;
+type RedType = *const ffi::CBaseRttiType;
 
 pub trait Invocable<A, R>: private_invocable::Sealed<A, R> {
     const ARG_TYPES: &'static [CName];
@@ -27,8 +27,8 @@ macro_rules! impl_invocable {
             impl<$($types,)* R, FN> Invocable<($($types,)*), R> for FN
             where
                 FN: Fn($($types,)*) -> R,
-                $($types: FromRED, $types::Repr: Default,)*
-                R: IntoRED
+                $($types: FromRepr, $types::Repr: Default,)*
+                R: IntoRepr
             {
                 const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
                 const RETURN_TYPE: CName = CName::new(R::Repr::NAME);
@@ -72,7 +72,7 @@ macro_rules! call {
         $crate::call!($this, [$fn_name] ($($args),*) -> $rett)
     }};
     ([$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
-        let mut rtti = $crate::rtti::RTTI::get();
+        let mut rtti = $crate::rtti::Rtti::get();
         match $crate::call_direct!(
             rtti,
             $crate::types::Ref::null(),
@@ -84,12 +84,12 @@ macro_rules! call {
         }
     }};
     ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
-        let mut rtti = $crate::rtti::RTTI::get();
+        let mut rtti = $crate::rtti::Rtti::get();
         let this = $this;
         match $crate::call_direct!(
             rtti,
             this.clone(),
-            $crate::rtti::RTTI::get_method(this, $crate::types::CName::new($fn_name)),
+            $crate::rtti::Rtti::get_method(this, $crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         ) {
             Ok(res) => res,
@@ -116,7 +116,7 @@ pub fn invoke<R>(
     args: &[StackArg],
 ) -> Result<R, InvokeError>
 where
-    R: FromRED,
+    R: FromRepr,
     R::Repr: Default,
 {
     // don't inline to avoid exploding code size of macros
@@ -184,7 +184,7 @@ fn validate_invocation(
 }
 
 #[inline]
-pub fn into_type_and_repr<A: IntoRED>(rtti: &mut RTTI<'_>, val: A) -> (REDType, A::Repr) {
+pub fn into_type_and_repr<A: IntoRepr>(rtti: &mut Rtti<'_>, val: A) -> (RedType, A::Repr) {
     (rtti.get_type(CName::new(A::Repr::NAME)), val.into_repr())
 }
 
@@ -209,7 +209,7 @@ macro_rules! impl_args {
     ($( ($( $ids:ident ),*) ),*) => {
         $(
             #[allow(unused_parens, non_snake_case)]
-            impl <$($ids),*> Args for ($((REDType, $ids)),*) {
+            impl <$($ids),*> Args for ($((RedType, $ids)),*) {
                 type StackArgs = [StackArg; count_args!($($ids)*)];
 
                 #[inline]
@@ -224,7 +224,7 @@ macro_rules! impl_args {
         mod private_args {
             use super::*;
             pub trait Sealed {}
-            $(impl <$($ids),*> Sealed for ($((REDType, $ids)),*) {})*
+            $(impl <$($ids),*> Sealed for ($((RedType, $ids)),*) {})*
         }
     };
 }

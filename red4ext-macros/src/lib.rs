@@ -130,7 +130,7 @@ fn generate_forwader(
     let name = syn::LitStr::new(name, sig.span());
 
     fn type_name(typ: &syn::Type) -> proc_macro2::TokenStream {
-        quote!(<<#typ as ::red4ext_rs::conv::IntoRED>::Repr as ::red4ext_rs::conv::NativeRepr>::NAME)
+        quote!(<<#typ as ::red4ext_rs::conv::IntoRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::NAME)
     }
 
     let signature = if attrs.operator {
