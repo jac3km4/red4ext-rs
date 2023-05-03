@@ -167,7 +167,7 @@ impl From<Seed> for u32 {
 }
 
 /// see [its C++ representation](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/entEntityID.hpp#L7)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct EntityId {
     hash: u64,
 }
@@ -179,14 +179,9 @@ impl From<u64> for EntityId {
 }
 
 impl EntityId {
-    const DYNAMIC_UPPER_BOUND: u64 = 0xFFFFFF;
-    const PERSISTABLE_LOWER_BOUND: u64 = 9000000;
-    const PERSISTABLE_UPPER_BOUND: u64 = 10000000;
-
-    #[inline]
-    pub fn new() -> Self {
-        0.into()
-    }
+    const DYNAMIC_UPPER_BOUND: u64 = 0x00FF_FFFF;
+    const PERSISTABLE_LOWER_BOUND: u64 = 9_000_000;
+    const PERSISTABLE_UPPER_BOUND: u64 = 10_000_000;
 
     #[inline]
     pub fn is_defined(&self) -> bool {
