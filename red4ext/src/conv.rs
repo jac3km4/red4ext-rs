@@ -1,6 +1,6 @@
 use const_combine::bounded::const_combine;
-use red4ext_sys::ffi;
 use red4ext_sys::interop::Mem;
+use red4ext_sys::{ffi, interop::EntityId};
 
 use crate::types::{
     CName, Color, IScriptable, RedArray, RedString, Ref, ScriptRef, TweakDbId, Variant, Vector2,
@@ -145,6 +145,7 @@ impl_native_repr!(u8, "Uint8");
 impl_native_repr!(bool, "Bool");
 impl_native_repr!(CName, "CName");
 impl_native_repr!(TweakDbId, "TweakDBID");
+impl_native_repr!(EntityId, "EntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
 impl_native_repr!(Ref<IScriptable>, "handle:IScriptable");
