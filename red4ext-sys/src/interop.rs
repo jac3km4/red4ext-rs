@@ -48,6 +48,56 @@ unsafe impl ExternType for CName {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
+pub struct ResourcePath {
+    hash: u64,
+}
+
+impl ResourcePath {
+    const MAX_LENGTH: usize = 216;
+
+    fn hash_sanitized(s: &str) -> Self {
+        if s.is_empty() {
+            return Self::default();
+        }
+        let sanitized = s
+            .trim_start_matches(|c| c == '\'' || c == '\"')
+            .trim_end_matches(|c| c == '\'' || c == '\"')
+            .trim_start_matches(|c| c == '/' || c == '\\')
+            .trim_end_matches(|c| c == '/' || c == '\\')
+            .to_ascii_lowercase()
+            .replace_consecutive(&['/', '\\'], b"\\");
+        Self {
+            hash: fnv1a64(&sanitized),
+        }
+    }
+}
+
+pub trait ReplaceConsecutive {
+    fn replace_consecutive(&mut self, searched: &[char], replacement: &[u8]) -> Self;
+}
+
+impl ReplaceConsecutive for String {
+    fn replace_consecutive(&mut self, searched: &[char], replacement: &[u8]) -> Self {
+        let mut out = Vec::with_capacity(self.as_bytes().len());
+        let mut found = false;
+        for current in self.chars() {
+            if searched.contains(&current) {
+                if !found {
+                    out.extend(replacement.iter());
+                    found = true;
+                }
+            } else {
+                found = false;
+                out.push(current as u8);
+            }
+        }
+        out.shrink_to_fit();
+        Self::from_utf8_lossy(&out).to_string()
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
 pub struct TweakDbId {
     hash: u32,
     length: u8,
@@ -320,5 +370,19 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+    }
+
+    #[test]
+    fn sanitize_resource_path() {
+        assert_eq!(
+            String::from("C:\\\\somewhere//on\\computer").replace_consecutive(&['/', '\\'], b"\\"),
+            String::from("C:\\somewhere\\on\\computer")
+        );
+        assert_eq!(
+            ResourcePath::hash_sanitized("\\C:\\\\somewhere//on\\computer//\\'\\\""),
+            ResourcePath {
+                hash: fnv1a64("c:\\somewhere\\on\\computer")
+            }
+        )
     }
 }
