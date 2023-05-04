@@ -16,7 +16,10 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 }
 
 fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId) {
-    info!("got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}", name, tweak, item, entity);
+    info!(
+        "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}",
+        name, tweak, item, entity
+    );
 }
 
 fn call_demo(player: PlayerPuppet) {
