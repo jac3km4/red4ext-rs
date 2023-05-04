@@ -6,12 +6,20 @@ define_plugin! {
     version: 0:1:0,
     on_register: {
         register_function!("SumInts", sum_ints);
+        register_function!("UseTypes", use_types);
         register_function!("CallDemo", call_demo);
     }
 }
 
 fn sum_ints(ints: Vec<i32>) -> i32 {
     ints.iter().sum()
+}
+
+fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId) {
+    info!(
+        "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}",
+        name, tweak, item, entity
+    );
 }
 
 fn call_demo(player: PlayerPuppet) {

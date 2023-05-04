@@ -38,6 +38,8 @@ pub mod ffi {
         type TweakDbId = crate::interop::TweakDbId;
         #[cxx_name = "ItemID"]
         type ItemId = crate::interop::ItemId;
+        #[cxx_name = "EntityID"]
+        type EntityId = crate::interop::EntityId;
         type CStackType = crate::interop::StackArg;
         type Variant = crate::interop::Variant;
 

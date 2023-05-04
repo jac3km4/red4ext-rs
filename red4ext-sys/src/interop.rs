@@ -166,6 +166,49 @@ impl From<Seed> for u32 {
     }
 }
 
+/// see [its C++ representation](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/entEntityID.hpp#L7)
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct EntityId {
+    hash: u64,
+}
+
+impl From<u64> for EntityId {
+    fn from(hash: u64) -> Self {
+        Self { hash }
+    }
+}
+
+impl EntityId {
+    const DYNAMIC_UPPER_BOUND: u64 = 0x00FF_FFFF;
+    const PERSISTABLE_LOWER_BOUND: u64 = 9_000_000;
+    const PERSISTABLE_UPPER_BOUND: u64 = 10_000_000;
+
+    #[inline]
+    pub fn is_defined(&self) -> bool {
+        self.hash != 0
+    }
+
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        self.hash != 0 && self.hash > Self::DYNAMIC_UPPER_BOUND
+    }
+
+    #[inline]
+    pub fn is_dynamic(&self) -> bool {
+        self.hash != 0 && self.hash <= Self::DYNAMIC_UPPER_BOUND
+    }
+
+    #[inline]
+    pub fn is_persistable(&self) -> bool {
+        self.hash >= Self::PERSISTABLE_LOWER_BOUND && self.hash < Self::PERSISTABLE_UPPER_BOUND
+    }
+}
+
+unsafe impl ExternType for EntityId {
+    type Id = type_id!("RED4ext::EntityID");
+    type Kind = cxx::kind::Trivial;
+}
+
 #[derive(Debug, Clone)]
 #[repr(C, packed)]
 pub struct RedString {
