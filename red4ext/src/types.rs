@@ -4,8 +4,8 @@ use std::{mem, pin, ptr};
 pub use ffi::IScriptable;
 use red4ext_sys::ffi;
 pub use red4ext_sys::interop::{
-    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RedString, TweakDbId, Variant,
-    VoidPtr,
+    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RedString, ResRef, TweakDbId,
+    Variant, VoidPtr,
 };
 
 use crate::conv::{FromRepr, IntoRepr, NativeRepr};

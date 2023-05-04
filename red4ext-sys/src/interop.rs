@@ -48,6 +48,31 @@ unsafe impl ExternType for CName {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
+pub struct ResRef(RaRef);
+
+impl ResRef {
+    pub fn new(path: &str) -> Self {
+        Self(RaRef::new(path))
+    }
+}
+
+unsafe impl ExternType for ResRef {
+    type Id = type_id!("RED4ext::ResRef");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+struct RaRef(ResourcePath);
+
+impl RaRef {
+    fn new(path: &str) -> Self {
+        Self(ResourcePath::new(path))
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct ResourcePath {
     hash: u64,
 }
@@ -55,11 +80,12 @@ pub struct ResourcePath {
 impl ResourcePath {
     const MAX_LENGTH: usize = 216;
 
-    fn hash_sanitized(s: &str) -> Self {
-        if s.is_empty() {
+    fn new(path: &str) -> Self {
+        assert!(path.len() <= Self::MAX_LENGTH);
+        if path.is_empty() {
             return Self::default();
         }
-        let sanitized = s
+        let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
             .trim_start_matches(|c| c == '/' || c == '\\')
@@ -69,6 +95,10 @@ impl ResourcePath {
         Self {
             hash: fnv1a64(&sanitized),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.hash == 0
     }
 }
 
@@ -370,19 +400,32 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
-    }
 
-    #[test]
-    fn sanitize_resource_path() {
         assert_eq!(
-            String::from("C:\\\\somewhere//on\\computer").replace_consecutive(&['/', '\\'], b"\\"),
-            String::from("C:\\somewhere\\on\\computer")
-        );
-        assert_eq!(
-            ResourcePath::hash_sanitized("\\C:\\\\somewhere//on\\computer//\\'\\\""),
+            ResourcePath::new("\'C:/somewhere/on/computer/\'"),
             ResourcePath {
                 hash: fnv1a64("c:\\somewhere\\on\\computer")
             }
-        )
+        );
+        assert_eq!(
+            ResourcePath::new("\"C:\\\\somewhere\\\\on\\\\computer\""),
+            ResourcePath {
+                hash: fnv1a64("c:\\somewhere\\on\\computer")
+            }
+        );
+        assert_eq!(
+            ResourcePath::new("C:\\\\somewhere\\\\on\\\\computer"),
+            ResourcePath {
+                hash: fnv1a64("c:\\somewhere\\on\\computer")
+            }
+        );
+    }
+
+    #[test]
+    fn replace_consecutive() {
+        assert_eq!(
+            String::from("c:\\\\somewhere//on\\computer").replace_consecutive(&['/', '\\'], b"\\"),
+            String::from("c:\\somewhere\\on\\computer")
+        );
     }
 }

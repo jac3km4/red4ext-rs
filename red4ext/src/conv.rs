@@ -3,7 +3,8 @@ use red4ext_sys::ffi;
 use red4ext_sys::interop::{EntityId, ItemId, Mem};
 
 use crate::types::{
-    CName, Color, IScriptable, RedArray, RedString, Ref, ScriptRef, TweakDbId, Variant, Vector2,
+    CName, Color, IScriptable, RedArray, RedString, Ref, ResRef, ScriptRef, TweakDbId, Variant,
+    Vector2,
 };
 
 /// # Safety
@@ -144,6 +145,7 @@ impl_native_repr!(u16, "Uint16");
 impl_native_repr!(u8, "Uint8");
 impl_native_repr!(bool, "Bool");
 impl_native_repr!(CName, "CName");
+impl_native_repr!(ResRef, "ResRef");
 impl_native_repr!(TweakDbId, "TweakDBID");
 impl_native_repr!(ItemId, "ItemID");
 impl_native_repr!(EntityId, "EntityID");
