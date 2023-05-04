@@ -80,8 +80,10 @@ pub struct ResourcePath {
 impl ResourcePath {
     const MAX_LENGTH: usize = 216;
 
+    /// accepts non-sanitized path of any length,
+    /// but final sanitized path length must be equals or inferior to 216 bytes
+    /// otherwise it returns default empty `ResourcePath`
     fn new(path: &str) -> Self {
-        assert!(path.len() <= Self::MAX_LENGTH);
         if path.is_empty() {
             return Self::default();
         }
@@ -92,6 +94,9 @@ impl ResourcePath {
             .trim_end_matches(|c| c == '/' || c == '\\')
             .to_ascii_lowercase()
             .replace_consecutive(&['/', '\\'], b"\\");
+        if sanitized.as_bytes().len() > Self::MAX_LENGTH {
+            return Self::default();
+        }
         Self {
             hash: fnv1a64(&sanitized),
         }
@@ -401,6 +406,12 @@ mod tests {
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
 
+        assert_eq!(ResourcePath::default(), ResourcePath { hash: 0 });
+
+        const TOO_LONG: &str = "c:\\some\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
+        assert!(TOO_LONG.as_bytes().len() > ResourcePath::MAX_LENGTH);
+        assert_eq!(ResourcePath::new(TOO_LONG), ResourcePath { hash: 0 });
+
         assert_eq!(
             ResourcePath::new("\'C:/somewhere/on/computer/\'"),
             ResourcePath {
@@ -409,12 +420,6 @@ mod tests {
         );
         assert_eq!(
             ResourcePath::new("\"C:\\\\somewhere\\\\on\\\\computer\""),
-            ResourcePath {
-                hash: fnv1a64("c:\\somewhere\\on\\computer")
-            }
-        );
-        assert_eq!(
-            ResourcePath::new("C:\\\\somewhere\\\\on\\\\computer"),
             ResourcePath {
                 hash: fnv1a64("c:\\somewhere\\on\\computer")
             }
