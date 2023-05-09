@@ -1,4 +1,4 @@
-# red4ext-rs
+# red4ext-rs [![CI](https://github.com/jac3km4/red4ext-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/jac3km4/red4ext-rs/actions/workflows/ci.yml) [![Update RED4ext.SDK](https://github.com/jac3km4/red4ext-rs/actions/workflows/update-submodule.yml/badge.svg)](https://github.com/jac3km4/red4ext-rs/actions/workflows/update-submodule.yml)
 
 Automagical Rust binding to [RED4ext](https://github.com/WopsS/RED4ext.SDK).
 
