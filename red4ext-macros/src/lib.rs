@@ -129,21 +129,25 @@ fn generate_forwader(
         .unwrap_or(fn_name);
     let name = syn::LitStr::new(name, sig.span());
 
-    fn type_name(typ: &syn::Type) -> proc_macro2::TokenStream {
-        quote!(<<#typ as ::red4ext_rs::conv::IntoRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::NAME)
+    fn into_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
+        quote!(<<#typ as ::red4ext_rs::conv::IntoRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
+    }
+
+    fn from_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
+        quote!(<<#typ as ::red4ext_rs::conv::FromRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
     }
 
     let signature = if attrs.operator {
-        let args = types.iter().map(|typ| type_name(typ));
+        let args = types.iter().map(|typ| into_repr_name(typ));
         let ret = match &sig.output {
             syn::ReturnType::Default => None,
-            syn::ReturnType::Type(_, typ) => Some(type_name(typ)),
+            syn::ReturnType::Type(_, typ) => Some(from_repr_name(typ)),
         };
         quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*, ";", #ret))
     } else if attrs.cb || attrs.native {
         name.to_token_stream()
     } else {
-        let args = types.iter().map(|typ| type_name(typ));
+        let args = types.iter().map(|typ| into_repr_name(typ));
         quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*))
     };
 

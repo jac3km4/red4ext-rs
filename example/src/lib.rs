@@ -57,6 +57,6 @@ impl PlayerPuppet {
     fn disable_camera_bobbing(&self, toggle: bool) -> ();
 }
 
-unsafe impl NativeRepr for PlayerPuppet {
-    const NAME: &'static str = "handle:IScriptable";
+unsafe impl RefRepr for PlayerPuppet {
+    const CLASS_NAME: &'static str = "PlayerPuppet";
 }
