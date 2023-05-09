@@ -54,7 +54,7 @@ impl PlayerPuppet {
     fn get_unlocked_vehicles_size(&self) -> i32;
 
     // imports 'private func DisableCameraBobbing(b: Bool) -> Void'
-    fn disable_camera_bobbing(&self, toggle: bool) -> ();
+    fn disable_camera_bobbing(&self, toggle: bool);
 }
 
 unsafe impl RefRepr for PlayerPuppet {
