@@ -37,6 +37,10 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = const_combine!("script_ref:", A::NAME);
 }
 
+/// # Safety
+///
+/// Implementations of this trait are only valid if the memory representation of Self
+/// is idetical to handle:{Self::NAME} in-game.
 pub unsafe trait RefRepr {
     const CLASS_NAME: &'static str;
 }
