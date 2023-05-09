@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::path::PathBuf;
 use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
@@ -6,6 +7,7 @@ use cxx::{type_id, ExternType};
 pub use ffi::EMainReason;
 use num_enum::TryFromPrimitive;
 
+use crate::error::ResourcePathError;
 use crate::ffi;
 
 pub type Mem = *mut std::ffi::c_void;
@@ -51,8 +53,8 @@ unsafe impl ExternType for CName {
 pub struct ResRef(RaRef);
 
 impl ResRef {
-    pub fn new(path: &str) -> Self {
-        Self(RaRef::new(path))
+    pub fn new(path: &str) -> Result<Self, ResourcePathError> {
+        Ok(Self(RaRef::new(path)?))
     }
 }
 
@@ -66,8 +68,8 @@ unsafe impl ExternType for ResRef {
 struct RaRef(ResourcePath);
 
 impl RaRef {
-    fn new(path: &str) -> Self {
-        Self(ResourcePath::new(path))
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
+        Ok(Self(ResourcePath::new(path)?))
     }
 }
 
@@ -82,10 +84,9 @@ impl ResourcePath {
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
-    /// otherwise it returns default empty `ResourcePath`
-    fn new(path: &str) -> Self {
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
         if path.is_empty() {
-            return Self::default();
+            return Err(ResourcePathError::Empty);
         }
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
@@ -95,10 +96,18 @@ impl ResourcePath {
             .to_ascii_lowercase()
             .replace_consecutive(&['/', '\\'], b"\\");
         if sanitized.as_bytes().len() > Self::MAX_LENGTH {
-            return Self::default();
+            return Err(ResourcePathError::TooLong {
+                max: ResourcePath::MAX_LENGTH,
+            });
         }
-        Self {
+        Ok(Self {
             hash: fnv1a64(&sanitized),
+        })
+    }
+
+    pub fn builder() -> ResourcePathBuilder {
+        ResourcePathBuilder {
+            components: PathBuf::new(),
         }
     }
 
@@ -396,8 +405,27 @@ unsafe impl ExternType for VoidPtr {
     type Kind = cxx::kind::Trivial;
 }
 
+pub struct ResourcePathBuilder {
+    components: PathBuf,
+}
+
+impl ResourcePathBuilder {
+    pub fn join(mut self, component: impl Into<PathBuf>) -> Self {
+        self.components.push(component.into());
+        self
+    }
+
+    pub fn build(self) -> ResourcePath {
+        ResourcePath {
+            hash: fnv1a64(&self.components.to_string_lossy()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]
@@ -410,16 +438,16 @@ mod tests {
 
         const TOO_LONG: &str = "c:\\some\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
         assert!(TOO_LONG.as_bytes().len() > ResourcePath::MAX_LENGTH);
-        assert_eq!(ResourcePath::new(TOO_LONG), ResourcePath { hash: 0 });
+        assert!(ResourcePath::new(TOO_LONG).is_err());
 
         assert_eq!(
-            ResourcePath::new("\'C:/somewhere/on/computer/\'"),
+            ResourcePath::new("\'C:/somewhere/on/computer/\'").unwrap(),
             ResourcePath {
                 hash: fnv1a64("c:\\somewhere\\on\\computer")
             }
         );
         assert_eq!(
-            ResourcePath::new("\"C:\\\\somewhere\\\\on\\\\computer\""),
+            ResourcePath::new("\"C:\\\\somewhere\\\\on\\\\computer\"").unwrap(),
             ResourcePath {
                 hash: fnv1a64("c:\\somewhere\\on\\computer")
             }
@@ -431,6 +459,33 @@ mod tests {
         assert_eq!(
             String::from("c:\\\\somewhere//on\\computer").replace_consecutive(&['/', '\\'], b"\\"),
             String::from("c:\\somewhere\\on\\computer")
+        );
+    }
+
+    #[test]
+    fn builder() {
+        assert_eq!(
+            ResourcePath::builder()
+                .join("c:\\")
+                .join("somewhere")
+                .join("on")
+                .join("computer")
+                .build(),
+            ResourcePath {
+                hash: fnv1a64("c:\\somewhere\\on\\computer")
+            }
+        );
+
+        let path = PathBuf::from("c:\\").join("somewhere");
+        assert_eq!(
+            ResourcePath::builder()
+                .join(path)
+                .join("on")
+                .join("computer")
+                .build(),
+            ResourcePath {
+                hash: fnv1a64("c:\\somewhere\\on\\computer")
+            }
         );
     }
 }

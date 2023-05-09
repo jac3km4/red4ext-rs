@@ -216,6 +216,7 @@ dependencies = [
  "cxx",
  "cxx-build",
  "num_enum",
+ "thiserror",
 ]
 
 [[package]]
