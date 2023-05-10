@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::ffi::{CStr, OsStr};
 use std::path::PathBuf;
 use std::ptr;
 
@@ -69,7 +69,7 @@ struct RaRef(ResourcePath);
 
 impl RaRef {
     fn new(path: &str) -> Result<Self, ResourcePathError> {
-        Ok(Self(ResourcePath::new(path)?))
+        Ok(Self(ResourcePath::try_new(path)?))
     }
 }
 
@@ -84,7 +84,7 @@ impl ResourcePath {
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
-    fn new(path: &str) -> Result<Self, ResourcePathError> {
+    fn try_new(path: &str) -> Result<Self, ResourcePathError> {
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
@@ -103,6 +103,25 @@ impl ResourcePath {
             return Err(ResourcePathError::TooLong {
                 max: ResourcePath::MAX_LENGTH,
             });
+        }
+        if let Ok(ref segments) = PathBuf::try_from(&sanitized) {
+            let only_dots = |x: &OsStr| {
+                for (idx, character) in x.to_string_lossy().chars().enumerate() {
+                    if idx == 0 && character == '.' {
+                        continue;
+                    }
+                    if character == '.' {
+                        continue;
+                    }
+                    return false;
+                }
+                return true;
+            };
+            if segments.iter().any(only_dots) {
+                return Err(ResourcePathError::Relative {
+                    path: path.to_string(),
+                });
+            }
         }
         Ok(Self {
             hash: fnv1a64(&sanitized),
@@ -395,10 +414,8 @@ impl ResourcePathBuilder {
         self
     }
 
-    pub fn build(self) -> ResourcePath {
-        ResourcePath {
-            hash: fnv1a64(&self.components.to_string_lossy()),
-        }
+    pub fn try_build(self) -> Result<ResourcePath, ResourcePathError> {
+        Ok(ResourcePath::try_new(&self.components.to_string_lossy())?)
     }
 }
 
@@ -416,47 +433,53 @@ mod tests {
 
         assert_eq!(ResourcePath::default(), ResourcePath { hash: 0 });
 
-        const TOO_LONG: &str = "c:\\some\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
+        const TOO_LONG: &str = "base\\some\\archive\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
         assert!(TOO_LONG.as_bytes().len() > ResourcePath::MAX_LENGTH);
-        assert!(ResourcePath::new(TOO_LONG).is_err());
+        assert!(ResourcePath::try_new(TOO_LONG).is_err());
 
         assert_eq!(
-            ResourcePath::new("\'C:/somewhere/on/computer/\'").unwrap(),
+            ResourcePath::try_new("\'base/somewhere/in/archive/\'").unwrap(),
             ResourcePath {
-                hash: fnv1a64("c:\\somewhere\\on\\computer")
+                hash: fnv1a64("base\\somewhere\\in\\archive")
             }
         );
         assert_eq!(
-            ResourcePath::new("\"C:\\\\somewhere\\\\on\\\\computer\"").unwrap(),
+            ResourcePath::try_new("\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\"").unwrap(),
             ResourcePath {
-                hash: fnv1a64("c:\\somewhere\\on\\computer")
+                hash: fnv1a64("multi\\somewhere\\in\\archive")
             }
         );
+        assert!(ResourcePath::try_new("..\\somewhere\\in\\archive\\custom.ent").is_err());
+        assert!(ResourcePath::try_new("base\\somewhere\\in\\archive\\custom.ent").is_ok());
+        assert!(ResourcePath::try_new("custom.ent").is_ok());
+        assert!(ResourcePath::try_new(".custom.ent").is_ok());
     }
 
     #[test]
     fn builder() {
         assert_eq!(
             ResourcePath::builder()
-                .join("c:\\")
+                .join("base")
                 .join("somewhere")
-                .join("on")
-                .join("computer")
-                .build(),
+                .join("in")
+                .join("archive")
+                .try_build()
+                .unwrap(),
             ResourcePath {
-                hash: fnv1a64("c:\\somewhere\\on\\computer")
+                hash: fnv1a64("base\\somewhere\\in\\archive")
             }
         );
 
-        let path = PathBuf::from("c:\\").join("somewhere");
+        let path = PathBuf::from("multi\\").join("somewhere");
         assert_eq!(
             ResourcePath::builder()
                 .join(path)
-                .join("on")
-                .join("computer")
-                .build(),
+                .join("in")
+                .join("archive")
+                .try_build()
+                .unwrap(),
             ResourcePath {
-                hash: fnv1a64("c:\\somewhere\\on\\computer")
+                hash: fnv1a64("multi\\somewhere\\in\\archive")
             }
         );
     }
