@@ -430,7 +430,10 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+    }
 
+    #[test]
+    fn resource_path() {
         assert_eq!(ResourcePath::default(), ResourcePath { hash: 0 });
 
         const TOO_LONG: &str = "base\\some\\archive\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
