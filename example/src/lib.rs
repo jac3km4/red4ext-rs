@@ -12,9 +12,9 @@ define_plugin! {
 }
 
 /// call function with primitives
-/// 
+///
 /// try in-game in CET console:
-/// 
+///
 /// ```lua
 /// LogChannel(CName.new("DEBUG"), SumInts({ 2000, 77 }))
 /// ```
@@ -23,9 +23,9 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 }
 
 /// call function with game special types
-/// 
+///
 /// try in-game in CET console:
-/// 
+///
 /// ```lua
 /// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID())
 /// ```
@@ -38,9 +38,9 @@ fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId) {
 }
 
 /// call function with handle
-/// 
+///
 /// try in-game in CET console:
-/// 
+///
 /// ```lua
 /// CallDemo(Game.GetPlayer())
 /// ```
@@ -55,12 +55,12 @@ fn call_demo(player: PlayerPuppet) {
 }
 
 /// import a global operator
-/// 
+///
 /// function names gets automatically mangled,
 /// this one becomes `OperatorAdd;Uint32Uint32;Uint32`
 ///
 /// try in-game in CET console:
-/// 
+///
 /// ```lua
 /// LogChannel(CName.new("DEBUG"), OperatorAdd(2000, 77))
 /// ```
@@ -76,9 +76,9 @@ struct PlayerPuppet(Ref<IScriptable>);
 #[redscript_import]
 impl PlayerPuppet {
     /// imports `public native func GetDisplayName() -> String`
-    /// 
+    ///
     /// the method name is interpreted as PascalCase
-    /// 
+    ///
     /// you can also specify it explicitly with a `name` attribute
     #[redscript(native)]
     fn get_display_name(&self) -> String;
