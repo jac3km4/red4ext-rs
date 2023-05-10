@@ -8,6 +8,7 @@ rust-version.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
+name = "example"
 
 [dependencies]
 red4ext-rs = { path = "../red4ext", features = ["macros"] }
