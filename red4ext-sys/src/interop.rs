@@ -1,5 +1,5 @@
 use std::ffi::{CStr, OsStr};
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
@@ -104,24 +104,25 @@ impl ResourcePath {
                 max: ResourcePath::MAX_LENGTH,
             });
         }
-        if let Ok(ref segments) = PathBuf::try_from(&sanitized) {
-            let only_dots = |x: &OsStr| {
-                for (idx, character) in x.to_string_lossy().chars().enumerate() {
-                    if idx == 0 && character == '.' {
-                        continue;
-                    }
-                    if character == '.' {
-                        continue;
-                    }
-                    return false;
+        let _only_dots = |x: &OsStr| {
+            for (idx, character) in x.to_string_lossy().chars().enumerate() {
+                if idx == 0 && character == '.' {
+                    continue;
                 }
-                true
-            };
-            if segments.iter().any(only_dots) {
-                return Err(ResourcePathError::Relative {
-                    path: path.to_string(),
-                });
+                if character == '.' {
+                    continue;
+                }
+                return false;
             }
+            true
+        };
+        if Path::new(&sanitized).components().any(|x| match x {
+            std::path::Component::Normal(_) => false,
+            _ => true,
+        }) {
+            return Err(ResourcePathError::Relative {
+                path: path.to_string(),
+            });
         }
         Ok(Self {
             hash: fnv1a64(&sanitized),
