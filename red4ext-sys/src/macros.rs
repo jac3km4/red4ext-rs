@@ -8,7 +8,7 @@ macro_rules! res_path {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        $crate::res_path!($crate::interop::ResourcePath::builder().join($lit), $($tt)*).try_build()
+        $crate::res_path!($crate::interop::ResourcePath::builder().join($lit), $($tt)*).build()
     };
 }
 

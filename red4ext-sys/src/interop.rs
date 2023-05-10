@@ -414,7 +414,7 @@ impl ResourcePathBuilder {
         self
     }
 
-    pub fn try_build(self) -> Result<ResourcePath, ResourcePathError> {
+    pub fn build(self) -> Result<ResourcePath, ResourcePathError> {
         ResourcePath::new(&self.components.to_string_lossy())
     }
 }
@@ -466,7 +466,7 @@ mod tests {
                 .join("somewhere")
                 .join("in")
                 .join("archive")
-                .try_build()
+                .build()
                 .unwrap(),
             ResourcePath {
                 hash: fnv1a64("base\\somewhere\\in\\archive")
@@ -479,7 +479,7 @@ mod tests {
                 .join(path)
                 .join("in")
                 .join("archive")
-                .try_build()
+                .build()
                 .unwrap(),
             ResourcePath {
                 hash: fnv1a64("multi\\somewhere\\in\\archive")
