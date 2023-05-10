@@ -92,9 +92,9 @@ impl ResourcePath {
             .trim_end_matches(|c| c == '/' || c == '\\')
             .split(|c| c == '/' || c == '\\')
             .filter(|comp| !comp.is_empty())
-            .map(|c| c.to_ascii_lowercase())
+            .map(str::to_ascii_lowercase)
             .reduce(|mut acc, e| {
-                acc.push_str("\\");
+                acc.push('\\');
                 acc.push_str(&e);
                 acc
             })
@@ -115,7 +115,7 @@ impl ResourcePath {
                     }
                     return false;
                 }
-                return true;
+                true
             };
             if segments.iter().any(only_dots) {
                 return Err(ResourcePathError::Relative {
@@ -415,7 +415,7 @@ impl ResourcePathBuilder {
     }
 
     pub fn try_build(self) -> Result<ResourcePath, ResourcePathError> {
-        Ok(ResourcePath::try_new(&self.components.to_string_lossy())?)
+        ResourcePath::try_new(&self.components.to_string_lossy())
     }
 }
 
