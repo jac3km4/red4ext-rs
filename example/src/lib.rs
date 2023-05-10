@@ -1,4 +1,4 @@
-use red4ext_rs::prelude::*;
+use red4ext_rs::{prelude::*, types::ResRef};
 
 define_plugin! {
     name: "example",
@@ -27,14 +27,16 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 /// try in-game in CET console:
 ///
 /// ```lua
-/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID())
+/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID(), r"base//mod//custom.ent")
 /// ```
 /// > ⚠️ output can be found in mod's logs
-fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId) {
+fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId, res: ResRef) {
     info!(
-        "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}",
-        name, tweak, item, entity
+        "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}, ResRef {:#?}",
+        name, tweak, item, entity, res
     );
+    let r = res_path!("base" / "mod" / "custom.ent");
+    drop(r);
 }
 
 /// call function with handle
