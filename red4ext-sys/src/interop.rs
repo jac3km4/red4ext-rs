@@ -1,5 +1,5 @@
 use std::ffi::{CStr, OsStr};
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
@@ -409,8 +409,8 @@ pub struct ResourcePathBuilder {
 }
 
 impl ResourcePathBuilder {
-    pub fn join(mut self, component: impl Into<PathBuf>) -> Self {
-        self.components.push(component.into());
+    pub fn join(mut self, component: impl AsRef<Path>) -> Self {
+        self.components.push(component);
         self
     }
 
