@@ -104,18 +104,6 @@ impl ResourcePath {
                 max: ResourcePath::MAX_LENGTH,
             });
         }
-        let _only_dots = |x: &OsStr| {
-            for (idx, character) in x.to_string_lossy().chars().enumerate() {
-                if idx == 0 && character == '.' {
-                    continue;
-                }
-                if character == '.' {
-                    continue;
-                }
-                return false;
-            }
-            true
-        };
         if Path::new(&sanitized).components().any(|x| match x {
             std::path::Component::Normal(_) => false,
             _ => true,
