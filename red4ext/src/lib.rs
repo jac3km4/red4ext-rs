@@ -16,4 +16,6 @@ pub mod types;
 pub use red4ext_macros as macros;
 #[doc(hidden)]
 pub use red4ext_sys::ffi;
+#[cfg(feature = "macros")]
+pub use red4ext_sys::res_path;
 pub use wchar;

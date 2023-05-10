@@ -65,7 +65,7 @@ unsafe impl ExternType for ResRef {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
-struct RaRef(ResourcePath);
+pub struct RaRef(ResourcePath);
 
 impl RaRef {
     fn new(path: &str) -> Result<Self, ResourcePathError> {
@@ -417,6 +417,20 @@ impl ResourcePathBuilder {
     pub fn try_build(self) -> Result<ResourcePath, ResourcePathError> {
         ResourcePath::try_new(&self.components.to_string_lossy())
     }
+}
+
+/// shortcut for ResourcePath creation.
+#[macro_export]
+macro_rules! res_path {
+    ($base:expr, /$lit:literal $($tt:tt)*) => {
+        crate::res_path!($base.join($lit), $($tt)*)
+    };
+    ($base:expr, ) => {
+        $base
+    };
+    ($lit:literal $($tt:tt)*) => {
+        crate::res_path!(ResourcePath::builder().join($lit), $($tt)*).try_build()
+    };
 }
 
 #[cfg(test)]

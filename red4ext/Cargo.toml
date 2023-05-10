@@ -16,4 +16,4 @@ red4ext-sys = { path = "../red4ext-sys" }
 red4ext-macros = { path = "../red4ext-macros", optional = true }
 
 [features]
-macros = ["dep:red4ext-macros"]
+macros = ["dep:red4ext-macros", "red4ext-sys/macros"]
