@@ -69,7 +69,7 @@ pub struct RaRef(ResourcePath);
 
 impl RaRef {
     fn new(path: &str) -> Result<Self, ResourcePathError> {
-        Ok(Self(ResourcePath::try_new(path)?))
+        Ok(Self(ResourcePath::new(path)?))
     }
 }
 
@@ -84,7 +84,7 @@ impl ResourcePath {
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
-    fn try_new(path: &str) -> Result<Self, ResourcePathError> {
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
@@ -415,7 +415,7 @@ impl ResourcePathBuilder {
     }
 
     pub fn try_build(self) -> Result<ResourcePath, ResourcePathError> {
-        ResourcePath::try_new(&self.components.to_string_lossy())
+        ResourcePath::new(&self.components.to_string_lossy())
     }
 }
 
@@ -438,24 +438,24 @@ mod tests {
 
         const TOO_LONG: &str = "base\\some\\archive\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
         assert!(TOO_LONG.as_bytes().len() > ResourcePath::MAX_LENGTH);
-        assert!(ResourcePath::try_new(TOO_LONG).is_err());
+        assert!(ResourcePath::new(TOO_LONG).is_err());
 
         assert_eq!(
-            ResourcePath::try_new("\'base/somewhere/in/archive/\'").unwrap(),
+            ResourcePath::new("\'base/somewhere/in/archive/\'").unwrap(),
             ResourcePath {
                 hash: fnv1a64("base\\somewhere\\in\\archive")
             }
         );
         assert_eq!(
-            ResourcePath::try_new("\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\"").unwrap(),
+            ResourcePath::new("\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\"").unwrap(),
             ResourcePath {
                 hash: fnv1a64("multi\\somewhere\\in\\archive")
             }
         );
-        assert!(ResourcePath::try_new("..\\somewhere\\in\\archive\\custom.ent").is_err());
-        assert!(ResourcePath::try_new("base\\somewhere\\in\\archive\\custom.ent").is_ok());
-        assert!(ResourcePath::try_new("custom.ent").is_ok());
-        assert!(ResourcePath::try_new(".custom.ent").is_ok());
+        assert!(ResourcePath::new("..\\somewhere\\in\\archive\\custom.ent").is_err());
+        assert!(ResourcePath::new("base\\somewhere\\in\\archive\\custom.ent").is_ok());
+        assert!(ResourcePath::new("custom.ent").is_ok());
+        assert!(ResourcePath::new(".custom.ent").is_ok());
     }
 
     #[test]
