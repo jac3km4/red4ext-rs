@@ -500,4 +500,14 @@ mod tests {
             }
         );
     }
+    #[cfg(feature = "macros")]
+    #[test]
+    fn res_path() {
+        use crate::res_path;
+        assert!(res_path!("").is_err());
+        assert!(res_path!(".." / "somewhere" / "in" / "archive" / "custom.ent").is_err());
+        assert!(res_path!("base" / "somewhere" / "in" / "archive" / "custom.ent").is_ok());
+        assert!(res_path!("custom.ent").is_ok());
+        assert!(res_path!(".custom.ent").is_ok());
+    }
 }
