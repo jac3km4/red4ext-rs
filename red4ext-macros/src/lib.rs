@@ -1,10 +1,10 @@
+use darling::ast::NestedMeta;
 use darling::FromMeta;
 use heck::ToPascalCase;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::Parser;
 use syn::parse_macro_input;
-use syn::parse_macro_input::ParseMacroInput;
 use syn::spanned::Spanned;
 
 const ATTR_KEY: &str = "redscript";
@@ -22,9 +22,12 @@ struct FunctionAttrs {
 }
 
 #[proc_macro_attribute]
-pub fn redscript_global(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn redscript_global(attr: TokenStream, item: TokenStream) -> TokenStream {
     let fn_item = parse_macro_input!(item as syn::ForeignItemFn);
-    let args = parse_macro_input!(_attr as syn::AttributeArgs);
+    let args = match NestedMeta::parse_meta_list(attr.into()) {
+        Ok(args) => args,
+        Err(err) => return err.to_compile_error().into(),
+    };
     let name = fn_item.sig.ident.to_string().to_pascal_case();
     generate_forwader(&name, fn_item.attrs, args, fn_item.vis, fn_item.sig).into()
 }
@@ -51,13 +54,6 @@ pub fn redscript_import(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let items = items.into_iter().map(|i| match i {
-        syn::ImplItem::Method(method) => generate_forwader(
-            &method.sig.ident.to_string().to_pascal_case(),
-            method.attrs,
-            vec![],
-            method.vis,
-            method.sig,
-        ),
         syn::ImplItem::Verbatim(tokens) => match syn::parse2::<syn::ForeignItemFn>(tokens) {
             Ok(fn_item) => generate_forwader(
                 &fn_item.sig.ident.to_string().to_pascal_case(),
@@ -82,22 +78,28 @@ pub fn redscript_import(_attr: TokenStream, item: TokenStream) -> TokenStream {
 fn generate_forwader(
     fn_name: &str,
     attrs: Vec<syn::Attribute>,
-    meta: Vec<syn::NestedMeta>,
+    meta: Vec<NestedMeta>,
     vis: syn::Visibility,
     sig: syn::Signature,
 ) -> proc_macro2::TokenStream {
-    let (attrs, other_attrs): (Vec<_>, Vec<_>) = attrs
-        .into_iter()
-        .partition(|el| el.path.get_ident().map(ToString::to_string).as_deref() == Some(ATTR_KEY));
+    let (attrs, other_attrs): (Vec<_>, Vec<_>) = attrs.into_iter().partition(|el| {
+        el.meta
+            .require_list()
+            .ok()
+            .and_then(|l| l.path.get_ident())
+            .map(ToString::to_string)
+            .as_deref()
+            == Some(ATTR_KEY)
+    });
 
-    let meta: Vec<_> = attrs
-        .into_iter()
-        .flat_map(|attr| {
-            attr.parse_args_with(syn::AttributeArgs::parse)
-                .unwrap_or_default()
-        })
-        .chain(meta)
-        .collect();
+    let nested_meta = attrs.into_iter().flat_map(|attr| {
+        attr.meta
+            .require_list()
+            .ok()
+            .and_then(|l| NestedMeta::parse_meta_list(l.tokens.clone()).ok())
+            .unwrap_or_default()
+    });
+    let meta: Vec<_> = meta.into_iter().chain(nested_meta).collect();
 
     let attrs = match FunctionAttrs::from_list(&meta) {
         Ok(res) => res,

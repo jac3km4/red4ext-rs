@@ -10,8 +10,8 @@ rust-version.workspace = true
 proc-macro = true
 
 [dependencies]
-syn = { version = "1", features = ["full"] }
+syn = "2"
 proc-macro2 = "1"
 quote = "1"
-darling = "0.14"
+darling = "0.20"
 heck = "0.4"
