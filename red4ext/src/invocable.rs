@@ -71,6 +71,9 @@ macro_rules! call {
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {{
         $crate::call!($this, [$fn_name] ($($args),*) -> $rett)
     }};
+    ([$fn_name:expr] ($( $args:expr ),*)) => {
+        $crate::call!([$fn_name] ($($args),*) -> ())
+    };
     ([$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::Rtti::get();
         match $crate::call_direct!(
@@ -83,6 +86,9 @@ macro_rules! call {
             Err(err) => $crate::invocable::raise_invoke_error($fn_name, err)
         }
     }};
+    ($this:expr, [$fn_name:expr] ($( $args:expr ),*)) => {
+        $crate::call!($this, [$fn_name] ($($args),*) -> ())
+    };
     ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::Rtti::get();
         let this = $this;

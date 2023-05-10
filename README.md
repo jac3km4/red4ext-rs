@@ -136,14 +136,14 @@ but it's on you to guarantee that it matches the layout of the underlying type.
     }
     ```
 
-- **classes** should be represented as wrappers around `Ref<IScriptable>`
+- **classes** should be represented as wrappers around `Ref<IScriptable>` and implement `RefRepr`
 
     ```rs
     #[repr(transparent)]
     struct PlayerPuppet(Ref<IScriptable>);
 
-    unsafe impl NativeRepr for PlayerPuppet {
-        const NAME: &'static str = "handle:PlayerPuppet";
+    unsafe impl RefRepr for PlayerPuppet {
+        const CLASS_NAME: &'static str = "PlayerPuppet";
     }
     ```
 
