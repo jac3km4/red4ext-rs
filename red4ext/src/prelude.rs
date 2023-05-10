@@ -1,4 +1,4 @@
-pub use crate::conv::{FromRepr, IntoRepr, NativeRepr};
+pub use crate::conv::{FromRepr, IntoRepr, NativeRepr, RefRepr};
 #[cfg(feature = "macros")]
 pub use crate::macros::{redscript_global, redscript_import};
 pub use crate::plugin::{Plugin, Version};

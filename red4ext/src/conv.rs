@@ -13,6 +13,7 @@ use crate::types::{
 /// is idetical to the representation of type with name Self::NAME in-game.
 pub unsafe trait NativeRepr {
     const NAME: &'static str;
+    const MANGLED_NAME: &'static str = Self::NAME;
 }
 
 unsafe impl NativeRepr for () {
@@ -24,6 +25,7 @@ unsafe impl NativeRepr for RedString {
 }
 
 unsafe impl<A: NativeRepr> NativeRepr for RedArray<A> {
+    const MANGLED_NAME: &'static str = const_combine!("array:", A::MANGLED_NAME);
     const NAME: &'static str = const_combine!("array:", A::NAME);
 }
 
@@ -32,7 +34,25 @@ unsafe impl NativeRepr for Variant {
 }
 
 unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
+    const MANGLED_NAME: &'static str = const_combine!("script_ref:", A::MANGLED_NAME);
     const NAME: &'static str = const_combine!("script_ref:", A::NAME);
+}
+
+/// # Safety
+///
+/// Implementations of this trait are only valid if the memory representation of Self
+/// is idetical to handle:{Self::NAME} in-game.
+pub unsafe trait RefRepr {
+    const CLASS_NAME: &'static str;
+}
+
+unsafe impl RefRepr for Ref<IScriptable> {
+    const CLASS_NAME: &'static str = "IScriptable";
+}
+
+unsafe impl<A: RefRepr> NativeRepr for A {
+    const MANGLED_NAME: &'static str = Self::CLASS_NAME;
+    const NAME: &'static str = const_combine!("handle:", A::CLASS_NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -151,7 +171,6 @@ impl_native_repr!(ItemId, "ItemID");
 impl_native_repr!(EntityId, "EntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
-impl_native_repr!(Ref<IScriptable>, "handle:IScriptable");
 
 #[inline]
 pub(crate) fn fill_memory<A: IntoRepr>(val: A, mem: Mem) {
@@ -182,6 +201,10 @@ mod tests {
         assert_eq!(
             <Vec<Ref<IScriptable>> as IntoRepr>::Repr::NAME,
             "array:handle:IScriptable"
+        );
+        assert_eq!(
+            <Vec<Ref<IScriptable>> as IntoRepr>::Repr::MANGLED_NAME,
+            "array:IScriptable"
         );
     }
 }

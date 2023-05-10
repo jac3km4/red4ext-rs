@@ -32,8 +32,8 @@ impl<A> RedArray<A> {
 
     #[inline]
     pub fn with_capacity(count: usize) -> Self {
-        let arr = RedArray::default();
-        let ptr = VoidPtr(&arr as *const _ as *mut _);
+        let mut arr = RedArray::default();
+        let ptr = VoidPtr(&mut arr as *mut _ as _);
         ffi::alloc_array(ptr, count as u32, mem::size_of::<A>() as u32);
         arr
     }
@@ -174,9 +174,9 @@ impl VariantExt for Variant {
     fn new<A: IntoRepr>(val: A) -> Self {
         let mut this = Self::default();
         let typ = Rtti::get().get_type(CName::new(A::Repr::NAME));
-        let repr = val.into_repr();
+        let mut repr = val.into_repr();
         unsafe {
-            pin::Pin::new_unchecked(&mut this).fill(typ, VoidPtr(&repr as *const _ as *mut _));
+            pin::Pin::new_unchecked(&mut this).fill(typ, VoidPtr(&mut repr as *mut _ as _));
         }
         this
     }

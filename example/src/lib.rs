@@ -86,10 +86,10 @@ impl PlayerPuppet {
     /// imports `private func GetUnlockedVehiclesSize() -> Int32`
     fn get_unlocked_vehicles_size(&self) -> i32;
 
-    /// imports `private func DisableCameraBobbing(b: Bool) -> Void`
-    fn disable_camera_bobbing(&self, toggle: bool) -> ();
+    /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
+    fn disable_camera_bobbing(&self, toggle: bool);
 }
 
-unsafe impl NativeRepr for PlayerPuppet {
-    const NAME: &'static str = "handle:IScriptable";
+unsafe impl RefRepr for PlayerPuppet {
+    const CLASS_NAME: &'static str = "PlayerPuppet";
 }
