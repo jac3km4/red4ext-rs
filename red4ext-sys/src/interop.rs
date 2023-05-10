@@ -229,7 +229,7 @@ impl RedString {
             let ptr = if self.length < 0x4000_0000 {
                 self.data.as_ptr()
             } else {
-                *(self.data.as_ptr() as *const *const i8)
+                *(self.data.as_ptr() as *const _)
             };
             CStr::from_ptr(ptr).to_str().unwrap()
         }
