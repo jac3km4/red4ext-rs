@@ -16,3 +16,6 @@ pre-release-commit-message = "chore: release {{version}}"
 tag-prefix = ""
 shared-version = true
 publish = false
+
+[workspace.dev-dependencies]
+rusty-hook = "^0.11.2"
