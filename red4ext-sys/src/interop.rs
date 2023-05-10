@@ -423,13 +423,13 @@ impl ResourcePathBuilder {
 #[macro_export]
 macro_rules! res_path {
     ($base:expr, /$lit:literal $($tt:tt)*) => {
-        crate::res_path!($base.join($lit), $($tt)*)
+        $crate::res_path!($base.join($lit), $($tt)*)
     };
     ($base:expr, ) => {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        crate::res_path!(ResourcePath::builder().join($lit), $($tt)*).try_build()
+        $crate::res_path!($crate::interop::ResourcePath::builder().join($lit), $($tt)*).try_build()
     };
 }
 
