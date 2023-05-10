@@ -85,16 +85,20 @@ impl ResourcePath {
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
     fn new(path: &str) -> Result<Self, ResourcePathError> {
-        if path.is_empty() {
-            return Err(ResourcePathError::Empty);
-        }
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
             .trim_start_matches(|c| c == '/' || c == '\\')
             .trim_end_matches(|c| c == '/' || c == '\\')
-            .to_ascii_lowercase()
-            .replace_consecutive(&['/', '\\'], b"\\");
+            .split(|c| c == '/' || c == '\\')
+            .filter(|comp| !comp.is_empty())
+            .map(|c| c.to_ascii_lowercase())
+            .reduce(|mut acc, e| {
+                acc.push_str("\\");
+                acc.push_str(&e);
+                acc
+            })
+            .ok_or(ResourcePathError::Empty)?;
         if sanitized.as_bytes().len() > Self::MAX_LENGTH {
             return Err(ResourcePathError::TooLong {
                 max: ResourcePath::MAX_LENGTH,
@@ -113,30 +117,6 @@ impl ResourcePath {
 
     pub fn is_empty(&self) -> bool {
         self.hash == 0
-    }
-}
-
-pub trait ReplaceConsecutive {
-    fn replace_consecutive(&mut self, searched: &[char], replacement: &[u8]) -> Self;
-}
-
-impl ReplaceConsecutive for String {
-    fn replace_consecutive(&mut self, searched: &[char], replacement: &[u8]) -> Self {
-        let mut out = Vec::with_capacity(self.as_bytes().len());
-        let mut found = false;
-        for current in self.chars() {
-            if searched.contains(&current) {
-                if !found {
-                    out.extend(replacement.iter());
-                    found = true;
-                }
-            } else {
-                found = false;
-                out.push(current as u8);
-            }
-        }
-        out.shrink_to_fit();
-        Self::from_utf8_lossy(&out).to_string()
     }
 }
 
@@ -451,14 +431,6 @@ mod tests {
             ResourcePath {
                 hash: fnv1a64("c:\\somewhere\\on\\computer")
             }
-        );
-    }
-
-    #[test]
-    fn replace_consecutive() {
-        assert_eq!(
-            String::from("c:\\\\somewhere//on\\computer").replace_consecutive(&['/', '\\'], b"\\"),
-            String::from("c:\\somewhere\\on\\computer")
         );
     }
 
