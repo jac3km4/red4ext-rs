@@ -28,7 +28,7 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 /// try in-game in CET console:
 ///
 /// ```lua
-/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID(), r"base//mod//custom.ent")
+/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID(), ResRef.new("base\\characters\\entities\\player\\player_ma_fpp.ent"))
 /// ```
 /// > ⚠️ output can be found in mod's logs
 fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId, res: ResRef) {
