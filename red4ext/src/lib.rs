@@ -29,16 +29,13 @@ macro_rules! res_path {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        $crate::res_path!(
-         std::path::PathBuf::new()
-         .join($lit), $($tt)*)
+        $crate::prelude::ResourcePath::new($crate::res_path!(std::path::PathBuf::from($lit), $($tt)*)
          .to_str()
-         .ok_or($crate::prelude::ResourcePathError::Empty)
-         .map($crate::prelude::ResourcePath::new)
+         .unwrap())
     };
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "macros"))]
 mod tests {
     #[test]
     fn res_path() {
