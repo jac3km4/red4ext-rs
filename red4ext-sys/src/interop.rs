@@ -104,10 +104,10 @@ impl ResourcePath {
                 max: ResourcePath::MAX_LENGTH,
             });
         }
-        if Path::new(&sanitized).components().any(|x| match x {
-            std::path::Component::Normal(_) => false,
-            _ => true,
-        }) {
+        if Path::new(&sanitized)
+            .components()
+            .any(|x| !matches!(x, std::path::Component::Normal(_)))
+        {
             return Err(ResourcePathError::Relative {
                 path: path.to_string(),
             });
