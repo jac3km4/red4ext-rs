@@ -73,6 +73,11 @@ impl RaRef {
     }
 }
 
+unsafe impl ExternType for RaRef {
+    type Id = type_id!("RED4ext::RaRef");
+    type Kind = cxx::kind::Trivial;
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct ResourcePath {
