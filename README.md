@@ -182,6 +182,36 @@ When compiled in debug mode, a panic handler is installed for each function. It 
 [2023-04-24 23:37:11.396] [example] [error] CallDemo function panicked: failed to invoke OperatorAdd;Uint32Uint32;Uint32: expected Uint32 argument at index 0
 ```
 
+## contributing
+When testing or contributing to this repo locally, here's a couple of commands to make your life easier:
+1. make sure [Just command runner](https://github.com/casey/just#installation) is installed
+2. run any of these commands:
+   1. overwrite example mod folders to game directory
+      ```sh
+      just install
+      ```
+      > by default it will install them in "C:\Program Files (x86)\Steam\steamapps\common\Cyberpunk 2077"
+      > but you can configure it with an `.env` file like so:
+      > ```.env
+      > GAME_DIR="C:\\path\\to\\my\\game\\folder"
+      > ```
+    2. overwrite only redscript example mod folder in-game:
+       ```sh
+       just hot-reload
+       ```
+    3. display RED4ext and example mod logs:
+       ```sh
+       just logs
+       ```
+    4. hard delete all example mod folders from your game directory:
+       ```sh
+       just uninstall
+       ```
+    5. list all available recipes and their alias:
+       ```sh
+       just
+       ```
+
 ## credits
 
 - WopsS for [RED4ext](https://github.com/WopsS/RED4ext.SDK)
