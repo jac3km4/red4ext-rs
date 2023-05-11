@@ -84,7 +84,7 @@ impl ResourcePath {
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
-    fn new(path: &str) -> Result<Self, ResourcePathError> {
+    pub fn new(path: &str) -> Result<Self, ResourcePathError> {
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
