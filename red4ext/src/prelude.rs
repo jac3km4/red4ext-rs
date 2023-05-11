@@ -1,4 +1,5 @@
-pub use crate::builder::ResourcePathBuilder;
+pub use red4ext_sys::error::ResourcePathError;
+
 pub use crate::conv::{FromRepr, IntoRepr, NativeRepr, RefRepr};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::types::{

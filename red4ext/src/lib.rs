@@ -1,6 +1,5 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-pub mod builder;
 pub mod conv;
 pub mod error;
 #[doc(hidden)]
@@ -30,7 +29,12 @@ macro_rules! res_path {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        $crate::res_path!($crate::builder::ResourcePathBuilder::default().join($lit), $($tt)*).build()
+        $crate::res_path!(
+         std::path::PathBuf::new()
+         .join($lit), $($tt)*)
+         .to_str()
+         .ok_or($crate::prelude::ResourcePathError::Empty)
+         .map($crate::prelude::ResourcePath::new)
     };
 }
 
