@@ -1,5 +1,6 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
+pub mod builder;
 pub mod conv;
 pub mod error;
 #[doc(hidden)]
@@ -16,6 +17,32 @@ pub mod types;
 pub use red4ext_macros as macros;
 #[doc(hidden)]
 pub use red4ext_sys::ffi;
-#[cfg(feature = "macros")]
-pub use red4ext_sys::res_path;
 pub use wchar;
+
+/// shortcut for ResourcePath creation.
+#[cfg(feature = "macros")]
+#[macro_export]
+macro_rules! res_path {
+    ($base:expr, /$lit:literal $($tt:tt)*) => {
+        $crate::res_path!($base.join($lit), $($tt)*)
+    };
+    ($base:expr, ) => {
+        $base
+    };
+    ($lit:literal $($tt:tt)*) => {
+        $crate::res_path!($crate::builder::ResourcePathBuilder::default().join($lit), $($tt)*).build()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn res_path() {
+        use crate::res_path;
+        assert!(res_path!("").is_err());
+        assert!(res_path!(".." / "somewhere" / "in" / "archive" / "custom.ent").is_err());
+        assert!(res_path!("base" / "somewhere" / "in" / "archive" / "custom.ent").is_ok());
+        assert!(res_path!("custom.ent").is_ok());
+        assert!(res_path!(".custom.ent").is_ok());
+    }
+}

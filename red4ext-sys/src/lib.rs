@@ -1,7 +1,5 @@
 pub mod error;
 pub mod interop;
-#[cfg(feature = "macros")]
-pub mod macros;
 
 #[allow(clippy::missing_safety_doc)]
 #[cxx::bridge]

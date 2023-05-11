@@ -1,8 +1,9 @@
+pub use crate::builder::ResourcePathBuilder;
 pub use crate::conv::{FromRepr, IntoRepr, NativeRepr, RefRepr};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::types::{
     CName, EntityId, GameEItemIdFlag, GamedataItemStructure, IScriptable, ItemId, RaRef, RedArray,
-    RedString, Ref, ResRef, ResourcePath, ResourcePathBuilder, ScriptRef, TweakDbId, VariantExt,
+    RedString, Ref, ResRef, ResourcePath, ScriptRef, TweakDbId, VariantExt,
 };
 pub use crate::{
     call, debug, define_plugin, define_trait_plugin, error, info, register_function, trace, warn,

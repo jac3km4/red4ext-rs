@@ -1,5 +1,5 @@
-use std::ffi::{CStr, OsStr};
-use std::path::{Path, PathBuf};
+use std::ffi::CStr;
+use std::path::Path;
 use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
@@ -115,12 +115,6 @@ impl ResourcePath {
         Ok(Self {
             hash: fnv1a64(&sanitized),
         })
-    }
-
-    pub fn builder() -> ResourcePathBuilder {
-        ResourcePathBuilder {
-            components: PathBuf::new(),
-        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -393,25 +387,8 @@ unsafe impl ExternType for VoidPtr {
     type Kind = cxx::kind::Trivial;
 }
 
-pub struct ResourcePathBuilder {
-    components: PathBuf,
-}
-
-impl ResourcePathBuilder {
-    pub fn join(mut self, component: impl AsRef<Path>) -> Self {
-        self.components.push(component);
-        self
-    }
-
-    pub fn build(self) -> Result<ResourcePath, ResourcePathError> {
-        ResourcePath::new(&self.components.to_string_lossy())
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
 
     #[test]
@@ -445,34 +422,5 @@ mod tests {
         assert!(ResourcePath::new("base\\somewhere\\in\\archive\\custom.ent").is_ok());
         assert!(ResourcePath::new("custom.ent").is_ok());
         assert!(ResourcePath::new(".custom.ent").is_ok());
-    }
-
-    #[test]
-    fn builder() {
-        assert_eq!(
-            ResourcePath::builder()
-                .join("base")
-                .join("somewhere")
-                .join("in")
-                .join("archive")
-                .build()
-                .unwrap(),
-            ResourcePath {
-                hash: fnv1a64("base\\somewhere\\in\\archive")
-            }
-        );
-
-        let path = PathBuf::from("multi\\").join("somewhere");
-        assert_eq!(
-            ResourcePath::builder()
-                .join(path)
-                .join("in")
-                .join("archive")
-                .build()
-                .unwrap(),
-            ResourcePath {
-                hash: fnv1a64("multi\\somewhere\\in\\archive")
-            }
-        );
     }
 }
