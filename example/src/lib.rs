@@ -1,5 +1,4 @@
 use red4ext_rs::prelude::*;
-use red4ext_rs::types::ResRef;
 
 define_plugin! {
     name: "example",
