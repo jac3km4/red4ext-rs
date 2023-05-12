@@ -85,7 +85,7 @@ pub struct ResourcePath {
 }
 
 impl ResourcePath {
-    const MAX_LENGTH: usize = 216;
+    pub(crate) const MAX_LENGTH: usize = 216;
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
@@ -105,17 +105,13 @@ impl ResourcePath {
             })
             .ok_or(ResourcePathError::Empty)?;
         if sanitized.as_bytes().len() > Self::MAX_LENGTH {
-            return Err(ResourcePathError::TooLong {
-                max: ResourcePath::MAX_LENGTH,
-            });
+            return Err(ResourcePathError::TooLong);
         }
         if Path::new(&sanitized)
             .components()
             .any(|x| !matches!(x, std::path::Component::Normal(_)))
         {
-            return Err(ResourcePathError::Relative {
-                path: path.to_string(),
-            });
+            return Err(ResourcePathError::NotCanonical);
         }
         Ok(Self {
             hash: fnv1a64(&sanitized),
