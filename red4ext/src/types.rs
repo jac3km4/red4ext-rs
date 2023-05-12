@@ -201,9 +201,9 @@ macro_rules! res_path {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        $crate::prelude::ResourcePath::new($crate::res_path!(std::path::PathBuf::from($lit), $($tt)*)
-         .to_str()
-         .unwrap())
+        $crate::types::ResourcePath::new(
+            &$crate::res_path!(::std::path::Path::new($lit), $($tt)*).to_string_lossy()
+        )
     };
 }
 
