@@ -1,4 +1,4 @@
-use const_combine::bounded::const_combine;
+use const_combine::bounded::const_combine as combine;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::{EntityId, ItemId, Mem};
 
@@ -13,6 +13,7 @@ use crate::types::{
 /// is idetical to the representation of type with name Self::NAME in-game.
 pub unsafe trait NativeRepr {
     const NAME: &'static str;
+    const NATIVE_NAME: &'static str = Self::NAME;
     const MANGLED_NAME: &'static str = Self::NAME;
 }
 
@@ -25,8 +26,9 @@ unsafe impl NativeRepr for RedString {
 }
 
 unsafe impl<A: NativeRepr> NativeRepr for RedArray<A> {
-    const MANGLED_NAME: &'static str = const_combine!("array:", A::MANGLED_NAME);
-    const NAME: &'static str = const_combine!("array:", A::NAME);
+    const MANGLED_NAME: &'static str = combine!(combine!("array<", A::MANGLED_NAME), ">");
+    const NAME: &'static str = combine!("array:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("array:", A::NATIVE_NAME);
 }
 
 unsafe impl NativeRepr for Variant {
@@ -34,8 +36,9 @@ unsafe impl NativeRepr for Variant {
 }
 
 unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
-    const MANGLED_NAME: &'static str = const_combine!("script_ref:", A::MANGLED_NAME);
-    const NAME: &'static str = const_combine!("script_ref:", A::NAME);
+    const MANGLED_NAME: &'static str = combine!(combine!("script_ref<", A::MANGLED_NAME), ">");
+    const NAME: &'static str = combine!("script_ref:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("script_ref:", A::NATIVE_NAME);
 }
 
 /// # Safety
@@ -52,7 +55,7 @@ unsafe impl RefRepr for Ref<IScriptable> {
 
 unsafe impl<A: RefRepr> NativeRepr for A {
     const MANGLED_NAME: &'static str = Self::CLASS_NAME;
-    const NAME: &'static str = const_combine!("handle:", A::CLASS_NAME);
+    const NAME: &'static str = combine!("handle:", A::CLASS_NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -151,6 +154,12 @@ macro_rules! impl_native_repr {
             const NAME: &'static str = $name;
         }
     };
+    ($ty:ty, $name:literal, $native_name:literal) => {
+        unsafe impl NativeRepr for $ty {
+            const NAME: &'static str = $name;
+            const NATIVE_NAME: &'static str = $native_name;
+        }
+    };
 }
 
 impl_native_repr!(f32, "Float");
@@ -165,10 +174,10 @@ impl_native_repr!(u16, "Uint16");
 impl_native_repr!(u8, "Uint8");
 impl_native_repr!(bool, "Bool");
 impl_native_repr!(CName, "CName");
-impl_native_repr!(ResRef, "redResourceReferenceScriptToken");
+impl_native_repr!(ResRef, "ResRef", "redResourceReferenceScriptToken");
 impl_native_repr!(TweakDbId, "TweakDBID");
-impl_native_repr!(ItemId, "gameItemID");
-impl_native_repr!(EntityId, "entEntityID");
+impl_native_repr!(ItemId, "ItemID", "gameItemID");
+impl_native_repr!(EntityId, "EntityID", "entEntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
 
@@ -204,7 +213,11 @@ mod tests {
         );
         assert_eq!(
             <Vec<Ref<IScriptable>> as IntoRepr>::Repr::MANGLED_NAME,
-            "array:IScriptable"
+            "array<IScriptable>"
+        );
+        assert_eq!(
+            <Vec<ItemId> as IntoRepr>::Repr::NATIVE_NAME,
+            "array:gameItemID"
         );
     }
 }
