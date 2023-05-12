@@ -167,8 +167,8 @@ impl_native_repr!(bool, "Bool");
 impl_native_repr!(CName, "CName");
 impl_native_repr!(ResRef, "redResourceReferenceScriptToken");
 impl_native_repr!(TweakDbId, "TweakDBID");
-impl_native_repr!(ItemId, "ItemID");
-impl_native_repr!(EntityId, "EntityID");
+impl_native_repr!(ItemId, "gameItemID");
+impl_native_repr!(EntityId, "entEntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
 
