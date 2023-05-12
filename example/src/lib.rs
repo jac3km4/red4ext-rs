@@ -31,12 +31,9 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 /// ```
 /// > ⚠️ output can be found in mod's logs
 fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId, res: ResRef) {
-    info!(
-        "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}, ResRef {:#?}",
-        name, tweak, item, entity, res
-    );
-    let r = res_ref!("base" / "mod" / "custom.ent");
-    drop(r);
+    info!("got CName {name:#?}, TweakDBID {tweak:#?}, ItemID {item:#?}, EntityID {entity:#?}, ResRef {res:#?}");
+    let res = res_ref!("base" / "mod" / "custom.ent").unwrap();
+    info!("created res ref: {res:#?}");
 }
 
 /// call function with handle
