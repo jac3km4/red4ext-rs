@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::path::Path;
 use std::ptr;
 
 use const_crc32::{crc32, crc32_seed};
@@ -6,6 +7,7 @@ use cxx::{type_id, ExternType};
 pub use ffi::EMainReason;
 use num_enum::TryFromPrimitive;
 
+use crate::error::ResourcePathError;
 use crate::ffi;
 
 pub type Mem = *mut std::ffi::c_void;
@@ -44,6 +46,77 @@ pub const fn fnv1a64(str: &str) -> u64 {
 unsafe impl ExternType for CName {
     type Id = type_id!("RED4ext::CName");
     type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct ResRef(RaRef);
+
+impl ResRef {
+    pub fn new(path: &str) -> Result<Self, ResourcePathError> {
+        Ok(Self(RaRef::new(path)?))
+    }
+}
+
+unsafe impl ExternType for ResRef {
+    type Id = type_id!("RED4ext::ResRef");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub(crate) struct RaRef(ResourcePath);
+
+impl RaRef {
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
+        Ok(Self(ResourcePath::new(path)?))
+    }
+}
+
+unsafe impl ExternType for RaRef {
+    type Id = type_id!("RED4ext::RaRef");
+    type Kind = cxx::kind::Trivial;
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[repr(C)]
+pub(crate) struct ResourcePath {
+    hash: u64,
+}
+
+impl ResourcePath {
+    pub const MAX_LENGTH: usize = 216;
+
+    /// accepts non-sanitized path of any length,
+    /// but final sanitized path length must be equals or inferior to 216 bytes
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
+        let sanitized = path
+            .trim_start_matches(|c| c == '\'' || c == '\"')
+            .trim_end_matches(|c| c == '\'' || c == '\"')
+            .trim_start_matches(|c| c == '/' || c == '\\')
+            .trim_end_matches(|c| c == '/' || c == '\\')
+            .split(|c| c == '/' || c == '\\')
+            .filter(|comp| !comp.is_empty())
+            .map(str::to_ascii_lowercase)
+            .reduce(|mut acc, e| {
+                acc.push('\\');
+                acc.push_str(&e);
+                acc
+            })
+            .ok_or(ResourcePathError::Empty)?;
+        if sanitized.as_bytes().len() > Self::MAX_LENGTH {
+            return Err(ResourcePathError::TooLong);
+        }
+        if Path::new(&sanitized)
+            .components()
+            .any(|x| !matches!(x, std::path::Component::Normal(_)))
+        {
+            return Err(ResourcePathError::NotCanonical);
+        }
+        Ok(Self {
+            hash: fnv1a64(&sanitized),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -320,5 +393,31 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+    }
+
+    #[test]
+    fn resource_path() {
+        assert_eq!(ResourcePath::default(), ResourcePath { hash: 0 });
+
+        const TOO_LONG: &str = "base\\some\\archive\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
+        assert!(TOO_LONG.as_bytes().len() > ResourcePath::MAX_LENGTH);
+        assert!(ResourcePath::new(TOO_LONG).is_err());
+
+        assert_eq!(
+            ResourcePath::new("\'base/somewhere/in/archive/\'").unwrap(),
+            ResourcePath {
+                hash: fnv1a64("base\\somewhere\\in\\archive")
+            }
+        );
+        assert_eq!(
+            ResourcePath::new("\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\"").unwrap(),
+            ResourcePath {
+                hash: fnv1a64("multi\\somewhere\\in\\archive")
+            }
+        );
+        assert!(ResourcePath::new("..\\somewhere\\in\\archive\\custom.ent").is_err());
+        assert!(ResourcePath::new("base\\somewhere\\in\\archive\\custom.ent").is_ok());
+        assert!(ResourcePath::new("custom.ent").is_ok());
+        assert!(ResourcePath::new(".custom.ent").is_ok());
     }
 }

@@ -115,6 +115,18 @@ Available macros:
 ## custom types
 
 By default this project only provides support for standard types like integers, floats and some collections.
+
+As a convenience, it already provides most common [literal types](https://wiki.redmodding.org/redscript/language/native-types#literal-types):
+
+- `CName`
+- `TweakDBID`
+- `ResRef` and `RaRef`
+
+and native structs:
+
+- [EntityID](https://jac3km4.github.io/cyberdoc/#10085)
+- [ItemID](https://jac3km4.github.io/cyberdoc/#15896)
+
 If you want to use other types, you have to write your own binding which is relatively easy to do,
 but it's on you to guarantee that it matches the layout of the underlying type.
 

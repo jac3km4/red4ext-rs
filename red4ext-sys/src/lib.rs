@@ -1,3 +1,4 @@
+pub mod error;
 pub mod interop;
 
 #[allow(clippy::missing_safety_doc)]

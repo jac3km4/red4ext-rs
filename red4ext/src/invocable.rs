@@ -30,8 +30,8 @@ macro_rules! impl_invocable {
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
-                const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NAME),)*];
-                const RETURN_TYPE: CName = CName::new(R::Repr::NAME);
+                const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NATIVE_NAME),)*];
+                const RETURN_TYPE: CName = CName::new(R::Repr::NATIVE_NAME);
 
                 #[inline]
                 fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
