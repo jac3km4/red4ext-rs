@@ -36,7 +36,7 @@ fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId, res:
         "got CName {:#?}, TweakDBID {:#?}, ItemID {:#?}, EntityID {:#?}, ResRef {:#?}",
         name, tweak, item, entity, res
     );
-    let r = res_path!("base" / "mod" / "custom.ent");
+    let r = res_ref!("base" / "mod" / "custom.ent");
     drop(r);
 }
 

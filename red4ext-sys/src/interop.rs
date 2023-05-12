@@ -65,7 +65,7 @@ unsafe impl ExternType for ResRef {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
-pub struct RaRef(ResourcePath);
+pub(crate) struct RaRef(ResourcePath);
 
 impl RaRef {
     fn new(path: &str) -> Result<Self, ResourcePathError> {
@@ -80,16 +80,16 @@ unsafe impl ExternType for RaRef {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
-pub struct ResourcePath {
+pub(crate) struct ResourcePath {
     hash: u64,
 }
 
 impl ResourcePath {
-    pub(crate) const MAX_LENGTH: usize = 216;
+    pub const MAX_LENGTH: usize = 216;
 
     /// accepts non-sanitized path of any length,
     /// but final sanitized path length must be equals or inferior to 216 bytes
-    pub fn new(path: &str) -> Result<Self, ResourcePathError> {
+    fn new(path: &str) -> Result<Self, ResourcePathError> {
         let sanitized = path
             .trim_start_matches(|c| c == '\'' || c == '\"')
             .trim_end_matches(|c| c == '\'' || c == '\"')
@@ -116,10 +116,6 @@ impl ResourcePath {
         Ok(Self {
             hash: fnv1a64(&sanitized),
         })
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.hash == 0
     }
 }
 

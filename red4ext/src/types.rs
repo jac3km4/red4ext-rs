@@ -4,8 +4,8 @@ use std::{mem, pin, ptr};
 pub use ffi::IScriptable;
 use red4ext_sys::ffi;
 pub use red4ext_sys::interop::{
-    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RaRef, RedString, ResRef,
-    ResourcePath, TweakDbId, Variant, VoidPtr,
+    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RedString, ResRef, TweakDbId,
+    Variant, VoidPtr,
 };
 
 use crate::conv::{FromRepr, IntoRepr, NativeRepr};
@@ -191,18 +191,18 @@ impl VariantExt for Variant {
     }
 }
 
-/// shortcut for ResourcePath creation.
+/// shortcut for ResRef creation.
 #[macro_export]
-macro_rules! res_path {
+macro_rules! res_ref {
     ($base:expr, /$lit:literal $($tt:tt)*) => {
-        $crate::res_path!($base.join($lit), $($tt)*)
+        $crate::res_ref!($base.join($lit), $($tt)*)
     };
     ($base:expr, ) => {
         $base
     };
     ($lit:literal $($tt:tt)*) => {
-        $crate::types::ResourcePath::new(
-            &$crate::res_path!(::std::path::Path::new($lit), $($tt)*).to_string_lossy()
+        $crate::types::ResRef::new(
+            &$crate::res_ref!(::std::path::Path::new($lit), $($tt)*).to_string_lossy()
         )
     };
 }
@@ -211,11 +211,11 @@ macro_rules! res_path {
 mod tests {
     #[test]
     fn res_path() {
-        use crate::res_path;
-        assert!(res_path!("").is_err());
-        assert!(res_path!(".." / "somewhere" / "in" / "archive" / "custom.ent").is_err());
-        assert!(res_path!("base" / "somewhere" / "in" / "archive" / "custom.ent").is_ok());
-        assert!(res_path!("custom.ent").is_ok());
-        assert!(res_path!(".custom.ent").is_ok());
+        use crate::res_ref;
+        assert!(res_ref!("").is_err());
+        assert!(res_ref!(".." / "somewhere" / "in" / "archive" / "custom.ent").is_err());
+        assert!(res_ref!("base" / "somewhere" / "in" / "archive" / "custom.ent").is_ok());
+        assert!(res_ref!("custom.ent").is_ok());
+        assert!(res_ref!(".custom.ent").is_ok());
     }
 }
