@@ -14,6 +14,3 @@ const-crc32 = { git = "https://git.shipyard.rs/Roms1383/const-crc32", rev = "9c6
 
 [build-dependencies]
 cxx-build = "1"
-
-[features]
-macros = []

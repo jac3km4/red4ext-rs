@@ -1,6 +1,6 @@
 use const_combine::bounded::const_combine;
 use red4ext_sys::ffi;
-use red4ext_sys::interop::{EntityId, ItemId, Mem, RaRef};
+use red4ext_sys::interop::{EntityId, ItemId, Mem};
 
 use crate::types::{
     CName, Color, IScriptable, RedArray, RedString, Ref, ResRef, ScriptRef, TweakDbId, Variant,
