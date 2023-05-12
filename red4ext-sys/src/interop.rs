@@ -79,7 +79,7 @@ unsafe impl ExternType for RaRef {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[repr(transparent)]
+#[repr(C)]
 pub struct ResourcePath {
     hash: u64,
 }
