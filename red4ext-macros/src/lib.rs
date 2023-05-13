@@ -3,7 +3,6 @@ use darling::FromMeta;
 use heck::ToPascalCase;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::parse::Parser;
 use syn::parse_macro_input;
 use syn::spanned::Spanned;
 
@@ -29,7 +28,7 @@ pub fn redscript_global(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(err) => return err.to_compile_error().into(),
     };
     let name = fn_item.sig.ident.to_string().to_pascal_case();
-    generate_forwader(&name, fn_item.attrs, args, fn_item.vis, fn_item.sig).into()
+    generate_forwader(&name, None, fn_item.attrs, args, fn_item.vis, fn_item.sig).into()
 }
 
 #[proc_macro_attribute]
@@ -53,10 +52,18 @@ pub fn redscript_import(_attr: TokenStream, item: TokenStream) -> TokenStream {
             .into();
     }
 
+    let syn::Type::Path(self_path) = &*self_ty else {
+        return syn::Error::new(self_ty.span(), "Expected a path").to_compile_error().into();
+    };
+    let Some(self_ident) = self_path.path.get_ident() else {
+        return syn::Error::new(self_path.path.span(), "Expected a type identifier").to_compile_error().into();
+    };
+
     let items = items.into_iter().map(|i| match i {
         syn::ImplItem::Verbatim(tokens) => match syn::parse2::<syn::ForeignItemFn>(tokens) {
             Ok(fn_item) => generate_forwader(
                 &fn_item.sig.ident.to_string().to_pascal_case(),
+                Some(&self_ident.to_string()),
                 fn_item.attrs,
                 vec![],
                 fn_item.vis,
@@ -77,6 +84,7 @@ pub fn redscript_import(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 fn generate_forwader(
     fn_name: &str,
+    parent: Option<&str>,
     attrs: Vec<syn::Attribute>,
     meta: Vec<NestedMeta>,
     vis: syn::Visibility,
@@ -113,7 +121,7 @@ fn generate_forwader(
             syn::FnArg::Typed(pat) => match &*pat.pat {
                 syn::Pat::Ident(id) => {
                     idents.push(id);
-                    types.push(pat.ty.clone());
+                    types.push(&*pat.ty);
                 }
                 _ => {
                     return syn::Error::new(arg.span(), "Only plain parameters are supported")
@@ -129,33 +137,15 @@ fn generate_forwader(
         .as_deref()
         .or(attrs.name.as_deref())
         .unwrap_or(fn_name);
-    let name = syn::LitStr::new(name, sig.span());
 
-    fn into_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
-        quote!(<<#typ as ::red4ext_rs::conv::IntoRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
-    }
-
-    fn from_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
-        quote!(<<#typ as ::red4ext_rs::conv::FromRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
-    }
-
-    let signature = if attrs.operator {
-        let args = types.iter().map(|typ| into_repr_name(typ));
-        let ret = match &sig.output {
-            syn::ReturnType::Default => None,
-            syn::ReturnType::Type(_, typ) => Some(from_repr_name(typ)),
-        };
-        quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*, ";", #ret))
-    } else if attrs.cb || attrs.native {
-        name.to_token_stream()
-    } else {
-        let args = types.iter().map(|typ| into_repr_name(typ));
-        quote!(::red4ext_rs::macros::concat_str!(#name, ";", #(#args),*))
-    };
-
+    let receiver = sig.inputs.first().and_then(|arg| match arg {
+        syn::FnArg::Receiver(receiver) => Some(receiver),
+        _ => None,
+    });
+    let signature = generate_name(name, receiver, parent, &types, &sig.output, &attrs);
     let ret = &sig.output;
-    let body = match sig.inputs.first() {
-        Some(syn::FnArg::Receiver(syn::Receiver { self_token, .. })) => {
+    let body = match receiver {
+        Some(syn::Receiver { self_token, .. }) => {
             quote!(::red4ext_rs::call!(#self_token.0.clone(), [#signature] (#(#idents),*) #ret))
         }
         _ => {
@@ -169,14 +159,40 @@ fn generate_forwader(
     }
 }
 
-#[proc_macro]
-pub fn concat_str(ts: TokenStream) -> TokenStream {
-    let exprs = match syn::punctuated::Punctuated::<syn::Expr, syn::token::Comma>::parse_terminated
-        .parse(ts)
-    {
-        Ok(res) => res,
-        Err(err) => return err.to_compile_error().into(),
+fn generate_name(
+    name: &str,
+    receiver: Option<&syn::Receiver>,
+    parent: Option<&str>,
+    args: &[&syn::Type],
+    ret: &syn::ReturnType,
+    attrs: &FunctionAttrs,
+) -> proc_macro2::TokenStream {
+    fn into_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
+        quote!(<<#typ as ::red4ext_rs::conv::IntoRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
+    }
+
+    fn from_repr_name(typ: &syn::Type) -> proc_macro2::TokenStream {
+        quote!(<<#typ as ::red4ext_rs::conv::FromRepr>::Repr as ::red4ext_rs::conv::NativeRepr>::MANGLED_NAME)
+    }
+
+    let mut components = vec![];
+    if let (None, Some(parent)) = (receiver, parent) {
+        components.extend([quote!(#parent), quote!("::")]);
+    }
+    components.extend([quote!(#name), quote!(";")]);
+    if !attrs.cb && !attrs.native || attrs.operator {
+        components.extend(args.iter().map(|typ| into_repr_name(typ)));
+    }
+    components.push(quote!(";"));
+    match &ret {
+        syn::ReturnType::Type(_, typ) if attrs.operator => components.push(from_repr_name(typ)),
+        _ => {}
     };
+
+    concat_str(components)
+}
+
+fn concat_str(exprs: Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
     let len = exprs
         .iter()
         .fold(quote!(0), |acc, e| quote!(#acc + #e.len()));
@@ -190,5 +206,5 @@ pub fn concat_str(ts: TokenStream) -> TokenStream {
         )*
         buf
     }};
-    quote! {unsafe { ::std::str::from_utf8_unchecked(&#array) }}.into()
+    quote! {unsafe { ::std::str::from_utf8_unchecked(&#array) }}
 }

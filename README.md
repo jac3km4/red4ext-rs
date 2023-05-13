@@ -94,6 +94,8 @@ Available macros:
   - `native` - whether the function is native (affects mangling)
   - `cb` - whether the function is a callback (affects mangling)
   
+  *functions without a `self` receiver generate calls to static methods*
+  
   Example:
 
     ```rs
@@ -102,13 +104,16 @@ Available macros:
 
     #[redscript_import]
     impl PlayerPuppet {
-        // imports 'public native func GetDisplayName() -> String'
+        /// imports 'public native func GetDisplayName() -> String'
         #[redscript(native)]
         fn get_display_name(&self) -> String;
 
-        // imports 'private func DisableCameraBobbing(b: Bool) -> Void'
+        /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
         #[redscript(name = "DisableCameraBobbing")]
         fn disable_cam_bobbing(&self, toggle: bool) -> ();
+
+        /// imports 'public static func GetCriticalHealthThreshold() -> Float'
+        fn get_critical_health_threshold() -> f32;
     }
     ```
 

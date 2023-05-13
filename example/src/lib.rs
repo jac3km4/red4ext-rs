@@ -87,6 +87,9 @@ impl PlayerPuppet {
 
     /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
     fn disable_camera_bobbing(&self, toggle: bool);
+
+    /// imports 'public static func GetCriticalHealthThreshold() -> Float'
+    fn get_critical_health_threshold() -> f32;
 }
 
 unsafe impl RefRepr for PlayerPuppet {
