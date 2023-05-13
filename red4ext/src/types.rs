@@ -62,23 +62,80 @@ impl<A> Default for RedArray<A> {
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct Ref<A> {
+pub struct Ref<A>(RefShared<A>);
+
+impl<A> Ref<A> {
+    #[inline]
+    pub fn null() -> Self {
+        Self(RefShared::default())
+    }
+
+    pub fn into_shared(self) -> RefShared<A> {
+        self.0
+    }
+}
+
+impl<A> Default for Ref<A> {
+    #[inline]
+    fn default() -> Self {
+        Self(RefShared::default())
+    }
+}
+
+impl<A> Clone for Ref<A> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct WRef<A>(RefShared<A>);
+
+impl<A> WRef<A> {
+    #[inline]
+    pub fn null() -> Self {
+        Self(RefShared::null())
+    }
+
+    pub fn into_shared(self) -> RefShared<A> {
+        self.0
+    }
+}
+
+impl<A> Default for WRef<A> {
+    #[inline]
+    fn default() -> Self {
+        Self(RefShared::null())
+    }
+}
+
+impl<A> Clone for WRef<A> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct RefShared<A> {
     ptr: *mut A,
     count: *mut RefCount,
 }
 
-impl<A> Ref<A> {
+impl<A> RefShared<A> {
     #[inline]
     pub fn null() -> Self {
         Self::default()
     }
 
-    pub(crate) fn as_ptr(&self) -> *mut A {
+    #[inline]
+    pub fn as_ptr(&self) -> *mut A {
         self.ptr
     }
 }
 
-impl<A> Default for Ref<A> {
+impl<A> Default for RefShared<A> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -88,7 +145,7 @@ impl<A> Default for Ref<A> {
     }
 }
 
-impl<A> Clone for Ref<A> {
+impl<A> Clone for RefShared<A> {
     fn clone(&self) -> Self {
         Self {
             ptr: self.ptr,

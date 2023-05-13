@@ -7,7 +7,7 @@ use red4ext_sys::interop::{Mem, StackArg};
 use crate::conv::{fill_memory, from_frame, FromRepr, IntoRepr, NativeRepr};
 use crate::error::InvokeError;
 use crate::rtti::Rtti;
-use crate::types::{CName, IScriptable, Ref, VoidPtr};
+use crate::types::{CName, IScriptable, RefShared, VoidPtr};
 
 pub(crate) type RedFunction =
     unsafe extern "C" fn(*mut ffi::IScriptable, *mut ffi::CStackFrame, Mem, i64);
@@ -30,8 +30,8 @@ macro_rules! impl_invocable {
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
-                const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NATIVE_NAME),)*];
-                const RETURN_TYPE: CName = CName::new(R::Repr::NATIVE_NAME);
+                const ARG_TYPES: &'static [CName] = &[$(get_native_cname::<$types::Repr>(),)*];
+                const RETURN_TYPE: CName = get_native_cname::<R::Repr>();
 
                 #[inline]
                 fn invoke(self, ctx: *mut ffi::IScriptable, frame: *mut ffi::CStackFrame, mem: Mem) {
@@ -78,7 +78,7 @@ macro_rules! call {
         let mut rtti = $crate::rtti::Rtti::get();
         match $crate::call_direct!(
             rtti,
-            $crate::types::Ref::null(),
+            $crate::types::RefShared::null(),
             rtti.get_function($crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         ) {
@@ -94,8 +94,8 @@ macro_rules! call {
         let this = $this;
         match $crate::call_direct!(
             rtti,
-            this.clone(),
-            $crate::rtti::Rtti::get_method(this, $crate::types::CName::new($fn_name)),
+            this.clone().into_shared(),
+            $crate::rtti::Rtti::get_method(this.into_shared(), $crate::types::CName::new($fn_name)),
             ($($args),*) -> $rett
         ) {
             Ok(res) => res,
@@ -117,7 +117,7 @@ macro_rules! call_direct {
 
 #[inline]
 pub fn invoke<R>(
-    this: Ref<IScriptable>,
+    this: RefShared<IScriptable>,
     fun: *mut ffi::CBaseFunction,
     args: &[StackArg],
 ) -> Result<R, InvokeError>
@@ -128,7 +128,7 @@ where
     // don't inline to avoid exploding code size of macros
     #[inline(never)]
     fn invoke_shared(
-        this: Ref<IScriptable>,
+        this: RefShared<IScriptable>,
         fun: *mut ffi::CBaseFunction,
         args: &[StackArg],
         name: CName,
@@ -187,6 +187,28 @@ fn validate_invocation(
         None if expected_return == CName::new("Void") => Ok(()),
         None => Err(InvokeError::ReturnMismatch { expected: "Void" }),
     }
+}
+
+// this implements a fallback that is necessary for scripted ref types
+// because they do not exist yet when functions are registered
+const fn get_native_cname<A: NativeRepr>() -> CName {
+    let bytes = &A::NATIVE_NAME.as_bytes();
+    if bytes.len() < 8 {
+        return CName::new(A::NATIVE_NAME);
+    }
+    if matches!(
+        &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6],],
+        b"handle:"
+    ) {
+        return CName::new("handle:IScriptable");
+    }
+    if matches!(
+        &[bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]],
+        b"whandle:"
+    ) {
+        return CName::new("whandle:IScriptable");
+    }
+    CName::new(A::NATIVE_NAME)
 }
 
 #[inline]

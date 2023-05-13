@@ -160,6 +160,8 @@ but it's on you to guarantee that it matches the layout of the underlying type.
     struct PlayerPuppet(Ref<IScriptable>);
 
     unsafe impl RefRepr for PlayerPuppet {
+        type Type = Strong;
+        
         const CLASS_NAME: &'static str = "PlayerPuppet";
     }
     ```

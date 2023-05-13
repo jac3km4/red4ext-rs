@@ -179,13 +179,15 @@ fn generate_name(
     if let (None, Some(parent)) = (receiver, parent) {
         components.extend([quote!(#parent), quote!("::")]);
     }
-    components.extend([quote!(#name), quote!(";")]);
+    components.push(quote!(#name));
     if !attrs.cb && !attrs.native || attrs.operator {
+        components.push(quote!(";"));
         components.extend(args.iter().map(|typ| into_repr_name(typ)));
     }
-    components.push(quote!(";"));
     match &ret {
-        syn::ReturnType::Type(_, typ) if attrs.operator => components.push(from_repr_name(typ)),
+        syn::ReturnType::Type(_, typ) if attrs.operator => {
+            components.extend([quote!(";"), from_repr_name(typ)]);
+        }
         _ => {}
     };
 

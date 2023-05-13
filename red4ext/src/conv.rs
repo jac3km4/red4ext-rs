@@ -47,15 +47,32 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
 /// is idetical to handle:{Self::NAME} in-game.
 pub unsafe trait RefRepr {
     const CLASS_NAME: &'static str;
+    type Type: RefType;
 }
 
 unsafe impl RefRepr for Ref<IScriptable> {
+    type Type = Strong;
+
     const CLASS_NAME: &'static str = "IScriptable";
 }
 
 unsafe impl<A: RefRepr> NativeRepr for A {
     const MANGLED_NAME: &'static str = Self::CLASS_NAME;
-    const NAME: &'static str = combine!("handle:", A::CLASS_NAME);
+    const NAME: &'static str = combine!(A::Type::PREFIX, A::CLASS_NAME);
+}
+
+pub trait RefType {
+    const PREFIX: &'static str;
+}
+
+pub struct Weak;
+impl RefType for Weak {
+    const PREFIX: &'static str = "whandle:";
+}
+
+pub struct Strong;
+impl RefType for Strong {
+    const PREFIX: &'static str = "handle:";
 }
 
 pub trait IntoRepr: Sized {

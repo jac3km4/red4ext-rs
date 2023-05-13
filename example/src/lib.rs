@@ -51,6 +51,10 @@ fn call_demo(player: PlayerPuppet) {
     info!("player display name: {}", player.get_display_name());
     info!("player vehicles: {}", player.get_unlocked_vehicles_size());
     player.disable_camera_bobbing(true);
+    info!(
+        "can apply breating effect: {}",
+        PlayerPuppet::can_apply_breathing_effect(player.clone())
+    );
 }
 
 /// import a global operator
@@ -70,7 +74,7 @@ fn add_u32(l: u32, r: u32) -> u32;
 /// define a binding for a class type
 #[derive(Clone, Default)]
 #[repr(transparent)]
-struct PlayerPuppet(Ref<IScriptable>);
+struct PlayerPuppet(WRef<IScriptable>);
 
 #[redscript_import]
 impl PlayerPuppet {
@@ -88,10 +92,12 @@ impl PlayerPuppet {
     /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
     fn disable_camera_bobbing(&self, toggle: bool);
 
-    /// imports 'public static func GetCriticalHealthThreshold() -> Float'
-    fn get_critical_health_threshold() -> f32;
+    /// imports 'public final static func CanApplyBreathingEffect(player: wref<PlayerPuppet>) -> Bool'
+    fn can_apply_breathing_effect(player: PlayerPuppet) -> bool;
 }
 
 unsafe impl RefRepr for PlayerPuppet {
+    type Type = Weak;
+
     const CLASS_NAME: &'static str = "PlayerPuppet";
 }

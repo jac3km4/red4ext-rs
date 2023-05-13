@@ -91,6 +91,7 @@ pub mod ffi {
             mem: VoidPtr,
             args: &[CName],
             ret: CName,
+            errors: &mut Vec<usize>,
         ) -> *mut CGlobalFunction;
 
         #[cxx_name = "GetRTTI"]
