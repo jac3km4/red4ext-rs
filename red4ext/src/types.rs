@@ -120,7 +120,7 @@ where
     pub fn new(ptr: &'a A) -> Self {
         Self {
             unknown: [0; 0x10],
-            inner: Rtti::get().get_type(CName::new(A::NAME)),
+            inner: Rtti::get().get_type(CName::new(A::NATIVE_NAME)),
             ptr,
             hash: CName::default(),
         }
@@ -173,7 +173,7 @@ pub trait VariantExt {
 impl VariantExt for Variant {
     fn new<A: IntoRepr>(val: A) -> Self {
         let mut this = Self::default();
-        let typ = Rtti::get().get_type(CName::new(A::Repr::NAME));
+        let typ = Rtti::get().get_type(CName::new(A::Repr::NATIVE_NAME));
         let mut repr = val.into_repr();
         unsafe {
             pin::Pin::new_unchecked(&mut this).fill(typ, VoidPtr(&mut repr as *mut _ as _));
@@ -182,7 +182,7 @@ impl VariantExt for Variant {
     }
 
     fn try_get<A: FromRepr>(&self) -> Option<A> {
-        if Rtti::type_name_of(self.get_type()) == CName::new(A::Repr::NAME) {
+        if Rtti::type_name_of(self.get_type()) == CName::new(A::Repr::NATIVE_NAME) {
             let ptr = self.get_data_ptr().0 as *const <A as FromRepr>::Repr;
             Some(A::from_repr(unsafe { &*ptr }))
         } else {
