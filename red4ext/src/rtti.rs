@@ -1,14 +1,20 @@
+use std::fmt;
 use std::pin::Pin;
 
 use red4ext_sys::ffi;
-use thiserror::Error;
 
 use crate::invocable::RedFunction;
 use crate::types::{CName, RefShared, VoidPtr};
 
-#[derive(Debug, Error)]
-#[error("failed to bind arguments: {}", .0.join(", "))]
-pub struct FailedBindings(Vec<&'static str>);
+#[derive(Debug)]
+pub struct FailedBindings(Vec<usize>);
+
+impl fmt::Display for FailedBindings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "failed to bind arguments at indexes:")?;
+        self.0.iter().try_for_each(|e| write!(f, " {}", e))
+    }
+}
 
 pub struct Rtti<'a> {
     inner: Pin<&'a mut ffi::IRttiSystem>,
@@ -71,17 +77,13 @@ impl<'a> Rtti<'a> {
                 ret,
                 &mut failed,
             );
-            if !failed.is_empty() {
-                let failed = failed
-                    .into_iter()
-                    .filter_map(|i| args.get(i))
-                    .map(ffi::resolve_cname)
-                    .collect();
-                return Err(FailedBindings(failed));
-            }
             self.inner.as_mut().register_function(func);
         }
-        Ok(())
+        if failed.is_empty() {
+            Ok(())
+        } else {
+            Err(FailedBindings(failed))
+        }
     }
 
     #[inline]
@@ -111,7 +113,7 @@ macro_rules! register_function {
             .err()
             .and_then(|err| err.downcast::<::std::string::String>().ok())
             {
-                $crate::error!("Panic in {}: {err}", $name);
+                $crate::error!("Function '{}' has panicked: {err}", $name);
             }
 
             #[cfg(not(debug_assertions))]
@@ -124,7 +126,8 @@ macro_rules! register_function {
         if let Err(err) =
             $crate::rtti::Rtti::get().register_function($name, native_impl, arg_types, ret_type)
         {
-            $crate::error!("Failed to register function {}: {:?}", $name, err);
+            #[cfg(debug_assertions)]
+            $crate::warn!("Registering '{}' has partially failed: {}", $name, err);
         }
     }};
 }
