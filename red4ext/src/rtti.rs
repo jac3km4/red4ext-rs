@@ -43,13 +43,6 @@ impl<'a> Rtti<'a> {
         }
     }
 
-    pub fn get_static_method(&mut self, class: CName, fn_name: CName) -> *mut ffi::CBaseFunction {
-        unsafe {
-            let typ = self.get_class(class);
-            ffi::get_method(&*typ, &fn_name) as _
-        }
-    }
-
     pub fn register_function(
         &mut self,
         name: &str,
