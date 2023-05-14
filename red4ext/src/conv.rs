@@ -61,7 +61,7 @@ unsafe impl<A: RefRepr> NativeRepr for A {
     const NAME: &'static str = combine!(A::Type::PREFIX, A::CLASS_NAME);
 }
 
-pub trait RefType {
+pub trait RefType: private_ref_type::Sealed {
     const PREFIX: &'static str;
 }
 
@@ -73,6 +73,14 @@ impl RefType for Weak {
 pub struct Strong;
 impl RefType for Strong {
     const PREFIX: &'static str = "handle:";
+}
+
+mod private_ref_type {
+    use super::*;
+
+    pub trait Sealed {}
+    impl Sealed for Weak {}
+    impl Sealed for Strong {}
 }
 
 pub trait IntoRepr: Sized {
