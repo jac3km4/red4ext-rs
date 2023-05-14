@@ -14,10 +14,13 @@ namespace glue {
     CBaseFunction::Flags flags = { .isNative = true, .isStatic = true };
     auto func = CGlobalFunction::Create(std::string(aFullName).c_str(), std::string(aShortName).c_str(), (ScriptingFunction_t<void*>)aFunc);
     func->flags = flags;
+    size_t index = 0;
+
     for (auto param: params) {
       if (!func->AddParam(param, "")) {
-        failed.push_back(func->params.size);
+        failed.push_back(index);
       }
+      index++;
     }
     func->SetReturnType(ret);
     return func;
