@@ -180,14 +180,14 @@ dependencies = [
 
 [[package]]
 name = "red4ext-example"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "red4ext-rs",
 ]
 
 [[package]]
 name = "red4ext-macros"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "darling",
  "heck",
@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "red4ext-rs"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "const-combine",
  "once_cell",
@@ -210,7 +210,7 @@ dependencies = [
 
 [[package]]
 name = "red4ext-sys"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "const-crc32",
  "cxx",
