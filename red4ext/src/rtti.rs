@@ -6,16 +6,6 @@ use red4ext_sys::ffi;
 use crate::invocable::RedFunction;
 use crate::types::{CName, RefShared, VoidPtr};
 
-#[derive(Debug)]
-pub struct FailedBindings(Vec<usize>);
-
-impl fmt::Display for FailedBindings {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "failed to bind arguments at indexes:")?;
-        self.0.iter().try_for_each(|e| write!(f, " {}", e))
-    }
-}
-
 pub struct Rtti<'a> {
     inner: Pin<&'a mut ffi::IRttiSystem>,
 }
@@ -94,6 +84,20 @@ impl<'a> Rtti<'a> {
     #[inline]
     pub fn type_name_of(typ: *const ffi::CBaseRttiType) -> CName {
         unsafe { (*typ).get_name() }
+    }
+}
+
+#[derive(Debug)]
+pub struct FailedBindings(Vec<usize>);
+
+impl fmt::Display for FailedBindings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "failed to bind arguments at indexes:")?;
+        self.0.iter().try_for_each(|e| write!(f, " {}", e))?;
+        write!(
+            f,
+            ", this is only an issue if you don't define this function in redscript"
+        )
     }
 }
 
