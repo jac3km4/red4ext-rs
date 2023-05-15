@@ -125,7 +125,7 @@ As a convenience, it already provides most common [literal types](https://wiki.r
 
 - `CName`
 - `TweakDBID`
-- `ResRef` and `RaRef`
+- `ResRef`
 
 and native structs:
 
