@@ -62,4 +62,4 @@ jobs:
       - run: cargo build --release
       - uses: actions/upload-artifact@v3
         with:
-          path: target/release/red4ext_example.dll
+          path: target/release/example.dll
