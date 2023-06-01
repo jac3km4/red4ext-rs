@@ -1,6 +1,5 @@
 use std::fmt::Arguments;
-
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 
 use crate::plugin::{PluginHandle, Sdk};
 
@@ -43,7 +42,7 @@ pub struct SdkLogger {
     criticalwf: fn(PluginHandle, *const u16),
 }
 
-static INSTANCE: OnceCell<Logger> = OnceCell::new();
+static INSTANCE: OnceLock<Logger> = OnceLock::new();
 
 pub struct Logger {
     sdk: &'static Sdk,

@@ -3,7 +3,7 @@ members = ["red4ext", "red4ext-sys", "red4ext-macros", "example"]
 
 [workspace.package]
 version = "0.3.3"
-rust-version = "1.69"
+rust-version = "1.70"
 edition = "2021"
 license = "MIT"
 authors = ["jekky"]
