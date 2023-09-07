@@ -1,5 +1,6 @@
 [workspace]
 members = ["red4ext", "red4ext-sys", "red4ext-macros", "example"]
+resolver = "2"
 
 [workspace.package]
 version = "0.3.3"
