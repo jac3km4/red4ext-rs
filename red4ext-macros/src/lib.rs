@@ -53,10 +53,14 @@ pub fn redscript_import(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let syn::Type::Path(self_path) = &*self_ty else {
-        return syn::Error::new(self_ty.span(), "Expected a path").to_compile_error().into();
+        return syn::Error::new(self_ty.span(), "Expected a path")
+            .to_compile_error()
+            .into();
     };
     let Some(self_ident) = self_path.path.get_ident() else {
-        return syn::Error::new(self_path.path.span(), "Expected a type identifier").to_compile_error().into();
+        return syn::Error::new(self_path.path.span(), "Expected a type identifier")
+            .to_compile_error()
+            .into();
     };
 
     let items = items.into_iter().map(|i| match i {
