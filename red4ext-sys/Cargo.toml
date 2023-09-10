@@ -10,7 +10,7 @@ rust-version.workspace = true
 thiserror = "1"
 num_enum = { version = "0.6", default-features = false }
 cxx = "1"
-const-crc32 = { git = "https://git.shipyard.rs/Roms1383/const-crc32", rev = "9c688f3ad1" }
+const-crc32 = "1.3.0"
 
 [build-dependencies]
 cxx-build = "1"
