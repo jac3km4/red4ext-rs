@@ -79,7 +79,15 @@ macro_rules! call {
         match $crate::call_direct!(
             rtti,
             $crate::types::RefShared::null(),
-            rtti.get_function($crate::types::CName::new($fn_name)),
+            match rtti.get_function($crate::types::CName::new($fn_name)) {
+                global if !global.is_null() => global,
+                _ => match ($fn_name.splitn(2, ':').next(), $fn_name.rsplitn(2, ':').next()) {
+                    (Some(cls), Some(func)) => $crate::rtti::Rtti::get_static_method(
+                        rtti.get_type(CName::new(cls)) as *const $crate::ffi::CClass,
+                        CName::new(func)),
+                    _ => ::std::ptr::null_mut(),
+                },
+            },
             ($($args),*) -> $rett
         ) {
             Ok(res) => res,

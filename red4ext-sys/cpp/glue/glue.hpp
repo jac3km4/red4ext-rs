@@ -94,4 +94,24 @@ namespace glue {
     }
     return nullptr;
   }
+
+  CClassStaticFunction* GetStaticMethod(const CClass& cls, const CName& funcName)
+  {
+    if (&cls)
+    {
+        for (auto func : (&cls)->staticFuncs)
+        {
+            if (func->shortName == funcName || func->fullName == funcName)
+            {
+                return func;
+            }
+        }
+
+        if ((&cls)->parent)
+        {
+            return GetStaticMethod(*(&cls)->parent, funcName);
+        }
+    }
+    return nullptr;
+  }
 }
