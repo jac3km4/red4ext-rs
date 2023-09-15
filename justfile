@@ -9,7 +9,7 @@ mod_name           := "example"
 bin_name           := "example.dll"
 log_name           := "example.log"
 
-red4ext_repo_dir   := join(".", "target", "release")
+red4ext_repo_dir   := join(".", "target")
 red4ext_game_dir   := join(game_dir, "red4ext", "plugins")
 
 redscript_repo_dir := join(".", "example", "reds")
@@ -36,15 +36,20 @@ hot-reload:
 alias i := install
 
 # copy all files to game folder (before launching the game)
-install:
- cargo build --release
- @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
-    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
- } else { \
-    New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
+install target='release':
+ @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
+   Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
  }
- cp -Force '{{ join(red4ext_repo_dir, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
+ @if ('{{target}}' -EQ 'debug') { cargo build; } else { cargo build --release; }
+ @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
+   Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
+ } else { \
+   New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
+ }
+ cp -Force '{{ join(red4ext_repo_dir, target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
  @just hot-reload
+
+dev: (install 'debug')
 
 # remove all files from game folder
 uninstall:
