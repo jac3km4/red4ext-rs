@@ -148,9 +148,15 @@ fn generate_forwader(
     });
     let signature = generate_name(name, receiver, parent, &types, &sig.output, &attrs);
     let ret = &sig.output;
-    let body = match receiver {
-        Some(syn::Receiver { self_token, .. }) => {
+    let body = match (receiver, parent, &attrs) {
+        (Some(syn::Receiver { self_token, .. }), Some(_), _) => {
             quote!(::red4ext_rs::call!(#self_token.0.clone(), [#signature] (#(#idents),*) #ret))
+        }
+        (None, Some(_), FunctionAttrs { native: false, .. }) => {
+            quote!(::red4ext_rs::call!([#signature] (#(#idents),*) #ret))
+        }
+        (None, Some(_), _) => {
+            quote!(::red4ext_rs::call!([#parent] :: [#name] (#(#idents),*) #ret))
         }
         _ => {
             quote!(::red4ext_rs::call!([#signature] (#(#idents),*) #ret))
@@ -180,7 +186,7 @@ fn generate_name(
     }
 
     let mut components = vec![];
-    if let (None, Some(parent)) = (receiver, parent) {
+    if let (None, Some(parent), FunctionAttrs { native: false, .. }) = (receiver, parent, &attrs) {
         components.extend([quote!(#parent), quote!("::")]);
     }
     components.push(quote!(#name));

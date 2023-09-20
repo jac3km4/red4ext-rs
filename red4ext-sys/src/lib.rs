@@ -23,6 +23,7 @@ pub mod ffi {
         type CBaseFunction;
         type CGlobalFunction;
         type CClassFunction;
+        type CClassStaticFunction;
         #[cxx_name = "IRTTISystem"]
         type IRttiSystem;
         #[cxx_name = "CBaseRTTIType"]
@@ -141,5 +142,8 @@ pub mod ffi {
 
         #[cxx_name = "GetMethod"]
         fn get_method(cls: &CClass, name: &CName) -> *mut CClassFunction;
+
+        #[cxx_name = "GetStaticMethod"]
+        fn get_static_method(cls: &CClass, name: &CName) -> *mut CClassStaticFunction;
     }
 }

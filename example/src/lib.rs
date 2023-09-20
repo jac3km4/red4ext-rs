@@ -27,13 +27,21 @@ fn sum_ints(ints: Vec<i32>) -> i32 {
 /// try in-game in CET console:
 ///
 /// ```lua
-/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID(), "base\\characters\\entities\\player\\player_ma_fpp.ent")
+/// UseTypes(CName.new("Test"), TDBID.Create("Items.BlackLaceV0"), ItemID.FromTDBID(TDBID.Create("Items.BlackLaceV0")), Game.GetPlayer():GetEntityID(), "base\\characters\\entities\\player\\player_ma_fpp.ent", Game.GetTimeSystem():GetSimTime())
 /// ```
 /// > ⚠️ output can be found in mod's logs
-fn use_types(name: CName, tweak: TweakDbId, item: ItemId, entity: EntityId, res: ResRef) {
+fn use_types(
+    name: CName,
+    tweak: TweakDbId,
+    item: ItemId,
+    entity: EntityId,
+    res: ResRef,
+    sim: EngineTime,
+) {
     info!("got CName {name:#?}, TweakDBID {tweak:#?}, ItemID {item:#?}, EntityID {entity:#?}, ResRef {res:#?}");
     let res = res_ref!("base" / "mod" / "custom.ent").unwrap();
     info!("created res ref: {res:#?}");
+    info!("engine time: {:?} = {}", sim, EngineTime::to_float(sim));
 }
 
 /// call function with handle
@@ -100,4 +108,24 @@ unsafe impl RefRepr for PlayerPuppet {
     type Type = Weak;
 
     const CLASS_NAME: &'static str = "PlayerPuppet";
+}
+
+/// define a binding for a native struct type
+///
+/// see [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/Generated/EngineTime.hpp)
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(C)]
+struct EngineTime {
+    pub unk00: [u8; 8],
+}
+
+unsafe impl NativeRepr for EngineTime {
+    const NAME: &'static str = "EngineTime";
+}
+
+#[redscript_import]
+impl EngineTime {
+    /// imports `public static native func ToFloat(self: EngineTime) -> Float`
+    #[redscript(native)]
+    fn to_float(time: EngineTime) -> f32;
 }

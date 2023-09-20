@@ -43,6 +43,10 @@ impl<'a> Rtti<'a> {
         }
     }
 
+    pub fn get_static_method(typ: *const ffi::CClass, fn_name: CName) -> *mut ffi::CBaseFunction {
+        unsafe { ffi::get_static_method(&*typ, &fn_name) as _ }
+    }
+
     pub fn register_function(
         &mut self,
         name: &str,
