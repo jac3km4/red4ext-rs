@@ -132,7 +132,9 @@ impl<T> TypedRef<T> {
     }
 }
 
-/// SAFETY: implementations of this trait are only valid if your implementors are indeed child classes of `Parent`
+/// # Safety
+///
+/// implementations of this trait are only valid if your implementors are indeed child classes of `Parent`
 pub unsafe trait IntoTypedRef<Parent: RefRepr + Default + Clone> {
     /// cast a reference into a parent typed reference
     fn into_typed_ref(self) -> TypedRef<Parent>;
