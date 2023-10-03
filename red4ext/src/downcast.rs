@@ -117,7 +117,9 @@
 
 use std::marker::PhantomData;
 
-use super::{conv::RefRepr, ffi::IScriptable, types::Ref};
+use super::conv::RefRepr;
+use super::ffi::IScriptable;
+use super::types::Ref;
 
 #[derive(Default, Clone)]
 #[repr(transparent)]
@@ -127,6 +129,7 @@ impl<T> TypedRef<T> {
     pub fn new(reference: Ref<IScriptable>) -> Self {
         Self(reference, PhantomData)
     }
+
     pub fn into_inner(self) -> Ref<IScriptable> {
         self.0
     }
