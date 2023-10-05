@@ -91,13 +91,6 @@ impl<A> Drop for Ref<A> {
     }
 }
 
-impl<A> AsRef<RefShared<A>> for Ref<A> {
-    #[inline]
-    fn as_ref(&self) -> &RefShared<A> {
-        &self.0
-    }
-}
-
 impl<A> Deref for Ref<A> {
     type Target = A;
 
@@ -157,12 +150,6 @@ impl<A> Default for WRef<A> {
 impl<A> Clone for WRef<A> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
-    }
-}
-
-impl<A> AsRef<RefShared<A>> for WRef<A> {
-    fn as_ref(&self) -> &RefShared<A> {
-        &self.0
     }
 }
 

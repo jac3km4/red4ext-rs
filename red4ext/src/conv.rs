@@ -112,8 +112,9 @@ where
 impl<A: NativeRepr> IntoRepr for Ref<A> {
     type Repr = MaybeUninitRef<A>;
 
+    #[inline]
     fn into_repr(self) -> Self::Repr {
-        MaybeUninitRef::new(self.as_ref().clone())
+        MaybeUninitRef::new(Ref::as_shared(&self).clone())
     }
 }
 
