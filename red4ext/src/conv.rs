@@ -43,13 +43,13 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
 }
 
 unsafe impl<A: NativeRepr> NativeRepr for MaybeUninitRef<A> {
-    const MANGLED_NAME: &'static str = combine!(combine!("handle<", A::MANGLED_NAME), ">");
+    const MANGLED_NAME: &'static str = A::MANGLED_NAME;
     const NAME: &'static str = combine!("handle:", A::NAME);
     const NATIVE_NAME: &'static str = combine!("handle:", A::NATIVE_NAME);
 }
 
 unsafe impl<A: NativeRepr> NativeRepr for WRef<A> {
-    const MANGLED_NAME: &'static str = combine!(combine!("whandle<", A::MANGLED_NAME), ">");
+    const MANGLED_NAME: &'static str = A::MANGLED_NAME;
     const NAME: &'static str = combine!("whandle:", A::NAME);
     const NATIVE_NAME: &'static str = combine!("whandle:", A::NATIVE_NAME);
 }
