@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::ops::Deref;
+use std::ops::{Deref, Not};
 use std::{mem, pin, ptr};
 
 pub use ffi::IScriptable;
@@ -119,7 +119,7 @@ impl<A> MaybeUninitRef<A> {
 
     #[inline]
     pub(crate) fn get(&self) -> Option<Ref<A>> {
-        self.0.ptr.is_null().then(|| Ref(self.0.clone()))
+        self.0.ptr.is_null().not().then(|| Ref(self.0.clone()))
     }
 }
 
