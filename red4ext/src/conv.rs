@@ -1,9 +1,10 @@
 use const_combine::bounded::const_combine as combine;
-use red4ext_sys::ffi;
+use red4ext_sys::ffi::{self, IScriptable};
 use red4ext_sys::interop::{EntityId, ItemId, Mem};
 
+use crate::prelude::{Ref, WRef};
 use crate::types::{
-    CName, Color, IScriptable, RedArray, RedString, Ref, ResRef, ScriptRef, TweakDbId, Variant,
+    CName, Color, MaybeUninitRef, RedArray, RedString, ResRef, ScriptRef, TweakDbId, Variant,
     Vector2,
 };
 
@@ -41,46 +42,16 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NATIVE_NAME: &'static str = combine!("script_ref:", A::NATIVE_NAME);
 }
 
-/// # Safety
-///
-/// Implementations of this trait are only valid if the memory representation of Self
-/// is idetical to handle:{Self::NAME} in-game.
-pub unsafe trait RefRepr {
-    const CLASS_NAME: &'static str;
-    type Type: RefType;
+unsafe impl<A: NativeRepr> NativeRepr for MaybeUninitRef<A> {
+    const MANGLED_NAME: &'static str = combine!(combine!("handle<", A::MANGLED_NAME), ">");
+    const NAME: &'static str = combine!("handle:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("handle:", A::NATIVE_NAME);
 }
 
-unsafe impl RefRepr for Ref<IScriptable> {
-    type Type = Strong;
-
-    const CLASS_NAME: &'static str = "IScriptable";
-}
-
-unsafe impl<A: RefRepr> NativeRepr for A {
-    const MANGLED_NAME: &'static str = Self::CLASS_NAME;
-    const NAME: &'static str = combine!(A::Type::PREFIX, A::CLASS_NAME);
-}
-
-pub trait RefType: private_ref_type::Sealed {
-    const PREFIX: &'static str;
-}
-
-pub struct Weak;
-impl RefType for Weak {
-    const PREFIX: &'static str = "whandle:";
-}
-
-pub struct Strong;
-impl RefType for Strong {
-    const PREFIX: &'static str = "handle:";
-}
-
-mod private_ref_type {
-    use super::*;
-
-    pub trait Sealed {}
-    impl Sealed for Weak {}
-    impl Sealed for Strong {}
+unsafe impl<A: NativeRepr> NativeRepr for WRef<A> {
+    const MANGLED_NAME: &'static str = combine!(combine!("whandle<", A::MANGLED_NAME), ">");
+    const NAME: &'static str = combine!("whandle:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("whandle:", A::NATIVE_NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -138,6 +109,14 @@ where
     }
 }
 
+impl<A: NativeRepr> IntoRepr for Ref<A> {
+    type Repr = MaybeUninitRef<A>;
+
+    fn into_repr(self) -> Self::Repr {
+        MaybeUninitRef::new(self.as_ref().clone())
+    }
+}
+
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 
@@ -173,6 +152,14 @@ where
     }
 }
 
+impl<A: NativeRepr> FromRepr for Ref<A> {
+    type Repr = MaybeUninitRef<A>;
+
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.get().expect("ref was uninitialized")
+    }
+}
+
 macro_rules! impl_native_repr {
     ($ty:ty, $name:literal) => {
         unsafe impl NativeRepr for $ty {
@@ -205,6 +192,7 @@ impl_native_repr!(ItemId, "ItemID", "gameItemID");
 impl_native_repr!(EntityId, "EntityID", "entEntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
+impl_native_repr!(IScriptable, "IScriptable");
 
 #[inline]
 pub(crate) fn fill_memory<A: IntoRepr>(val: A, mem: Mem) {

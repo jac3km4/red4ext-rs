@@ -1,8 +1,10 @@
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::{mem, pin, ptr};
 
 pub use ffi::IScriptable;
 use red4ext_sys::ffi;
+use red4ext_sys::interop::RefCount;
 pub use red4ext_sys::interop::{
     CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RedString, ResRef, TweakDbId,
     Variant, VoidPtr,
@@ -66,25 +68,65 @@ pub struct Ref<A>(RefShared<A>);
 
 impl<A> Ref<A> {
     #[inline]
-    pub fn null() -> Self {
-        Self(RefShared::default())
+    pub fn downgrade(this: Self) -> WRef<A> {
+        WRef(this.0.clone())
     }
 
-    pub fn into_shared(self) -> RefShared<A> {
-        self.0
-    }
-}
-
-impl<A> Default for Ref<A> {
     #[inline]
-    fn default() -> Self {
-        Self(RefShared::default())
+    pub fn as_shared(this: &Self) -> &RefShared<A> {
+        &this.0
     }
 }
 
 impl<A> Clone for Ref<A> {
     fn clone(&self) -> Self {
+        unsafe { red4ext_sys::ffi::inc_ref(self.0.count) };
         Self(self.0.clone())
+    }
+}
+
+impl<A> Drop for Ref<A> {
+    fn drop(&mut self) {
+        unsafe { &mut *self.0.count }.dec_ref();
+    }
+}
+
+impl<A> AsRef<RefShared<A>> for Ref<A> {
+    #[inline]
+    fn as_ref(&self) -> &RefShared<A> {
+        &self.0
+    }
+}
+
+impl<A> Deref for Ref<A> {
+    type Target = A;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.0.ptr }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct MaybeUninitRef<A>(RefShared<A>);
+
+impl<A> MaybeUninitRef<A> {
+    #[inline]
+    pub(crate) fn new(a: RefShared<A>) -> Self {
+        Self(a)
+    }
+
+    #[inline]
+    pub(crate) fn get(&self) -> Option<Ref<A>> {
+        self.0.ptr.is_null().then(|| Ref(self.0.clone()))
+    }
+}
+
+impl<A> Default for MaybeUninitRef<A> {
+    #[inline]
+    fn default() -> Self {
+        Self(RefShared::null())
     }
 }
 
@@ -98,8 +140,10 @@ impl<A> WRef<A> {
         Self(RefShared::null())
     }
 
-    pub fn into_shared(self) -> RefShared<A> {
-        self.0
+    pub fn upgrade(Self(this): Self) -> Option<Ref<A>> {
+        unsafe { &mut *this.count }
+            .inc_ref_if_not_zero()
+            .then(|| Ref(this))
     }
 }
 
@@ -113,6 +157,12 @@ impl<A> Default for WRef<A> {
 impl<A> Clone for WRef<A> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
+    }
+}
+
+impl<A> AsRef<RefShared<A>> for WRef<A> {
+    fn as_ref(&self) -> &RefShared<A> {
+        &self.0
     }
 }
 
@@ -132,6 +182,11 @@ impl<A> RefShared<A> {
     #[inline]
     pub fn as_ptr(&self) -> *mut A {
         self.ptr
+    }
+
+    #[inline]
+    pub fn as_scriptable(&self) -> &RefShared<IScriptable> {
+        unsafe { mem::transmute(self) }
     }
 }
 
@@ -154,19 +209,12 @@ impl<A> Clone for RefShared<A> {
     }
 }
 
-#[derive(Debug, Default)]
-#[repr(C)]
-pub struct RefCount {
-    strong_refs: u32,
-    weak_refs: u32,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct ScriptRef<'a, A> {
     unknown: [u8; 0x10],
     inner: *mut ffi::CBaseRttiType,
-    ptr: &'a A,
+    ptr: &'a mut A,
     hash: CName,
 }
 
@@ -174,7 +222,7 @@ impl<'a, A> ScriptRef<'a, A>
 where
     A: NativeRepr,
 {
-    pub fn new(ptr: &'a A) -> Self {
+    pub fn new(ptr: &'a mut A) -> Self {
         Self {
             unknown: [0; 0x10],
             inner: Rtti::get().get_type(CName::new(A::NATIVE_NAME)),
@@ -184,7 +232,12 @@ where
     }
 
     #[inline]
-    pub fn as_inner(&self) -> &'a A {
+    pub fn as_inner(&'a self) -> &'a A {
+        self.ptr
+    }
+
+    #[inline]
+    pub fn as_inner_mut(&'a mut self) -> &'a mut A {
         self.ptr
     }
 }

@@ -90,12 +90,8 @@ macro_rules! call {
     }};
     ([$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::Rtti::get();
-        match $crate::call_direct!(
-            rtti,
-            $crate::types::RefShared::null(),
-            rtti.get_function($crate::types::CName::new($fn_name)),
-            ($($args),*) -> $rett
-        ) {
+        let function = rtti.get_function($crate::types::CName::new($fn_name));
+        match $crate::call_direct!(rtti, $crate::types::RefShared::null(), function, ($($args),*) -> $rett) {
             Ok(res) => res,
             Err(err) => $crate::invocable::raise_invoke_error($fn_name, err)
         }
@@ -105,13 +101,9 @@ macro_rules! call {
     };
     ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
         let mut rtti = $crate::rtti::Rtti::get();
-        let this = $this;
-        match $crate::call_direct!(
-            rtti,
-            this.clone().into_shared(),
-            $crate::rtti::Rtti::get_method(this.into_shared(), $crate::types::CName::new($fn_name)),
-            ($($args),*) -> $rett
-        ) {
+        let this = $crate::types::Ref::as_shared(&$this).as_scriptable();
+        let method = $crate::rtti::Rtti::get_method(this.clone(), $crate::types::CName::new($fn_name));
+        match $crate::call_direct!(rtti, this.clone(), method, ($($args),*) -> $rett) {
             Ok(res) => res,
             Err(err) => $crate::invocable::raise_invoke_error($fn_name, err)
         }
