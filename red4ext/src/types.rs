@@ -10,7 +10,7 @@ pub use red4ext_sys::interop::{
     Variant, VoidPtr,
 };
 
-use crate::conv::{FromRepr, IntoRepr, NativeRepr};
+use crate::conv::{ClassType, FromRepr, IntoRepr, NativeRepr};
 use crate::rtti::Rtti;
 
 #[derive(Debug, Clone)]
@@ -68,13 +68,21 @@ pub struct Ref<A>(RefShared<A>);
 
 impl<A> Ref<A> {
     #[inline]
-    pub fn downgrade(this: Self) -> WRef<A> {
+    pub fn downgrade(this: &Self) -> WRef<A> {
         WRef(this.0.clone())
     }
 
     #[inline]
     pub fn as_shared(this: &Self) -> &RefShared<A> {
         &this.0
+    }
+
+    #[inline]
+    pub fn upcast(this: Self) -> Ref<A::BaseClass>
+    where
+        A: ClassType,
+    {
+        unsafe { mem::transmute(this) }
     }
 }
 
@@ -133,10 +141,18 @@ impl<A> WRef<A> {
         Self(RefShared::null())
     }
 
-    pub fn upgrade(Self(this): Self) -> Option<Ref<A>> {
-        unsafe { &mut *this.count }
+    pub fn upgrade(self) -> Option<Ref<A>> {
+        unsafe { &mut *self.0.count }
             .inc_ref_if_not_zero()
-            .then(|| Ref(this))
+            .then(|| Ref(self.0))
+    }
+
+    #[inline]
+    pub fn upcast(self) -> WRef<A::BaseClass>
+    where
+        A: ClassType,
+    {
+        unsafe { mem::transmute(self) }
     }
 }
 

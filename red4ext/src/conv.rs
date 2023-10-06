@@ -42,16 +42,14 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NATIVE_NAME: &'static str = combine!("script_ref:", A::NATIVE_NAME);
 }
 
-unsafe impl<A: NativeRepr> NativeRepr for MaybeUninitRef<A> {
-    const MANGLED_NAME: &'static str = A::MANGLED_NAME;
+unsafe impl<A: ClassType> NativeRepr for MaybeUninitRef<A> {
+    const MANGLED_NAME: &'static str = A::NAME;
     const NAME: &'static str = combine!("handle:", A::NAME);
-    const NATIVE_NAME: &'static str = combine!("handle:", A::NATIVE_NAME);
 }
 
-unsafe impl<A: NativeRepr> NativeRepr for WRef<A> {
-    const MANGLED_NAME: &'static str = A::MANGLED_NAME;
+unsafe impl<A: ClassType> NativeRepr for WRef<A> {
+    const MANGLED_NAME: &'static str = A::NAME;
     const NAME: &'static str = combine!("whandle:", A::NAME);
-    const NATIVE_NAME: &'static str = combine!("whandle:", A::NATIVE_NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -109,7 +107,7 @@ where
     }
 }
 
-impl<A: NativeRepr> IntoRepr for Ref<A> {
+impl<A: ClassType> IntoRepr for Ref<A> {
     type Repr = MaybeUninitRef<A>;
 
     #[inline]
@@ -153,12 +151,24 @@ where
     }
 }
 
-impl<A: NativeRepr> FromRepr for Ref<A> {
+impl<A: ClassType> FromRepr for Ref<A> {
     type Repr = MaybeUninitRef<A>;
 
     fn from_repr(repr: &Self::Repr) -> Self {
         repr.get().expect("ref was uninitialized")
     }
+}
+
+pub trait ClassType {
+    type BaseClass: ClassType;
+
+    const NAME: &'static str;
+}
+
+impl ClassType for IScriptable {
+    type BaseClass = IScriptable;
+
+    const NAME: &'static str = "IScriptable";
 }
 
 macro_rules! impl_native_repr {
@@ -193,7 +203,6 @@ impl_native_repr!(ItemId, "ItemID", "gameItemID");
 impl_native_repr!(EntityId, "EntityID", "entEntityID");
 impl_native_repr!(Vector2, "Vector2");
 impl_native_repr!(Color, "Color");
-impl_native_repr!(IScriptable, "IScriptable");
 
 #[inline]
 pub(crate) fn fill_memory<A: IntoRepr>(val: A, mem: Mem) {

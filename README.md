@@ -105,6 +105,13 @@ Available macros:
 
     struct PlayerPuppet;
 
+    impl ClassType for PlayerPuppet {
+        // should be ScriptedPuppet if we were re-creating the entire structure
+        type BaseClass = IScriptable;
+
+        const NAME: &'static str = "PlayerPuppet";
+    }
+
     #[redscript_import]
     impl PlayerPuppet {
         /// imports 'public native func GetDisplayName() -> String'
@@ -156,14 +163,17 @@ but it's on you to guarantee that it matches the layout of the underlying type.
     }
     ```
 
-- **classes** should be represented as empty structs and implement `NativeRepr` with the native class name
+- **classes** should be represented as empty structs and implement `ClassType` with the native class name
 
-  <small>class types cannot be passed by value, they should remain behind an indirection like `Ref` or `WRef`</small>
+  <small>class types cannot be passed by value, they should always remain behind an indirection like `Ref` or `WRef`</small>
 
     ```rs
     struct PlayerPuppet;
 
-    unsafe impl NativeRepr for PlayerPuppet {
+    impl ClassType for PlayerPuppet {
+        // should be ScriptedPuppet if we were re-creating the entire structure
+        type BaseClass = IScriptable;
+
         const NAME: &'static str = "PlayerPuppet";
     }
     ```

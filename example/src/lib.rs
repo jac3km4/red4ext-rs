@@ -60,7 +60,7 @@ fn call_demo(player: Ref<PlayerPuppet>) {
     info!("player display name: {}", player.get_display_name());
     info!("player vehicles: {}", player.get_unlocked_vehicles_size());
     player.disable_camera_bobbing(true);
-    let can_apply_breathing = PlayerPuppet::can_apply_breathing_effect(Ref::downgrade(player));
+    let can_apply_breathing = PlayerPuppet::can_apply_breathing_effect(Ref::downgrade(&player));
     info!("can apply breating effect: {}", can_apply_breathing);
 }
 
@@ -102,7 +102,10 @@ impl PlayerPuppet {
     fn can_apply_breathing_effect(player: WRef<PlayerPuppet>) -> bool;
 }
 
-unsafe impl NativeRepr for PlayerPuppet {
+impl ClassType for PlayerPuppet {
+    // should be ScriptedPuppet if we were re-creating the entire structure
+    type BaseClass = IScriptable;
+
     const NAME: &'static str = "PlayerPuppet";
 }
 
