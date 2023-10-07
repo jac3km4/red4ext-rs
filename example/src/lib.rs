@@ -103,7 +103,8 @@ impl PlayerPuppet {
 }
 
 impl ClassType for PlayerPuppet {
-    // should be ScriptedPuppet if we were re-creating the entire structure
+    // should be ScriptedPuppet if we were re-creating the entire class hierarchy,
+    // but IScriptable can be used instead because every scripted class inherits from it
     type BaseClass = IScriptable;
 
     const NAME: &'static str = "PlayerPuppet";
