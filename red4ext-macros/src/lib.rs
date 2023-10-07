@@ -150,7 +150,7 @@ fn generate_forwader(
     let ret = &sig.output;
     let body = match (receiver, parent, &attrs) {
         (Some(syn::Receiver { self_token, .. }), Some(_), _) => {
-            quote!(::red4ext_rs::call!(#self_token.0.clone(), [#signature] (#(#idents),*) #ret))
+            quote!(::red4ext_rs::call!(#self_token, [#signature] (#(#idents),*) #ret))
         }
         (None, Some(_), FunctionAttrs { native: false, .. }) => {
             quote!(::red4ext_rs::call!([#signature] (#(#idents),*) #ret))

@@ -114,4 +114,8 @@ namespace glue {
     }
     return nullptr;
   }
+
+  void IncRef(RefCnt* ref) {
+    ref->IncRef();
+  }
 }

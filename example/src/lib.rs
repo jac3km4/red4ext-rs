@@ -1,3 +1,4 @@
+#![feature(arbitrary_self_types)]
 use red4ext_rs::prelude::*;
 
 define_plugin! {
@@ -52,17 +53,15 @@ fn use_types(
 /// CallDemo(Game.GetPlayer())
 /// ```
 /// > ⚠️ output can be found in mod's logs
-fn call_demo(player: PlayerPuppet) {
+fn call_demo(player: Ref<PlayerPuppet>) {
     let res = add_u32(2, 2);
     info!("2 + 2 = {}", res);
 
     info!("player display name: {}", player.get_display_name());
     info!("player vehicles: {}", player.get_unlocked_vehicles_size());
     player.disable_camera_bobbing(true);
-    info!(
-        "can apply breating effect: {}",
-        PlayerPuppet::can_apply_breathing_effect(player.clone())
-    );
+    let can_apply_breathing = PlayerPuppet::can_apply_breathing_effect(Ref::downgrade(&player));
+    info!("can apply breating effect: {}", can_apply_breathing);
 }
 
 /// import a global operator
@@ -80,9 +79,8 @@ fn call_demo(player: PlayerPuppet) {
 fn add_u32(l: u32, r: u32) -> u32;
 
 /// define a binding for a class type
-#[derive(Clone, Default)]
-#[repr(transparent)]
-struct PlayerPuppet(WRef<IScriptable>);
+#[derive(Debug)]
+struct PlayerPuppet;
 
 #[redscript_import]
 impl PlayerPuppet {
@@ -92,22 +90,23 @@ impl PlayerPuppet {
     ///
     /// you can also specify it explicitly with a `name` attribute
     #[redscript(native)]
-    fn get_display_name(&self) -> String;
+    fn get_display_name(self: &Ref<Self>) -> String;
 
     /// imports `private func GetUnlockedVehiclesSize() -> Int32`
-    fn get_unlocked_vehicles_size(&self) -> i32;
+    fn get_unlocked_vehicles_size(self: &Ref<Self>) -> i32;
 
     /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
-    fn disable_camera_bobbing(&self, toggle: bool);
+    fn disable_camera_bobbing(self: &Ref<Self>, toggle: bool);
 
     /// imports 'public final static func CanApplyBreathingEffect(player: wref<PlayerPuppet>) -> Bool'
-    fn can_apply_breathing_effect(player: PlayerPuppet) -> bool;
+    fn can_apply_breathing_effect(player: WRef<PlayerPuppet>) -> bool;
 }
 
-unsafe impl RefRepr for PlayerPuppet {
-    type Type = Weak;
+impl ClassType for PlayerPuppet {
+    // should be ScriptedPuppet if we were re-creating the entire structure
+    type BaseClass = IScriptable;
 
-    const CLASS_NAME: &'static str = "PlayerPuppet";
+    const NAME: &'static str = "PlayerPuppet";
 }
 
 /// define a binding for a native struct type

@@ -1,9 +1,10 @@
 use const_combine::bounded::const_combine as combine;
-use red4ext_sys::ffi;
+use red4ext_sys::ffi::{self, IScriptable};
 use red4ext_sys::interop::{EntityId, ItemId, Mem};
 
+use crate::prelude::{Ref, WRef};
 use crate::types::{
-    CName, Color, IScriptable, RedArray, RedString, Ref, ResRef, ScriptRef, TweakDbId, Variant,
+    CName, Color, MaybeUninitRef, RedArray, RedString, ResRef, ScriptRef, TweakDbId, Variant,
     Vector2,
 };
 
@@ -41,46 +42,14 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NATIVE_NAME: &'static str = combine!("script_ref:", A::NATIVE_NAME);
 }
 
-/// # Safety
-///
-/// Implementations of this trait are only valid if the memory representation of Self
-/// is idetical to handle:{Self::NAME} in-game.
-pub unsafe trait RefRepr {
-    const CLASS_NAME: &'static str;
-    type Type: RefType;
+unsafe impl<A: ClassType> NativeRepr for MaybeUninitRef<A> {
+    const MANGLED_NAME: &'static str = A::NAME;
+    const NAME: &'static str = combine!("handle:", A::NAME);
 }
 
-unsafe impl RefRepr for Ref<IScriptable> {
-    type Type = Strong;
-
-    const CLASS_NAME: &'static str = "IScriptable";
-}
-
-unsafe impl<A: RefRepr> NativeRepr for A {
-    const MANGLED_NAME: &'static str = Self::CLASS_NAME;
-    const NAME: &'static str = combine!(A::Type::PREFIX, A::CLASS_NAME);
-}
-
-pub trait RefType: private_ref_type::Sealed {
-    const PREFIX: &'static str;
-}
-
-pub struct Weak;
-impl RefType for Weak {
-    const PREFIX: &'static str = "whandle:";
-}
-
-pub struct Strong;
-impl RefType for Strong {
-    const PREFIX: &'static str = "handle:";
-}
-
-mod private_ref_type {
-    use super::*;
-
-    pub trait Sealed {}
-    impl Sealed for Weak {}
-    impl Sealed for Strong {}
+unsafe impl<A: ClassType> NativeRepr for WRef<A> {
+    const MANGLED_NAME: &'static str = A::NAME;
+    const NAME: &'static str = combine!("whandle:", A::NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -138,6 +107,15 @@ where
     }
 }
 
+impl<A: ClassType> IntoRepr for Ref<A> {
+    type Repr = MaybeUninitRef<A>;
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        MaybeUninitRef::new(Ref::as_shared(&self).clone())
+    }
+}
+
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 
@@ -171,6 +149,26 @@ where
     fn from_repr(repr: &Self::Repr) -> Self {
         repr.as_slice().iter().map(FromRepr::from_repr).collect()
     }
+}
+
+impl<A: ClassType> FromRepr for Ref<A> {
+    type Repr = MaybeUninitRef<A>;
+
+    fn from_repr(repr: &Self::Repr) -> Self {
+        repr.get().expect("ref was uninitialized")
+    }
+}
+
+pub trait ClassType {
+    type BaseClass: ClassType;
+
+    const NAME: &'static str;
+}
+
+impl ClassType for IScriptable {
+    type BaseClass = IScriptable;
+
+    const NAME: &'static str = "IScriptable";
 }
 
 macro_rules! impl_native_repr {
