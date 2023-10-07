@@ -88,7 +88,7 @@ impl<A> Ref<A> {
 
 impl<A> Clone for Ref<A> {
     fn clone(&self) -> Self {
-        unsafe { red4ext_sys::ffi::inc_ref(self.0.count) };
+        unsafe { ffi::inc_ref(self.0.count) };
         Self(self.0.clone())
     }
 }
