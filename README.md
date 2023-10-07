@@ -87,7 +87,9 @@ Available macros:
 
 - `redscript_import`
 
-  Imports a set of methods for a class type. The `Self` type has to be a struct with a single `Ref<IScriptable>` member.
+  Imports a set of methods for a class type.
+
+  <small>Requires the nightly Rust compiler with the `arbitrary_self_types` feature.</small>
 
   Parameters (optionally specified for each method with the `#[redscript(...)]` attribute):
   - `name` - the in-game function name (it defaults to a PascalCase version of the Rust name)
@@ -99,18 +101,27 @@ Available macros:
   Example:
 
     ```rs
-    #[repr(transparent)]
-    struct PlayerPuppet(Ref<IScriptable>);
+    #![feature(arbitrary_self_types)]
+
+    struct PlayerPuppet;
+
+    impl ClassType for PlayerPuppet {
+        // should be ScriptedPuppet if we were re-creating the entire class hierarchy,
+        // but IScriptable can be used instead because every scripted class inherits from it
+        type BaseClass = IScriptable;
+
+        const NAME: &'static str = "PlayerPuppet";
+    }
 
     #[redscript_import]
     impl PlayerPuppet {
         /// imports 'public native func GetDisplayName() -> String'
         #[redscript(native)]
-        fn get_display_name(&self) -> String;
+        fn get_display_name(self: &Ref<Self>) -> String;
 
         /// imports 'private func DisableCameraBobbing(b: Bool) -> Void'
         #[redscript(name = "DisableCameraBobbing")]
-        fn disable_cam_bobbing(&self, toggle: bool) -> ();
+        fn disable_cam_bobbing(self: &Ref<Self>, toggle: bool);
 
         /// imports 'public static func GetCriticalHealthThreshold() -> Float'
         fn get_critical_health_threshold() -> f32;
@@ -153,16 +164,19 @@ but it's on you to guarantee that it matches the layout of the underlying type.
     }
     ```
 
-- **classes** should be represented as wrappers around `Ref<IScriptable>` and implement `RefRepr`
+- **classes** should be represented as empty structs and implement `ClassType` with the native class name
+
+  <small>class types cannot be passed by value, they should always remain behind an indirection like `Ref` or `WRef`</small>
 
     ```rs
-    #[repr(transparent)]
-    struct PlayerPuppet(Ref<IScriptable>);
+    struct PlayerPuppet;
 
-    unsafe impl RefRepr for PlayerPuppet {
-        type Type = Strong;
-        
-        const CLASS_NAME: &'static str = "PlayerPuppet";
+    impl ClassType for PlayerPuppet {
+        // should be ScriptedPuppet if we were re-creating the entire class hierarchy,
+        // but IScriptable can be used instead because every scripted class inherits from it
+        type BaseClass = IScriptable;
+
+        const NAME: &'static str = "PlayerPuppet";
     }
     ```
 

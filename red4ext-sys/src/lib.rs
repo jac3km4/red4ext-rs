@@ -44,6 +44,7 @@ pub mod ffi {
         type EntityId = crate::interop::EntityId;
         type CStackType = crate::interop::StackArg;
         type Variant = crate::interop::Variant;
+        type RefCnt = crate::interop::RefCount;
 
         #[cxx_name = "GetFunction"]
         fn get_function(self: Pin<&mut IRttiSystem>, name: CName) -> *mut CGlobalFunction;
@@ -77,6 +78,12 @@ pub mod ffi {
 
         #[cxx_name = "Fill"]
         unsafe fn fill(self: Pin<&mut Variant>, typ: *const CBaseRttiType, data: VoidPtr) -> bool;
+
+        #[cxx_name = "IncRefIfNotZero"]
+        fn inc_ref_if_not_zero(self: &mut RefCnt) -> bool;
+
+        #[cxx_name = "DecRef"]
+        fn dec_ref(self: &mut RefCnt) -> bool;
     }
 
     #[namespace = "glue"]
@@ -145,5 +152,8 @@ pub mod ffi {
 
         #[cxx_name = "GetStaticMethod"]
         fn get_static_method(cls: &CClass, name: &CName) -> *mut CClassStaticFunction;
+
+        #[cxx_name = "IncRef"]
+        unsafe fn inc_ref(cnt: *mut RefCnt);
     }
 }
