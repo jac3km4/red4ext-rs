@@ -209,7 +209,7 @@ When testing or contributing to this repo locally, here's a couple of commands t
 2. run any of these commands:
    1. overwrite example mod folders to game directory
       ```sh
-      just install
+      just dev
       ```
       > by default it will install them in "C:\Program Files (x86)\Steam\steamapps\common\Cyberpunk 2077"
       > but you can configure it with an `.env` file like so:
