@@ -6,6 +6,12 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[[example]]
+name = "example"
+path = "..\\example\\src\\lib.rs"
+crate-type = ["cdylib"]
+required-features = ["macros"]
+
 [dependencies]
 thiserror = "1"
 wchar = "0.11"

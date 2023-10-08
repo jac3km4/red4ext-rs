@@ -40,13 +40,13 @@ install target='release':
  @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
    Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
  }
- @if ('{{target}}' -EQ 'debug') { cargo build; } else { cargo build --release; }
+ @if ('{{target}}' -EQ 'debug') { cargo build --example example --features="macros"; } else { cargo build --example example --features="macros" --release; }
  @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
  } else { \
    New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
  }
- cp -Force '{{ join(red4ext_repo_dir, target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
+ cp -Force '{{ join(red4ext_repo_dir, target, "examples", bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
  @just hot-reload
 
 dev: (install 'debug')
