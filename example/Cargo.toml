@@ -1,10 +1,10 @@
 [package]
 name = "red4ext-example"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-rust-version.workspace = true
+version = "0.0.0"
+rust-version = "1.72"
+edition = "2021"
+license = "MIT"
+authors = ["jekky"]
 
 [lib]
 crate-type = ["cdylib"]

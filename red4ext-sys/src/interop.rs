@@ -12,6 +12,18 @@ use crate::ffi;
 
 pub type Mem = *mut std::ffi::c_void;
 
+#[derive(Debug, Default)]
+#[repr(C)]
+pub struct RefCount {
+    strong_refs: u32,
+    weak_refs: u32,
+}
+
+unsafe impl ExternType for RefCount {
+    type Id = type_id!("RED4ext::RefCnt");
+    type Kind = cxx::kind::Trivial;
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct CName {
@@ -341,7 +353,7 @@ unsafe impl ExternType for RedString {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct Variant {
     typ: *const ffi::CBaseRttiType,
