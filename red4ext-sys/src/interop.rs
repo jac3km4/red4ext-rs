@@ -191,7 +191,7 @@ impl ItemId {
     pub const fn new_from(id: TweakDbId) -> Self {
         Self {
             id,
-            seed: Seed(DEFAULT_ITEMID_RNG_SEED),
+            seed: Seed(DEFAULT_ITEM_ID_RNG_SEED),
             counter: 0,
             structure: GamedataItemStructure::BlueprintStackable as u8,
             flags: GameEItemIdFlag::None as u8,
@@ -246,12 +246,12 @@ pub enum GameEItemIdFlag {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Seed(u32);
 
-const DEFAULT_ITEMID_RNG_SEED: u32 = 2;
+const DEFAULT_ITEM_ID_RNG_SEED: u32 = 2;
 
 impl Default for Seed {
     /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
     fn default() -> Self {
-        Self(DEFAULT_ITEMID_RNG_SEED)
+        Self(DEFAULT_ITEM_ID_RNG_SEED)
     }
 }
 
