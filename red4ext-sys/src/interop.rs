@@ -234,7 +234,7 @@ pub enum GamedataItemStructure {
 }
 
 /// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
-/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
+/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.27.1/src/scripting/Scripting.cpp#L311).
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum GameEItemIdFlag {
@@ -249,7 +249,7 @@ pub struct Seed(u32);
 const DEFAULT_ITEM_ID_RNG_SEED: u32 = 2;
 
 impl Default for Seed {
-    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
+    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.27.1/src/scripting/Scripting.cpp#L311)
     fn default() -> Self {
         Self(DEFAULT_ITEM_ID_RNG_SEED)
     }
