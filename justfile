@@ -9,10 +9,11 @@ mod_name           := "example"
 bin_name           := "example.dll"
 log_name           := "example.log"
 
-red4ext_repo_dir   := join(".", "target")
+red4ext_repo_dir   := join(justfile_directory(), "target")
 red4ext_game_dir   := join(game_dir, "red4ext", "plugins")
 
-redscript_repo_dir := join(".", "example", "reds")
+example_dir        := join(justfile_directory(), "example")
+redscript_repo_dir := join(example_dir, "reds")
 redscript_game_dir := join(game_dir, "r6", "scripts")
 
 # list all commands
@@ -40,7 +41,9 @@ install target='release':
  @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
    Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
  }
- @if ('{{target}}' -EQ 'debug') { cargo +nightly build --example example --features="macros"; } else { cargo +nightly build --example example --features="macros" --release; }
+ cd '{{example_dir}}'; \
+ if ('{{target}}' -EQ 'debug') { cargo +nightly build; } else { cargo +nightly build --release; } \
+ cd '{{justfile_directory()}}';
  @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
  } else { \
