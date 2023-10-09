@@ -131,7 +131,7 @@ impl ResourcePath {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct TweakDbId {
     hash: u32,
@@ -174,7 +174,7 @@ unsafe impl ExternType for TweakDbId {
 /// see [its C++ representation](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/NativeTypes.hpp#L105)
 ///
 /// CET has a [different naming convention for the last two fields](https://wiki.redmodding.org/cyber-engine-tweaks/functions/special-types#toitemid).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct ItemId {
     id: TweakDbId,
@@ -187,10 +187,14 @@ pub struct ItemId {
 }
 
 impl ItemId {
-    pub fn new_from(id: TweakDbId) -> Self {
+    #[inline]
+    pub const fn new_from(id: TweakDbId) -> Self {
         Self {
             id,
-            ..Default::default()
+            seed: Seed(DEFAULT_ITEM_ID_RNG_SEED),
+            counter: 0,
+            structure: GamedataItemStructure::BlueprintStackable as u8,
+            flags: GameEItemIdFlag::None as u8,
         }
     }
 
@@ -200,6 +204,16 @@ impl ItemId {
 
     pub fn flags(&self) -> Option<GameEItemIdFlag> {
         self.flags.try_into().ok()
+    }
+
+    #[inline]
+    pub const fn get_tdbid(&self) -> TweakDbId {
+        self.id
+    }
+
+    #[inline]
+    pub const fn is_of_tdbid(&self, tdbid: TweakDbId) -> bool {
+        self.id.hash == tdbid.hash && self.id.length == tdbid.length
     }
 }
 
@@ -220,7 +234,7 @@ pub enum GamedataItemStructure {
 }
 
 /// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
-/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311).
+/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.27.1/src/scripting/Scripting.cpp#L311).
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum GameEItemIdFlag {
@@ -232,10 +246,12 @@ pub enum GameEItemIdFlag {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Seed(u32);
 
+const DEFAULT_ITEM_ID_RNG_SEED: u32 = 2;
+
 impl Default for Seed {
-    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.24.1/src/scripting/Scripting.cpp#L311)
+    /// see [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.27.1/src/scripting/Scripting.cpp#L311)
     fn default() -> Self {
-        Self(2)
+        Self(DEFAULT_ITEM_ID_RNG_SEED)
     }
 }
 
@@ -405,6 +421,22 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+    }
+
+    #[test]
+    fn ids() {
+        assert_eq!(
+            TweakDbId::new("Items.FirstAidWhiffV0"),
+            TweakDbId::from(90_628_141_458)
+        );
+        assert_eq!(
+            ItemId::new_from(TweakDbId::new("Items.FirstAidWhiffV0")).get_tdbid(),
+            TweakDbId::new("Items.FirstAidWhiffV0")
+        );
+        assert!(ItemId::new_from(TweakDbId::new("Items.FirstAidWhiffV0"))
+            .is_of_tdbid(TweakDbId::new("Items.FirstAidWhiffV0")),);
+        assert!(!ItemId::new_from(TweakDbId::new("Items.FirstAidWhiffV0"))
+            .is_of_tdbid(TweakDbId::new("Items.FirstAidWhiffV1")),);
     }
 
     #[test]

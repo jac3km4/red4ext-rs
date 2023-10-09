@@ -9,10 +9,10 @@ mod_name           := "example"
 bin_name           := "example.dll"
 log_name           := "example.log"
 
-red4ext_repo_dir   := join(".", "target")
+red4ext_repo_dir   := join(justfile_directory(), "example")
 red4ext_game_dir   := join(game_dir, "red4ext", "plugins")
 
-redscript_repo_dir := join(".", "example", "reds")
+redscript_repo_dir := join(red4ext_repo_dir, "reds")
 redscript_game_dir := join(game_dir, "r6", "scripts")
 
 # list all commands
@@ -40,13 +40,16 @@ install target='release':
  @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
    Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
  }
- @if ('{{target}}' -EQ 'debug') { cargo build; } else { cargo build --release; }
+ @$manifest = '{{ join(red4ext_repo_dir, "Cargo.toml") }}'; \
+ if ('{{target}}' -EQ 'debug') { \
+   cargo +nightly build --manifest-path $manifest; \
+ } else { cargo +nightly build --manifest-path $manifest --release; }
  @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
  } else { \
    New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
  }
- cp -Force '{{ join(red4ext_repo_dir, target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
+ cp -Force '{{ join(red4ext_repo_dir, "target", target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
  @just hot-reload
 
 dev: (install 'debug')
