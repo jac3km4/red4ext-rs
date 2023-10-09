@@ -57,9 +57,9 @@ jobs:
         with:
           submodules: true
       - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release
+      - run: cargo build --manifest-path .\example\Cargo.toml --release
       - uses: actions/upload-artifact@v3
         with:
-          path: target/release/example.dll
+          path: example/target/release/example.dll
