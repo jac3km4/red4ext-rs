@@ -24,12 +24,22 @@ pub struct RedArray<A> {
 impl<A> RedArray<A> {
     #[inline]
     pub fn as_slice(&self) -> &[A] {
-        unsafe { std::slice::from_raw_parts(self.entries, self.size as usize) }
+        let ptr = self
+            .entries
+            .is_null()
+            .then(|| ptr::NonNull::dangling().as_ptr())
+            .unwrap_or(self.entries);
+        unsafe { std::slice::from_raw_parts(ptr, self.size as usize) }
     }
 
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [A] {
-        unsafe { std::slice::from_raw_parts_mut(self.entries, self.size as usize) }
+        let ptr = self
+            .entries
+            .is_null()
+            .then(|| ptr::NonNull::dangling().as_ptr())
+            .unwrap_or(self.entries);
+        unsafe { std::slice::from_raw_parts_mut(ptr, self.size as usize) }
     }
 
     #[inline]
