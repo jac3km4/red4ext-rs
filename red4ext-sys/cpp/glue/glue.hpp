@@ -40,7 +40,7 @@ namespace glue {
   }
 
   void DestructString(CString* addr) {
-    delete addr;
+    addr->~CString();
   }
 
   bool Execute(ScriptInstance aInstance, CBaseFunction& aFunc, VoidPtr aOut, rust::Slice<const CStackType> args)
