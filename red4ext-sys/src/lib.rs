@@ -111,6 +111,9 @@ pub mod ffi {
         #[cxx_name = "ConstructStringAt"]
         unsafe fn construct_string_at(str: *mut CString, text: &str, alloc: *mut IAllocator);
 
+        #[cxx_name = "DestructString"]
+        unsafe fn destruct_string(str: *mut CString);
+
         #[cxx_name = "Execute"]
         unsafe fn execute_function(
             instance: VoidPtr,

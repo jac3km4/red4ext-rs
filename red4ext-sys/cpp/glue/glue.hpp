@@ -39,6 +39,10 @@ namespace glue {
     *addr = CString(std::string(aText).c_str(), aAllocator);
   }
 
+  void DestructString(CString* addr) {
+    delete addr;
+  }
+
   bool Execute(ScriptInstance aInstance, CBaseFunction& aFunc, VoidPtr aOut, rust::Slice<const CStackType> args)
   {
     std::vector<CStackType> vec(args.data(), args.data() + args.length());

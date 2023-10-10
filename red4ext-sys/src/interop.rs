@@ -310,7 +310,7 @@ unsafe impl ExternType for EntityId {
     type Kind = cxx::kind::Trivial;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C, packed)]
 pub struct RedString {
     data: [i8; 0x14],
@@ -334,6 +334,12 @@ impl RedString {
             };
             CStr::from_ptr(ptr).to_str().unwrap()
         }
+    }
+}
+
+impl Drop for RedString {
+    fn drop(&mut self) {
+        unsafe { ffi::destruct_string(self) }
     }
 }
 

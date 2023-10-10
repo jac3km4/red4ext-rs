@@ -86,16 +86,16 @@ impl<A> Ref<A> {
     }
 }
 
+impl<A> Drop for Ref<A> {
+    fn drop(&mut self) {
+        unsafe { &mut *self.0.count }.dec_ref();
+    }
+}
+
 impl<A> Clone for Ref<A> {
     fn clone(&self) -> Self {
         unsafe { ffi::inc_ref(self.0.count) };
         Self(self.0.clone())
-    }
-}
-
-impl<A> Drop for Ref<A> {
-    fn drop(&mut self) {
-        unsafe { &mut *self.0.count }.dec_ref();
     }
 }
 
