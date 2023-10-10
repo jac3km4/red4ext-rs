@@ -13,7 +13,7 @@ pub use red4ext_sys::interop::{
 use crate::conv::{ClassType, FromRepr, IntoRepr, NativeRepr};
 use crate::rtti::Rtti;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct RedArray<A> {
     entries: *mut A,
