@@ -1,5 +1,5 @@
-use std::fmt;
 use std::pin::Pin;
+use std::{fmt, ptr};
 
 use red4ext_sys::ffi;
 
@@ -37,14 +37,16 @@ impl<'a> Rtti<'a> {
         this: RefShared<ffi::IScriptable>,
         fn_name: CName,
     ) -> *mut ffi::CBaseFunction {
-        unsafe {
-            let typ = Self::class_of(this);
-            ffi::get_method(&*typ, &fn_name) as _
-        }
+        let typ = Self::class_of(this);
+        unsafe { typ.as_ref() }
+            .map(|t| ffi::get_method(t, &fn_name) as _)
+            .unwrap_or(ptr::null_mut())
     }
 
     pub fn get_static_method(typ: *const ffi::CClass, fn_name: CName) -> *mut ffi::CBaseFunction {
-        unsafe { ffi::get_static_method(&*typ, &fn_name) as _ }
+        unsafe { typ.as_ref() }
+            .map(|t| ffi::get_static_method(t, &fn_name) as _)
+            .unwrap_or(ptr::null_mut())
     }
 
     pub fn register_function(
@@ -75,12 +77,17 @@ impl<'a> Rtti<'a> {
 
     #[inline]
     pub fn class_of(this: RefShared<ffi::IScriptable>) -> *const ffi::CClass {
-        unsafe { Pin::new_unchecked(&mut *this.as_ptr()).get_class() }
+        unsafe {
+            this.as_ptr()
+                .as_mut()
+                .map(|is| Pin::new_unchecked(is).get_class())
+        }
+        .unwrap_or(ptr::null_mut())
     }
 
     #[inline]
-    pub fn type_name_of(typ: *const ffi::CBaseRttiType) -> CName {
-        unsafe { (*typ).get_name() }
+    pub fn type_name_of(typ: *const ffi::CBaseRttiType) -> Option<CName> {
+        unsafe { typ.as_ref().map(ffi::CBaseRttiType::get_name) }
     }
 }
 

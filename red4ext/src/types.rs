@@ -318,7 +318,7 @@ impl VariantExt for Variant {
     }
 
     fn try_get<A: FromRepr>(&self) -> Option<A> {
-        if Rtti::type_name_of(self.get_type()) == CName::new(A::Repr::NATIVE_NAME) {
+        if Rtti::type_name_of(self.get_type()) == Some(CName::new(A::Repr::NATIVE_NAME)) {
             let ptr = self.get_data_ptr().0 as *const <A as FromRepr>::Repr;
             Some(A::from_repr(unsafe { &*ptr }))
         } else {
