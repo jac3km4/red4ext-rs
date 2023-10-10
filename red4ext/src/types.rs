@@ -72,6 +72,19 @@ impl<A> Default for RedArray<A> {
     }
 }
 
+impl<A> AsRef<[A]> for RedArray<A> {
+    #[inline]
+    fn as_ref(&self) -> &[A] {
+        self.as_slice()
+    }
+}
+
+impl<A: Clone> From<&[A]> for RedArray<A> {
+    fn from(value: &[A]) -> Self {
+        Self::from_sized_iter(value.iter().cloned())
+    }
+}
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct Ref<A>(RefShared<A>);

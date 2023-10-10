@@ -354,6 +354,26 @@ impl Default for RedString {
     }
 }
 
+impl AsRef<str> for RedString {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl From<&str> for RedString {
+    #[inline]
+    fn from(str: &str) -> Self {
+        Self::new(str)
+    }
+}
+
+impl From<RedString> for String {
+    fn from(s: RedString) -> Self {
+        s.as_str().to_owned()
+    }
+}
+
 unsafe impl ExternType for RedString {
     type Id = type_id!("RED4ext::CString");
     type Kind = cxx::kind::Trivial;
