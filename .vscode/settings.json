@@ -1,0 +1,7 @@
+{
+    "clangd.fallbackFlags": [
+        "-I${workspaceFolder}/target/cxxbridge",
+        "-I${workspaceFolder}/red4ext-sys/cpp/RED4ext.SDK/include",
+        "-std=c++23"
+    ]
+}
