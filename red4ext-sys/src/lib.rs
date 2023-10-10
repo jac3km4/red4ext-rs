@@ -84,6 +84,12 @@ pub mod ffi {
 
         #[cxx_name = "DecRef"]
         fn dec_ref(self: &mut RefCnt) -> bool;
+
+        #[cxx_name = "GetAllocator"]
+        fn get_allocator(self: Pin<&mut IScriptable>) -> *mut IAllocator;
+
+        #[cxx_name = "Free"]
+        fn free(self: Pin<&mut IAllocator>, ptr: VoidPtr);
     }
 
     #[namespace = "glue"]

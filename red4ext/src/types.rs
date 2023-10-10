@@ -111,7 +111,11 @@ impl<A> Ref<A> {
 
 impl<A> Drop for Ref<A> {
     fn drop(&mut self) {
-        unsafe { &mut *self.0.count }.dec_ref();
+        if unsafe { &mut *self.0.count }.dec_ref() {
+            let instance = self.0.as_scriptable().as_ptr();
+            let allocator = unsafe { pin::Pin::new_unchecked(&mut *instance) }.get_allocator();
+            unsafe { pin::Pin::new_unchecked(&mut *allocator) }.free(VoidPtr(instance as _));
+        }
     }
 }
 
