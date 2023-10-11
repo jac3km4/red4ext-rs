@@ -89,14 +89,14 @@ Available macros:
 
   Imports a set of methods for a class type.
 
-  <small>Requires the nightly Rust compiler with the `arbitrary_self_types` feature.</small>
-
   Parameters (optionally specified for each method with the `#[redscript(...)]` attribute):
   - `name` - the in-game function name (it defaults to a PascalCase version of the Rust name)
   - `native` - whether the function is native (affects mangling)
   - `cb` - whether the function is a callback (affects mangling)
   
   *functions without a `self` receiver generate calls to static methods*
+
+  ***functions with a `self` receiver require a nightly Rust compiler with the `arbitrary_self_types` feature enabled for now***
   
   Example:
 
