@@ -153,7 +153,7 @@ where
     let mut ret = R::Repr::default();
     let ret_ptr = unsafe { mem::transmute(&mut ret) };
     invoke_shared(this, fun, args, CName::new(R::Repr::NAME), ret_ptr)?;
-    Ok(R::from_repr(&ret))
+    Ok(R::from_repr(ret))
 }
 
 fn validate_invocation(

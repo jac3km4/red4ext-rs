@@ -4,7 +4,7 @@ pub use crate::conv::{ClassType, FromRepr, IntoRepr, NativeRepr};
 pub use crate::plugin::{Plugin, Version};
 pub use crate::types::{
     CName, EntityId, GameEItemIdFlag, GamedataItemStructure, IScriptable, ItemId, RedArray,
-    RedString, Ref, ResRef, ScriptRef, TweakDbId, VariantExt, WRef,
+    RedString, Ref, ResRef, ScriptRef, TweakDbId, Variant, VariantExt, WRef,
 };
 pub use crate::{
     call, debug, define_plugin, define_trait_plugin, error, info, register_function, trace, warn,

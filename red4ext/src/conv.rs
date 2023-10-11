@@ -119,15 +119,15 @@ impl<A: ClassType> IntoRepr for Ref<A> {
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 
-    fn from_repr(repr: &Self::Repr) -> Self;
+    fn from_repr(repr: Self::Repr) -> Self;
 }
 
-impl<A: NativeRepr + Clone> FromRepr for A {
+impl<A: NativeRepr> FromRepr for A {
     type Repr = A;
 
     #[inline]
-    fn from_repr(repr: &Self::Repr) -> Self {
-        repr.clone()
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr
     }
 }
 
@@ -135,7 +135,7 @@ impl FromRepr for String {
     type Repr = RedString;
 
     #[inline]
-    fn from_repr(repr: &Self::Repr) -> Self {
+    fn from_repr(repr: Self::Repr) -> Self {
         repr.as_str().to_owned()
     }
 }
@@ -146,16 +146,16 @@ where
 {
     type Repr = RedArray<A::Repr>;
 
-    fn from_repr(repr: &Self::Repr) -> Self {
-        repr.as_slice().iter().map(FromRepr::from_repr).collect()
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.into_iter().map(FromRepr::from_repr).collect()
     }
 }
 
 impl<A: ClassType> FromRepr for Ref<A> {
     type Repr = MaybeUninitRef<A>;
 
-    fn from_repr(repr: &Self::Repr) -> Self {
-        repr.get().expect("ref was uninitialized")
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.into_ref().expect("ref was uninitialized")
     }
 }
 
@@ -217,7 +217,7 @@ where
 {
     let mut init = A::Repr::default();
     unsafe { ffi::get_parameter(frame, std::mem::transmute(&mut init)) };
-    A::from_repr(&init)
+    A::from_repr(init)
 }
 
 #[cfg(test)]

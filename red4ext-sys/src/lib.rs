@@ -90,6 +90,9 @@ pub mod ffi {
 
         #[cxx_name = "Free"]
         fn free(self: Pin<&mut IAllocator>, ptr: VoidPtr);
+
+        #[cxx_name = "Free"]
+        fn free(self: Pin<&mut Variant>);
     }
 
     #[namespace = "glue"]
@@ -143,6 +146,9 @@ pub mod ffi {
 
         #[cxx_name = "AllocArray"]
         fn alloc_array(arr: VoidPtr, cap: u32, elem_size: u32);
+
+        #[cxx_name = "FreeArray"]
+        fn free_array(arr: VoidPtr, elem_size: usize);
 
         #[cxx_name = "GetParameters"]
         fn get_parameters(func: &CBaseFunction) -> &[*const CProperty];

@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 use std::path::Path;
-use std::ptr;
+use std::{pin, ptr};
 
 use const_crc32::{crc32, crc32_seed};
 use cxx::{type_id, ExternType};
@@ -310,6 +310,7 @@ unsafe impl ExternType for EntityId {
     type Kind = cxx::kind::Trivial;
 }
 
+/// A string type used in the game. Corresponds to `String` in redscript.
 #[derive(Debug)]
 #[repr(C, packed)]
 pub struct RedString {
@@ -319,12 +320,14 @@ pub struct RedString {
 }
 
 impl RedString {
+    /// Allocates a new string with the given contents.
     pub fn new(str: impl AsRef<str>) -> Self {
         let mut repr = RedString::default();
         unsafe { ffi::construct_string_at(&mut repr, str.as_ref(), ptr::null_mut()) };
         repr
     }
 
+    /// Retrieves the contents of the string as a slice.
     pub fn as_str(&self) -> &str {
         unsafe {
             let ptr = if self.length < 0x4000_0000 {
@@ -379,6 +382,7 @@ unsafe impl ExternType for RedString {
     type Kind = cxx::kind::Trivial;
 }
 
+/// A union type that can hold any type used in the game. Corresponds to `Variant` in redscript.
 #[derive(Debug)]
 #[repr(C)]
 pub struct Variant {
@@ -387,12 +391,19 @@ pub struct Variant {
 }
 
 impl Variant {
+    /// Creates an undefined variant, which holds no value.
     #[inline]
     pub const fn undefined() -> Self {
         Variant {
             typ: ptr::null(),
             data: [0; 0x10],
         }
+    }
+}
+
+impl Drop for Variant {
+    fn drop(&mut self) {
+        unsafe { pin::Pin::new_unchecked(self) }.free();
     }
 }
 
@@ -431,6 +442,8 @@ unsafe impl ExternType for StackArg {
     type Kind = cxx::kind::Trivial;
 }
 
+#[derive(Debug)]
+#[repr(transparent)]
 pub struct VoidPtr(pub *mut std::ffi::c_void);
 
 unsafe impl ExternType for VoidPtr {

@@ -2,6 +2,7 @@
 
 #include "rust/cxx.h"
 #include <RED4ext/RED4ext.hpp>
+#include <cstdint>
 
 using namespace RED4ext;
 
@@ -100,6 +101,17 @@ void AllocArray(VoidPtr array, uint32_t cap, uint32_t elemSize)
         void (*a5)(int64_t, int64_t, int64_t, int64_t));
     RelocFunc<func_t> func(Addresses::DynArray_Realloc);
     func(array, cap, elemSize, alignment, nullptr);
+}
+
+void FreeArray(VoidPtr ptr, size_t elemSize)
+{
+    auto array = (DynArray<uint8_t>*)ptr;
+    if (array->capacity) {
+        auto allocatorPtr = reinterpret_cast<size_t>(&array->entries[array->capacity * elemSize]);
+        auto allocator = reinterpret_cast<Memory::IAllocator*>(AlignUp(allocatorPtr, sizeof(void*)));
+        allocator->Free(array->entries);
+        array->capacity = 0;
+    }
 }
 
 rust::Slice<const CProperty* const> GetParameters(const CBaseFunction& func)
