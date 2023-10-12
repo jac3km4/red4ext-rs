@@ -15,3 +15,7 @@ red4ext-rs = { path = "../red4ext", features = ["macros"] }
 
 [profile.release]
 lto = "thin"
+
+[features]
+default = ["codeware"]
+codeware = []
