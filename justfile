@@ -42,8 +42,8 @@ install target='release':
  }
  @$manifest = '{{ join(red4ext_repo_dir, "Cargo.toml") }}'; \
  if ('{{target}}' -EQ 'debug') { \
-   cargo +nightly build --manifest-path $manifest; \
- } else { cargo +nightly build --manifest-path $manifest --release; }
+   cargo +nightly build --manifest-path $manifest --features 'codeware'; \
+ } else { cargo +nightly build --manifest-path $manifest --release --features 'codeware'; }
  @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
  } else { \
