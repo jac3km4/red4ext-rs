@@ -267,7 +267,7 @@ impl<A> MaybeUninitRef<A> {
     }
 
     #[inline]
-    pub(crate) fn into_ref(self) -> Option<Ref<A>> {
+    pub fn into_ref(self) -> Option<Ref<A>> {
         self.0.ptr.is_null().not().then(|| Ref(self.0))
     }
 }
