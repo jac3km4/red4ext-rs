@@ -1,5 +1,5 @@
 use red4ext_rs::prelude::{redscript_global, redscript_import, ClassType, NativeRepr};
-use red4ext_rs::types::{CName, IScriptable, Ref, VariantExt};
+use red4ext_rs::types::{CName, IScriptable, Ref, Variant, VariantExt};
 
 use crate::reflection::Reflection;
 
@@ -25,12 +25,10 @@ impl AllBlackboardDefinitions {
             .get_property(CName::new("PlayerStateMachine"))
             .into_ref()
             .expect("get prop PlayerStateMachine on class AllBlackboardDefinitions");
-        VariantExt::try_take(
-            &mut field.get_value(VariantExt::new(red4ext_rs::prelude::Ref::<
-                AllBlackboardDefinitions,
-            >::downgrade(&self))),
-        )
-        .expect("prop PlayerStateMachine of type PlayerStateMachineDef")
+        field
+            .get_value(Variant::new(self.clone()))
+            .try_take()
+            .expect("value for prop PlayerStateMachine of type PlayerStateMachineDef")
     }
 }
 
@@ -45,19 +43,17 @@ impl ClassType for PlayerStateMachineDef {
 
 impl PlayerStateMachineDef {
     pub fn toggle_fire_mode(self: &Ref<Self>) -> BlackboardIdBool {
-        let cls = crate::reflection::Reflection::get_class(CName::new(Self::NAME))
+        let cls = Reflection::get_class(CName::new(Self::NAME))
             .into_ref()
             .expect("get class PlayerStateMachineDef");
         let field = cls
             .get_property(CName::new("ToggleFireMode"))
             .into_ref()
             .expect("get prop ToggleFireMode for class PlayerStateMachineDef");
-        VariantExt::try_take(
-            &mut field.get_value(VariantExt::new(red4ext_rs::prelude::Ref::<
-                PlayerStateMachineDef,
-            >::downgrade(&self))),
-        )
-        .expect("prop ToggleFireMode of type BlackboardID_Bool")
+        field
+            .get_value(Variant::new(self.clone()))
+            .try_take()
+            .expect("value for prop ToggleFireMode of type BlackboardID_Bool")
     }
 }
 
