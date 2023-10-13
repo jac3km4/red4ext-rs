@@ -75,7 +75,7 @@ fn call_demo(player: Ref<PlayerPuppet>) {
 /// try in-game in CET console:
 ///
 /// ```lua
-/// LogChannel(n"DEBUG", s"PlayerStateMachineDef.ToggleFireMode current value = \(ToString(GetToggleFireMode(Game.GetPlayer())))");
+/// LogChannel(CName.new("DEBUG"), GetToggleFireMode(Game.GetPlayer()));
 /// ```
 /// > ⚠️ requires Codeware v1.3.1-m3 and Cargo feature flag 'codeware'
 #[cfg(feature = "codeware")]
