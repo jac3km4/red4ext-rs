@@ -36,14 +36,14 @@ hot-reload:
 alias i := install
 
 # copy all files to game folder (before launching the game)
-install target='release':
+install target='release' +flags='codeware':
  @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
    Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
  }
  @$manifest = '{{ join(red4ext_repo_dir, "Cargo.toml") }}'; \
  if ('{{target}}' -EQ 'debug') { \
-   cargo +nightly build --manifest-path $manifest --features 'codeware'; \
- } else { cargo +nightly build --manifest-path $manifest --release --features 'codeware'; }
+   cargo +nightly build --manifest-path $manifest --features='{{flags}}'; \
+ } else { cargo +nightly build --manifest-path $manifest --release --features='{{flags}}'; }
  @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
    Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
  } else { \
