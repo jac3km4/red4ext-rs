@@ -114,7 +114,7 @@ macro_rules! call {
 #[macro_export]
 macro_rules! call_direct {
     ($rtti:expr, $this:expr, $func:expr, ($( $args:expr ),*) -> $rett:ty) => {{
-        let args = ($($crate::invocable::into_type_and_repr(&mut $rtti, $args)),*);
+        let args = ::std::mem::forget(($($crate::invocable::into_type_and_repr(&mut $rtti, $args)),*));
         let args = $crate::invocable::Args::to_stack_args(&args);
         let res: ::std::result::Result<$rett, _> = $crate::invocable::invoke($this, $func, &args);
         res
