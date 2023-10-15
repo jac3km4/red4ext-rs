@@ -32,9 +32,14 @@ public func LogState(system: ref<System>) -> Void {
     let values = items.Values();
     let idx = 0;
     let value: ref<Item>;
+    if ArraySize(keys) == 0 {
+        LogChannel(n"DEBUG", "no items yet !");
+        return;
+    }
+    LogChannel(n"DEBUG", "current item(s):");
     for key in keys {
         value = values[idx];
-        LogChannel(n"DEBUG", s"key: \(TDBID.ToStringDEBUG(keys[idx])), value: \(IsDefined(value) ? ToString(value.value) : "undefined")");
+        LogChannel(n"DEBUG", s"    key: \(TDBID.ToStringDEBUG(key)), value: \(IsDefined(value) ? ToString(value.Get()) : "undefined")");
         idx += 1;
     }
 }
@@ -42,14 +47,16 @@ public func LogState(system: ref<System>) -> Void {
 public class Item extends IScriptable {
     private persistent let value: Int32;
     private func Get() -> Int32 { return this.value; }
+    // used in natives
     private func Set(value: Int32) -> Void { this.value = value; }
 }
 public class Items extends IScriptable {
     private persistent let keys: array<TweakDBID>;
     private persistent let values: array<ref<Item>>;
     private func Values() -> array<ref<Item>> { return this.values; }
-    private func SetValues(values: array<ref<Item>>) -> Void { this.values = values; }
     private func Keys() -> array<TweakDBID> { return this.keys; }
+    // used in natives
+    private func SetValues(values: array<ref<Item>>) -> Void { this.values = values; }
     private func SetKeys(keys: array<TweakDBID>) -> Void  { this.keys = keys; }
     private final static func Create(value: Int32) -> ref<Item> {
         let item = new Item();
@@ -59,7 +66,7 @@ public class Items extends IScriptable {
 }
 public class System extends ScriptableSystem {
     private persistent let items: ref<Items>;
-    func Items() -> ref<Items> {
+    private func Items() -> ref<Items> {
         return this.items;
     }
     public final static func GetInstance(game: GameInstance) -> ref<System> {
