@@ -19,6 +19,13 @@ public func SimulateDecrease() -> Void {
     LogState(system);
 }
 
+// Game.GetPlayer():LogItems();
+@addMethod(PlayerPuppet)
+public func LogItems() -> Void {
+    let system = System.GetInstance(this.GetGame());
+    LogState(system);
+}
+
 public func LogState(system: ref<System>) -> Void {
     let items = system.Items();
     let keys = items.Keys();
