@@ -13,7 +13,7 @@ public func SimulateIncrease(id: TweakDBID) -> Void {
 
 // Game.GetPlayer():SimulateDecrease();
 @addMethod(PlayerPuppet)
-public func SimulateDecrease(id: TweakDBID) -> Void {
+public func SimulateDecrease() -> Void {
     let system = System.GetInstance(this.GetGame());
     OnDecrease(system);
     LogState(system);
