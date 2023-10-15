@@ -66,7 +66,7 @@ impl Items {
     fn set_keys(self: &mut Ref<Self>, keys: Vec<Key>) -> ();
     fn values(self: &Ref<Self>) -> Vec<Ref<Item>>;
     fn keys(self: &Ref<Self>) -> Vec<Key>;
-    fn create(self: &Ref<Self>, value: i32) -> Ref<Item>;
+    fn create(value: i32) -> Ref<Item>;
 }
 
 impl Items {
@@ -79,7 +79,7 @@ impl Items {
             let existing = unsafe { values.get_unchecked_mut(idx) };
             existing.set(existing.get() + 1);
         } else {
-            let value = self.create(1);
+            let value = Self::create(1);
             let mut keys = self.keys();
             keys.push(key);
             values.push(value);

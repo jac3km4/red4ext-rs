@@ -51,7 +51,7 @@ public class Items extends IScriptable {
     private func SetValues(values: array<ref<Item>>) -> Void { this.values = values; }
     private func Keys() -> array<TweakDBID> { return this.keys; }
     private func SetKeys(keys: array<TweakDBID>) -> Void  { this.keys = keys; }
-    private func Create(value: Int32) -> ref<Item> {
+    private final static func Create(value: Int32) -> ref<Item> {
         let item = new Item();
         item.value = value;
         return item;
