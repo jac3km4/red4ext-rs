@@ -9,8 +9,13 @@ define_plugin! {
         register_function!("SumInts", sum_ints);
         register_function!("UseTypes", use_types);
         register_function!("CallDemo", call_demo);
+        // forget-args
+        register_function!("ForgetArgs.OnIncrease", forget_args::System::on_increase);
+        register_function!("ForgetArgs.OnDecrease", forget_args::System::on_decrease);
     }
 }
+
+mod forget_args;
 
 /// call function with primitives
 ///
