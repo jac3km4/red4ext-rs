@@ -1,5 +1,5 @@
 [package]
-name = "red4ext-example"
+name = "hello-world"
 version = "0.0.0"
 rust-version = "1.72"
 edition = "2021"
@@ -8,10 +8,9 @@ authors = ["jekky"]
 
 [lib]
 crate-type = ["cdylib"]
-name = "example"
 
 [dependencies]
-red4ext-rs = { path = "../red4ext", features = ["macros"] }
+red4ext-rs = { path = "../../red4ext", features = ["macros"] }
 
 [profile.release]
 lto = "thin"
