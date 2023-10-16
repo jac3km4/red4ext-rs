@@ -114,7 +114,7 @@ impl<A: ClassType> IntoRepr for Ref<A> {
 
     #[inline]
     fn into_repr(self) -> Self::Repr {
-        MaybeUninitRef::new(Ref::as_shared(&self).clone())
+        Ref::into_maybe_uninit(self)
     }
 }
 
