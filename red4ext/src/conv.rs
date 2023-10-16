@@ -67,6 +67,14 @@ impl<A: NativeRepr> IntoRepr for A {
     }
 }
 
+impl<A: NativeRepr> IntoRepr for std::mem::ManuallyDrop<A> {
+    type Repr = A;
+
+    fn into_repr(mut self) -> Self::Repr {
+        unsafe { std::mem::ManuallyDrop::<A>::take(&mut self) }
+    }
+}
+
 impl IntoRepr for String {
     type Repr = RedString;
 
