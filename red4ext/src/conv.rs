@@ -45,11 +45,13 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
 unsafe impl<A: ClassType> NativeRepr for MaybeUninitRef<A> {
     const MANGLED_NAME: &'static str = A::NAME;
     const NAME: &'static str = combine!("handle:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("handle:", A::NATIVE_NAME);
 }
 
 unsafe impl<A: ClassType> NativeRepr for WRef<A> {
     const MANGLED_NAME: &'static str = A::NAME;
     const NAME: &'static str = combine!("whandle:", A::NAME);
+    const NATIVE_NAME: &'static str = combine!("whandle:", A::NATIVE_NAME);
 }
 
 pub trait IntoRepr: Sized {
@@ -163,6 +165,7 @@ pub trait ClassType {
     type BaseClass: ClassType;
 
     const NAME: &'static str;
+    const NATIVE_NAME: &'static str = Self::NAME;
 }
 
 impl ClassType for IScriptable {

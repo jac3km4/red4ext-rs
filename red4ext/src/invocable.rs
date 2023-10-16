@@ -137,14 +137,14 @@ where
         this: RefShared<IScriptable>,
         fun: *mut ffi::CBaseFunction,
         args: &[StackArg],
-        name: CName,
+        native_return_type: CName,
         out: VoidPtr,
     ) -> Result<(), InvokeError> {
         let fun_ref = unsafe { fun.as_mut() };
         let Some(fun_ref) = fun_ref else {
             return Err(InvokeError::FunctionNotFound);
         };
-        validate_invocation(args, name, fun_ref)?;
+        validate_invocation(args, native_return_type, fun_ref)?;
         let this = VoidPtr(this.as_ptr() as _);
         unsafe { ffi::execute_function(this, Pin::new_unchecked(fun_ref), out, args) };
         Ok(())
@@ -152,13 +152,13 @@ where
 
     let mut ret = R::Repr::default();
     let ret_ptr = unsafe { mem::transmute(&mut ret) };
-    invoke_shared(this, fun, args, CName::new(R::Repr::NAME), ret_ptr)?;
+    invoke_shared(this, fun, args, CName::new(R::Repr::NATIVE_NAME), ret_ptr)?;
     Ok(R::from_repr(ret))
 }
 
 fn validate_invocation(
     args: &[StackArg],
-    expected_return: CName,
+    native_return_type: CName,
     fun: &ffi::CBaseFunction,
 ) -> Result<(), InvokeError> {
     let params = ffi::get_parameters(fun);
@@ -185,12 +185,12 @@ fn validate_invocation(
             .as_ref()
             .and_then(|prop| ffi::get_property_type(prop).as_ref())
     } {
-        Some(actual) if actual.get_name() == expected_return => Ok(()),
+        Some(actual) if actual.get_name() == native_return_type => Ok(()),
         Some(actual) => {
             let expected = ffi::resolve_cname(&actual.get_name());
             Err(InvokeError::ReturnMismatch { expected })
         }
-        None if expected_return == CName::new("Void") => Ok(()),
+        None if native_return_type == CName::new("Void") => Ok(()),
         None => Err(InvokeError::ReturnMismatch { expected: "Void" }),
     }
 }
