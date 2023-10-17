@@ -74,7 +74,7 @@ impl<A> RedArray<A> {
 impl<A> Drop for RedArray<A> {
     fn drop(&mut self) {
         unsafe { ptr::drop_in_place(self.as_mut_slice()) };
-        ffi::free_array(VoidPtr(self.entries as _), mem::size_of::<A>());
+        ffi::free_array(VoidPtr(self as *mut _ as _), mem::size_of::<A>());
     }
 }
 
