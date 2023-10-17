@@ -4,7 +4,7 @@ set dotenv-load
 DEFAULT_GAME_DIR   := join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "Cyberpunk 2077")
 
 game_dir           := env_var_or_default("GAME_DIR", DEFAULT_GAME_DIR)
-redscript_game_dir := join(game_dir, "r6", "scripts")
+redscript_deploy_dir := join(game_dir, "r6", "scripts")
 
 # list all commands
 _default:
@@ -54,8 +54,8 @@ build target='release' dir='{{justfile_directory()}}':
 # overwrite scripts (supports hot-reload)
 [private]
 reload dir name:
-    @just setup '{{ join(redscript_game_dir, capitalize(name)) }}'
-    @just overwrite-folder '{{ join(dir, "reds") }}' '{{ join(redscript_game_dir, capitalize(name)) }}'
+    @just setup '{{ join(redscript_deploy_dir, capitalize(name)) }}'
+    @just overwrite-folder '{{ join(dir, "reds") }}' '{{ join(redscript_deploy_dir, capitalize(name)) }}'
 
 # display file content
 [private]
