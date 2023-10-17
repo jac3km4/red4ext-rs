@@ -1,59 +1,29 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 set dotenv-load
+set fallback
 
 DEFAULT_GAME_DIR   := join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "Cyberpunk 2077")
 
 game_dir           := env_var_or_default("GAME_DIR", DEFAULT_GAME_DIR)
 red4ext_game_dir   := join(game_dir, "red4ext", "plugins")
+redscript_game_dir := join(game_dir, "r6", "scripts")
 
 mod_name           := "player_info"
 bin_name           := mod_name + ".dll"
 log_name           := mod_name + ".log"
 
-# list all commands
-_default:
-  @just --list --unsorted
-  @echo "⚠️  on Windows, paths defined in .env must be double-escaped:"
-  @echo 'e.g. GAME_DIR="C:\\\\path\\\\to\\\\your\\\\game\\\\folder"'
+hot-reload:
+  @just reload '{{justfile_directory()}}' '{{mod_name}}'
 
-alias i := install
-
-# copy all files to game folder (before launching the game)
 install target='release':
- @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
-   Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
- }
- @$manifest = '{{ join(justfile_directory(), "Cargo.toml") }}'; \
- if ('{{target}}' -EQ 'debug') { \
-   cargo build --manifest-path $manifest; \
- } else { cargo +nightly build --manifest-path $manifest --release; }
- @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
-   Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
- } else { \
-   New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
- }
- cp -Force '{{ join(justfile_directory(), "target", target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
+  @just build '{{target}}' '{{justfile_directory()}}'
+  @just setup '{{ join(red4ext_game_dir, mod_name) }}'
+  @just overwrite-file '{{ join(justfile_directory(), "target", target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
 
-dev: (install 'debug')
-
-# remove all files from game folder
 uninstall:
- @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
-    Remove-Item -Recurse -Force '{{ join(red4ext_game_dir, mod_name) }}'; \
- }
+  @just delete '{{ join(red4ext_game_dir, mod_name) }}'
+  @just delete '{{ join(redscript_game_dir, capitalize(mod_name)) }}'
 
 # display red4ext logs
 logs:
- @if (Test-Path '{{ join(game_dir, "red4ext", "logs", "red4ext.log") }}') { \
-    Write-Host ">>> red4ext.log"; \
-    type '{{ join(game_dir, "red4ext", "logs", "red4ext.log") }}' \
- } else { \
-    Write-Host ">>> red4ext.log: missing file" \
- }
- @Write-Host "";
- @if (Test-Path '{{ join(game_dir, "red4ext", "logs", log_name) }}') { \
-    Write-Host ">>> {{log_name}}"; \
-    type '{{ join(game_dir, "red4ext", "logs", log_name) }}' \
- } else { \
-    Write-Host ">>> {{log_name}}: missing file" \
- }
+  @just cat '{{ join(game_dir, "red4ext", "logs", log_name) }}'
