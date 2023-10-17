@@ -25,12 +25,19 @@ delete path:
 # copy file (overwriting)
 [private]
 overwrite-file from to:
-    cp -Force '{{from}}' '{{to}}';
+    @cp -Force '{{from}}' '{{to}}';
+    @Write-Host 'Overwrite file: {{from}} => {{to}}';
 
 # copy folder (overwriting)
 [private]
 overwrite-folder from to:
-    cp -Recurse -Force '{{ join(from, "*") }}' '{{to}}';
+    @cp -Recurse -Force '{{ join(from, "*") }}' '{{to}}';
+    @Write-Host 'Overwrite folder content: {{ join(from, "*") }} => {{to}}';
+
+# list examples folders
+[private]
+examples:
+    @(Get-ChildItem -Directory '{{ join(justfile_directory(), "examples") }}' | ?{ $_.PSIsContainer } | Select Name).Name
 
 # build plugin binary (pre-launch only)
 [private]
@@ -70,26 +77,20 @@ cat path:
 
 # install scripts from examples packages
 hot-reload:
-    @just examples/hello_world/hot-reload
-    @just examples/menu_button/hot-reload
-    @just examples/player_info/hot-reload
+    @just examples | Foreach-Object { just examples/$_/hot-reload }
 
 alias r := hot-reload
 
 # install binaries from examples packages
 install target='release':
-    @just examples/hello_world/install '{{target}}'
-    @just examples/menu_button/install '{{target}}'
-    @just examples/player_info/install '{{target}}'
+    @just examples | Foreach-Object { just examples/$_/install '{{target}}'; Write-Host '' }
     @just hot-reload
 
 alias i := install
 
 # uninstall examples packages
 uninstall:
-    @just examples/hello_world/uninstall
-    @just examples/menu_button/uninstall
-    @just examples/player_info/uninstall
+    @just examples | Foreach-Object { just examples/$_/uninstall; Write-Host '' }
 
 # install examples packages (dev mode)
 dev: (install 'debug')
@@ -99,9 +100,7 @@ alias d := dev
 # display logs
 logs:
     @just cat '{{ join(game_dir, "red4ext", "logs", "red4ext.log") }}'
-    @just examples/hello_world/logs
-    @just examples/menu_button/logs
-    @just examples/player_info/logs
+    @just examples | Foreach-Object { just examples/$_/logs; Write-Host '' }
 
 # lint files
 lint:
