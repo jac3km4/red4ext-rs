@@ -1,1 +1,0 @@
-native func HelloWorld() -> Void;

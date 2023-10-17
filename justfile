@@ -77,7 +77,7 @@ cat path:
 
 # install scripts from examples packages
 hot-reload:
-    @just examples | Foreach-Object { just examples/$_/hot-reload }
+    @just examples | Foreach-Object { if ($_ -ne 'hello_world') { just examples/$_/hot-reload; } }
 
 alias r := hot-reload
 
@@ -90,7 +90,7 @@ alias i := install
 
 # uninstall examples packages
 uninstall:
-    @just examples | Foreach-Object { just examples/$_/uninstall; Write-Host '' }
+    @just examples | Foreach-Object { if ($_ -ne 'hello_world') { just examples/$_/uninstall; Write-Host ''; } }
 
 # install examples packages (dev mode)
 dev: (install 'debug')
