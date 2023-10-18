@@ -8,6 +8,7 @@ authors = ["jekky"]
 
 [lib]
 crate-type = ["cdylib"]
+# please do not rename binary, or address justfile accordingly
 
 [dependencies]
 red4ext-rs = { path = "../../red4ext", features = ["macros"] }
