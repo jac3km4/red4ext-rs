@@ -1,1 +1,0 @@
-native func DumpPlayerInfo(player: ref<PlayerPuppet>) -> Void;
