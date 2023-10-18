@@ -1,10 +1,12 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 set dotenv-load
 
-DEFAULT_GAME_DIR   := join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "Cyberpunk 2077")
+DEFAULT_GAME_DIR     := join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "Cyberpunk 2077")
 
-game_dir           := env_var_or_default("GAME_DIR", DEFAULT_GAME_DIR)
+game_dir             := env_var_or_default("GAME_DIR", DEFAULT_GAME_DIR)
 redscript_deploy_dir := join(game_dir, "r6", "scripts")
+red4ext_deploy_dir   := join(game_dir, "red4ext", "plugins")
+examples_dir         := join(justfile_directory(), "examples")
 
 # list all commands
 _default:
@@ -54,8 +56,10 @@ build target='release' dir='{{justfile_directory()}}':
 # overwrite scripts (supports hot-reload)
 [private]
 reload dir name:
-    @just setup '{{ join(redscript_deploy_dir, capitalize(name)) }}'
-    @just overwrite-folder '{{ join(dir, "reds") }}' '{{ join(redscript_deploy_dir, capitalize(name)) }}'
+    @if (Test-Path '{{ join(dir, "reds") }}') { \
+        just setup '{{ join(redscript_deploy_dir, capitalize(name)) }}'; \
+        just overwrite-folder '{{ join(dir, "reds") }}' '{{ join(redscript_deploy_dir, capitalize(name)) }}'; \
+    } else { Write-Host 'Skipping "reds" folder for {{dir}}' }
 
 # display file content
 [private]
@@ -77,20 +81,29 @@ cat path:
 
 # install scripts from examples packages
 hot-reload:
-    @just examples | Foreach-Object { if ($_ -ne 'hello_world') { just examples/$_/hot-reload; } }
+    @just examples | Foreach-Object { just reload ('{{examples_dir}}' + '\' + $_) $_ }
 
 alias r := hot-reload
 
 # install binaries from examples packages
 install target='release':
-    @just examples | Foreach-Object { just examples/$_/install '{{target}}'; Write-Host '' }
+    @just examples | Foreach-Object { \
+        just build '{{target}}' ('{{examples_dir}}' + '\' + $_); \
+        just setup ('{{red4ext_deploy_dir}}\' + $_); \
+        just overwrite-file ('{{examples_dir}}' + '\' + $_ + '\' + 'target' + '\' + '{{target}}'+ '\' + $_ + '.dll') ('{{red4ext_deploy_dir}}\' + $_ + '\' + $_ + '.dll'); \
+    }
     @just hot-reload
 
+# @just examples | Foreach-Object { just examples/$_/install '{{target}}'; Write-Host '' }
 alias i := install
 
 # uninstall examples packages
 uninstall:
-    @just examples | Foreach-Object { if ($_ -ne 'hello_world') { just examples/$_/uninstall; Write-Host ''; } }
+    @just examples | Foreach-Object { \
+        just delete ('{{red4ext_deploy_dir}}' + '\' + $_); \
+        just delete ('{{redscript_deploy_dir}}' + '\' + $_.Substring(0,1).ToUpper() + $_.Substring(1)); \
+        Write-Host ''; \
+    }
 
 # install examples packages (dev mode)
 dev: (install 'debug')
@@ -100,7 +113,7 @@ alias d := dev
 # display logs
 logs:
     @just cat '{{ join(game_dir, "red4ext", "logs", "red4ext.log") }}'
-    @just examples | Foreach-Object { just examples/$_/logs; Write-Host '' }
+    @just examples | Foreach-Object { just cat ('{{game_dir}}' + '\' + 'red4ext' + '\' + 'logs' + '\' + $_ + '.log'); Write-Host '' }
 
 # lint files
 lint:
