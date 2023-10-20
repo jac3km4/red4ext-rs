@@ -140,9 +140,7 @@ pub struct TweakDbId {
 
 impl From<u64> for TweakDbId {
     fn from(value: u64) -> Self {
-        let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
-        let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
-        Self { hash, length }
+        Self::from_u64(value)
     }
 }
 
@@ -174,6 +172,13 @@ impl TweakDbId {
         buf[3] = b4;
         buf[4] = self.length;
         u64::from_ne_bytes(buf)
+    }
+
+    #[doc(hidden)]
+    pub const fn from_u64(value: u64) -> Self {
+        let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
+        let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
+        Self { hash, length }
     }
 }
 
