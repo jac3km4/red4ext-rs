@@ -164,6 +164,17 @@ impl TweakDbId {
             length: str.len() as u8 + base.length,
         }
     }
+
+    pub const fn as_u64(&self) -> u64 {
+        let mut buf = [0u8; 8];
+        let [b1, b2, b3, b4] = self.hash.to_ne_bytes();
+        buf[0] = b1;
+        buf[1] = b2;
+        buf[2] = b3;
+        buf[3] = b4;
+        buf[4] = self.length;
+        u64::from_ne_bytes(buf)
+    }
 }
 
 unsafe impl ExternType for TweakDbId {
@@ -467,6 +478,10 @@ mod tests {
         assert_eq!(
             TweakDbId::new("Items.FirstAidWhiffV0"),
             TweakDbId::from(90_628_141_458)
+        );
+        assert_eq!(
+            TweakDbId::new("Items.FirstAidWhiffV0").as_u64(),
+            90_628_141_458
         );
         assert_eq!(
             ItemId::new_from(TweakDbId::new("Items.FirstAidWhiffV0")).get_tdbid(),
