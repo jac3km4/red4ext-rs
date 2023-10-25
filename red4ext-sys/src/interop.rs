@@ -140,9 +140,7 @@ pub struct TweakDbId {
 
 impl From<u64> for TweakDbId {
     fn from(value: u64) -> Self {
-        let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
-        let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
-        Self { hash, length }
+        Self::from_u64(value)
     }
 }
 
@@ -163,6 +161,18 @@ impl TweakDbId {
             hash: crc32_seed(str.as_bytes(), base.hash),
             length: str.len() as u8 + base.length,
         }
+    }
+
+    pub const fn to_u64(self) -> u64 {
+        let [b1, b2, b3, b4] = self.hash.to_ne_bytes();
+        u64::from_ne_bytes([b1, b2, b3, b4, self.length, 0, 0, 0])
+    }
+
+    #[doc(hidden)]
+    pub const fn from_u64(value: u64) -> Self {
+        let [b1, b2, b3, b4, length, ..] = value.to_ne_bytes();
+        let hash = u32::from_ne_bytes([b1, b2, b3, b4]);
+        Self { hash, length }
     }
 }
 
@@ -467,6 +477,10 @@ mod tests {
         assert_eq!(
             TweakDbId::new("Items.FirstAidWhiffV0"),
             TweakDbId::from(90_628_141_458)
+        );
+        assert_eq!(
+            TweakDbId::new("Items.FirstAidWhiffV0").to_u64(),
+            90_628_141_458
         );
         assert_eq!(
             ItemId::new_from(TweakDbId::new("Items.FirstAidWhiffV0")).get_tdbid(),
