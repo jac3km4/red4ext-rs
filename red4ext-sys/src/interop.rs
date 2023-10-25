@@ -165,9 +165,7 @@ impl TweakDbId {
 
     pub const fn to_u64(self) -> u64 {
         let [b1, b2, b3, b4] = self.hash.to_ne_bytes();
-        u64::from_ne_bytes([
-          b1, b2, b3, b4, self.length, 0, 0, 0
-        ])
+        u64::from_ne_bytes([b1, b2, b3, b4, self.length, 0, 0, 0])
     }
 
     #[doc(hidden)]
