@@ -479,7 +479,7 @@ mod tests {
             TweakDbId::from(90_628_141_458)
         );
         assert_eq!(
-            TweakDbId::new("Items.FirstAidWhiffV0").as_u64(),
+            TweakDbId::new("Items.FirstAidWhiffV0").to_u64(),
             90_628_141_458
         );
         assert_eq!(
