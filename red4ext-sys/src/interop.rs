@@ -163,7 +163,7 @@ impl TweakDbId {
         }
     }
 
-    pub const fn as_u64(&self) -> u64 {
+    pub const fn to_u64(self) -> u64 {
         let mut buf = [0u8; 8];
         let [b1, b2, b3, b4] = self.hash.to_ne_bytes();
         buf[0] = b1;
