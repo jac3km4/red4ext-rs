@@ -97,41 +97,6 @@ install target='release':
 # @just examples | Foreach-Object { just examples/$_/install '{{target}}'; Write-Host '' }
 alias i := install
 
-<<<<<<< HEAD
-# copy all files to game folder (before launching the game)
-install target='release' +flags='codeware':
- @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
-   Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
- }
- @$manifest = '{{ join(red4ext_repo_dir, "Cargo.toml") }}'; \
- if ('{{target}}' -EQ 'debug') { \
-   cargo +nightly build --manifest-path $manifest --features='{{flags}}'; \
- } else { cargo +nightly build --manifest-path $manifest --release --features='{{flags}}'; }
- @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
-   Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
- } else { \
-   New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
- }
- cp -Force '{{ join(red4ext_repo_dir, "target", target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
- @just hot-reload
-||||||| 89b7f31
-# copy all files to game folder (before launching the game)
-install target='release':
- @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
-   Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
- }
- @$manifest = '{{ join(red4ext_repo_dir, "Cargo.toml") }}'; \
- if ('{{target}}' -EQ 'debug') { \
-   cargo +nightly build --manifest-path $manifest; \
- } else { cargo +nightly build --manifest-path $manifest --release; }
- @if (Test-Path '{{ join(red4ext_game_dir, mod_name) }}') { \
-   Write-Host "Folder {{ join(red4ext_game_dir, mod_name) }} already exist"; \
- } else { \
-   New-Item '{{ join(red4ext_game_dir, mod_name) }}' -ItemType Directory; \
- }
- cp -Force '{{ join(red4ext_repo_dir, "target", target, bin_name) }}' '{{ join(red4ext_game_dir, mod_name, bin_name) }}';
- @just hot-reload
-=======
 # uninstall examples packages
 uninstall:
     @just examples | Foreach-Object { \
@@ -139,7 +104,6 @@ uninstall:
         just delete ('{{redscript_deploy_dir}}' + '\' + $_.Substring(0,1).ToUpper() + $_.Substring(1)); \
         Write-Host ''; \
     }
->>>>>>> master
 
 # install examples packages (dev mode)
 dev: (install 'debug')
