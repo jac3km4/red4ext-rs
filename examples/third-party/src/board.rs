@@ -13,7 +13,8 @@ pub struct AllBlackboardDefinitions;
 impl ClassType for AllBlackboardDefinitions {
     type BaseClass = IScriptable;
 
-    const NAME: &'static str = "gamebbAllScriptDefinitions";
+    const NAME: &'static str = "AllBlackboardDefinitions";
+    const NATIVE_NAME: &'static str = "gamebbAllScriptDefinitions";
 }
 
 impl AllBlackboardDefinitions {

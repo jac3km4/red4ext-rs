@@ -50,7 +50,7 @@ jobs:
       - run: cargo clippy -- -Dwarnings
 
   build:
-    name: Build an artifact
+    name: Build an example
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -59,7 +59,13 @@ jobs:
       - run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --manifest-path .\example\Cargo.toml --release
+      - run: |
+          cargo build --manifest-path .\examples\hello_world\Cargo.toml --release
+          cargo build --manifest-path .\examples\menu_button\Cargo.toml --release
+          cargo build --manifest-path .\examples\player_info\Cargo.toml --release
       - uses: actions/upload-artifact@v3
         with:
-          path: example/target/release/example.dll
+          path: |
+            examples/hello_world/target/release/hello_world.dll
+            examples/menu_button/target/release/menu_button.dll
+            examples/player_info/target/release/player_info.dll

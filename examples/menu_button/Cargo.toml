@@ -1,5 +1,5 @@
 [package]
-name = "red4ext-example"
+name = "menu-button"
 version = "0.0.0"
 rust-version = "1.72"
 edition = "2021"
@@ -8,14 +8,10 @@ authors = ["jekky"]
 
 [lib]
 crate-type = ["cdylib"]
-name = "example"
+# please do not rename binary, or address justfile accordingly
 
 [dependencies]
-red4ext-rs = { path = "../red4ext", features = ["macros"] }
+red4ext-rs = { path = "../../red4ext", features = ["macros"] }
 
 [profile.release]
 lto = "thin"
-
-[features]
-default = ["codeware"]
-codeware = []

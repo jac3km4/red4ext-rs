@@ -74,7 +74,7 @@ impl<A> RedArray<A> {
 impl<A> Drop for RedArray<A> {
     fn drop(&mut self) {
         unsafe { ptr::drop_in_place(self.as_mut_slice()) };
-        ffi::free_array(VoidPtr(self.entries as _), mem::size_of::<A>());
+        ffi::free_array(VoidPtr(self as *mut _ as _), mem::size_of::<A>());
     }
 }
 
@@ -171,10 +171,12 @@ impl<A> Ref<A> {
         WRef(this.0.clone())
     }
 
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_shared(this: &Self) -> &RefShared<A> {
-        &this.0
+    /// Converts this reference into a [`MaybeUninitRef`].
+    pub fn into_maybe_uninit(this: Self) -> MaybeUninitRef<A> {
+        let shared = this.0.clone();
+        // MaybeUninitRef takes ownership from now on.
+        mem::forget(this);
+        MaybeUninitRef(shared)
     }
 
     /// Casts this reference to a reference to it's base class.
@@ -185,15 +187,18 @@ impl<A> Ref<A> {
     {
         unsafe { mem::transmute(this) }
     }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn as_shared(this: &Self) -> &RefShared<A> {
+        &this.0
+    }
 }
 
 impl<A> Drop for Ref<A> {
+    #[inline]
     fn drop(&mut self) {
-        if unsafe { &mut *self.0.count }.dec_ref() {
-            let instance = self.0.as_scriptable().as_ptr();
-            let allocator = unsafe { pin::Pin::new_unchecked(&mut *instance) }.get_allocator();
-            unsafe { pin::Pin::new_unchecked(&mut *allocator) }.free(VoidPtr(instance as _));
-        }
+        self.0.dec_ref_strong();
     }
 }
 
@@ -261,14 +266,29 @@ impl<A> Clone for WRef<A> {
 pub struct MaybeUninitRef<A>(RefShared<A>);
 
 impl<A> MaybeUninitRef<A> {
-    #[inline]
-    pub(crate) fn new(a: RefShared<A>) -> Self {
-        Self(a)
+    pub fn into_ref(self) -> Option<Ref<A>> {
+        self.0.ptr.is_null().not().then(|| {
+            let shared = self.0.clone();
+            // Ref takes ownership from now on.
+            mem::forget(self);
+            Ref(shared)
+        })
     }
+}
 
+<<<<<<< HEAD
     #[inline]
     pub fn into_ref(self) -> Option<Ref<A>> {
         self.0.ptr.is_null().not().then(|| Ref(self.0))
+||||||| 89b7f31
+    #[inline]
+    pub(crate) fn into_ref(self) -> Option<Ref<A>> {
+        self.0.ptr.is_null().not().then(|| Ref(self.0))
+=======
+impl<A> Drop for MaybeUninitRef<A> {
+    fn drop(&mut self) {
+        self.0.dec_ref_strong();
+>>>>>>> master
     }
 }
 
@@ -301,6 +321,14 @@ impl<A> RefShared<A> {
     #[inline]
     pub fn as_scriptable(&self) -> &RefShared<IScriptable> {
         unsafe { mem::transmute(self) }
+    }
+
+    pub(crate) fn dec_ref_strong(&self) {
+        if !self.count.is_null() && unsafe { &mut *self.count }.dec_ref() {
+            let instance = self.as_scriptable().as_ptr();
+            let allocator = unsafe { pin::Pin::new_unchecked(&mut *instance) }.get_allocator();
+            unsafe { pin::Pin::new_unchecked(&mut *allocator) }.free(VoidPtr(instance as _));
+        }
     }
 }
 
