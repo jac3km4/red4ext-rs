@@ -1,10 +1,10 @@
 [package]
-name = "player-info"
+name = "third-party"
 version = "0.0.0"
 rust-version = "1.72"
 edition = "2021"
 license = "MIT"
-authors = ["jekky"]
+authors = ["Roms1383"]
 
 [lib]
 crate-type = ["cdylib"]
@@ -15,3 +15,7 @@ red4ext-rs = { path = "../../red4ext", features = ["macros"] }
 
 [profile.release]
 lto = "thin"
+
+[features]
+default = ["codeware"]
+codeware = []

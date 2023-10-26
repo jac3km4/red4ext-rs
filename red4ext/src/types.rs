@@ -276,19 +276,9 @@ impl<A> MaybeUninitRef<A> {
     }
 }
 
-<<<<<<< HEAD
-    #[inline]
-    pub fn into_ref(self) -> Option<Ref<A>> {
-        self.0.ptr.is_null().not().then(|| Ref(self.0))
-||||||| 89b7f31
-    #[inline]
-    pub(crate) fn into_ref(self) -> Option<Ref<A>> {
-        self.0.ptr.is_null().not().then(|| Ref(self.0))
-=======
 impl<A> Drop for MaybeUninitRef<A> {
     fn drop(&mut self) {
         self.0.dec_ref_strong();
->>>>>>> master
     }
 }
 
