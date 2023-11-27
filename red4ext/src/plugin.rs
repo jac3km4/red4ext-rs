@@ -85,7 +85,7 @@ macro_rules! define_trait_plugin {
                     $crate::plugin::MainReason::Load => {
                         $crate::logger::Logger::init(sdk, handle).ok();
 
-                        $crate::ffi::add_rtti_callback($crate::VoidPtr(Register as *mut _), $crate::VoidPtr(PostRegister as *mut _), true)
+                        $crate::ffi::add_rtti_callback($crate::types::VoidPtr(Register as *mut _), $crate::types::VoidPtr(PostRegister as *mut _), true)
                     }
                     $crate::plugin::MainReason::Unload => {
                         <$ty as $crate::plugin::Plugin>::unload();
