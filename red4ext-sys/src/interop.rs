@@ -37,6 +37,18 @@ impl CName {
     }
 }
 
+impl AsRef<str> for CName {
+    fn as_ref(&self) -> &str {
+        crate::ffi::resolve_cname(self)
+    }
+}
+
+impl ToString for CName {
+    fn to_string(&self) -> String {
+        self.as_ref().to_string()
+    }
+}
+
 pub const fn fnv1a64(str: &str) -> u64 {
     const PRIME: u64 = 0x0100_0000_01b3;
     const SEED: u64 = 0xCBF2_9CE4_8422_2325;
