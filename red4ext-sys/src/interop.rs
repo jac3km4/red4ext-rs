@@ -37,6 +37,13 @@ impl CName {
     }
 }
 
+#[cfg(not(test))] // only available in-game
+impl std::fmt::Display for CName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", crate::ffi::resolve_cname(self))
+    }
+}
+
 pub const fn fnv1a64(str: &str) -> u64 {
     const PRIME: u64 = 0x0100_0000_01b3;
     const SEED: u64 = 0xCBF2_9CE4_8422_2325;
