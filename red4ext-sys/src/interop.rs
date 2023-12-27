@@ -45,6 +45,9 @@ impl From<CName> for u64 {
 impl CName {
     #[inline]
     pub const fn new(str: &str) -> Self {
+        if const_str::equal!(str, "None") {
+            return Self { hash: 0 };
+        }
         Self { hash: fnv1a64(str) }
     }
 
@@ -506,6 +509,7 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+        assert_eq!(CName::new("None").hash, 0);
     }
 
     #[test]
