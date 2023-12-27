@@ -30,10 +30,20 @@ pub struct CName {
     hash: u64,
 }
 
+impl From<u64> for CName {
+    fn from(hash: u64) -> Self {
+        Self { hash }
+    }
+}
+
 impl CName {
     #[inline]
     pub const fn new(str: &str) -> Self {
         Self { hash: fnv1a64(str) }
+    }
+
+    pub const fn to_u64(self) -> u64 {
+        self.hash
     }
 }
 
