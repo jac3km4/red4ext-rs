@@ -507,7 +507,7 @@ mod tests {
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
         assert_eq!(CName::new("None").hash, 0);
-        assert_eq!(CName::new("").hash, 0xCBF29CE484222325);
+        assert_eq!(CName::new("").hash, 0xCBF2_9CE4_8422_2325);
     }
 
     #[test]
