@@ -47,7 +47,7 @@ impl CName {
     }
 
     pub fn add(str: &str) -> Self {
-        if str.is_empty() {
+        if str.is_empty() || str == "None" {
             return Self { hash: 0 };
         }
         let cname = Self::new(str);
