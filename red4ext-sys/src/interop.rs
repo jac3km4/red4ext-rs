@@ -51,12 +51,16 @@ impl CName {
             return Self { hash: 0 };
         }
         let cname = Self::new(str);
-        if crate::ffi::exists_cname(&cname) {
+        if cname.is_valid() {
             return cname;
         }
         let created = crate::ffi::add_cname(str);
         assert_eq!(created, cname);
         created
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !crate::ffi::resolve_cname(self).is_empty()
     }
 }
 

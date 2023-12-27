@@ -159,9 +159,6 @@ pub mod ffi {
         #[cxx_name = "GetPropertyType"]
         unsafe fn get_property_type(prop: *const CProperty) -> *const CBaseRttiType;
 
-        #[cxx_name = "ExistsCName"]
-        fn exists_cname(cname: &CName) -> bool;
-
         #[cxx_name = "ResolveCName"]
         fn resolve_cname(cname: &CName) -> &'static str;
 
