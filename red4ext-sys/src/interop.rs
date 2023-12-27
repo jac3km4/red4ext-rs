@@ -51,10 +51,7 @@ impl CName {
         Self { hash: fnv1a64(str) }
     }
 
-    pub fn add(str: &str) -> Self {
-        if str.is_empty() || str == "None" {
-            return Self { hash: 0 };
-        }
+    pub fn new_pooled(str: &str) -> Self {
         let cname = Self::new(str);
         if cname.is_valid() {
             return cname;
