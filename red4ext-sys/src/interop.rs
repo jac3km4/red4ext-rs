@@ -51,6 +51,7 @@ impl CName {
         }
     }
 
+    #[cfg(not(test))] // only available in-game
     pub fn new_pooled(str: &str) -> Self {
         let cname = Self::new(str);
         if cname.is_valid() {
@@ -61,6 +62,7 @@ impl CName {
         created
     }
 
+    #[cfg(not(test))] // only available in-game
     pub fn is_valid(&self) -> bool {
         !crate::ffi::resolve_cname(self).is_empty()
     }
