@@ -132,9 +132,19 @@ const CBaseRTTIType* GetPropertyType(const CProperty* prop)
     return prop->type;
 }
 
+bool ExistsCName(const CName& cname)
+{
+    return strlen(CNamePool::Get(cname)) > 0;
+}
+
 rust::Str ResolveCName(const CName& cname)
 {
     return rust::Str(CNamePool::Get(cname));
+}
+
+CName AddCName(rust::Str text)
+{
+    return CNamePool::Add(std::string(text).c_str());
 }
 
 CClassFunction* GetMethod(const CClass& cls, const CName& fullName)

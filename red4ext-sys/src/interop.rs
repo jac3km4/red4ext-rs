@@ -45,6 +45,15 @@ impl CName {
     pub const fn to_u64(self) -> u64 {
         self.hash
     }
+
+    pub fn add(str: &str) -> Self {
+        if str.is_empty() { return Self { hash: 0 }; }
+        let cname = Self::new(str);
+        if crate::ffi::exists_cname(&cname) { return cname; }
+        let created = crate::ffi::add_cname(str);
+        assert_eq!(created, cname);
+        created
+    }
 }
 
 #[cfg(not(test))] // only available in-game
