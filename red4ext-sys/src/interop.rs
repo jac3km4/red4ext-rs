@@ -47,9 +47,13 @@ impl CName {
     }
 
     pub fn add(str: &str) -> Self {
-        if str.is_empty() { return Self { hash: 0 }; }
+        if str.is_empty() {
+            return Self { hash: 0 };
+        }
         let cname = Self::new(str);
-        if crate::ffi::exists_cname(&cname) { return cname; }
+        if crate::ffi::exists_cname(&cname) {
+            return cname;
+        }
         let created = crate::ffi::add_cname(str);
         assert_eq!(created, cname);
         created
