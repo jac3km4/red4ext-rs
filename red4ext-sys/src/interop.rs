@@ -36,14 +36,16 @@ impl From<u64> for CName {
     }
 }
 
+impl From<CName> for u64 {
+    fn from(value: CName) -> Self {
+        value.hash
+    }
+}
+
 impl CName {
     #[inline]
     pub const fn new(str: &str) -> Self {
         Self { hash: fnv1a64(str) }
-    }
-
-    pub const fn to_u64(self) -> u64 {
-        self.hash
     }
 
     pub fn add(str: &str) -> Self {
