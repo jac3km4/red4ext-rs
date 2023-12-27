@@ -137,6 +137,11 @@ rust::Str ResolveCName(const CName& cname)
     return rust::Str(CNamePool::Get(cname));
 }
 
+CName AddCName(rust::Str text)
+{
+    return CNamePool::Add(std::string(text).c_str());
+}
+
 CClassFunction* GetMethod(const CClass& cls, const CName& fullName)
 {
     auto res = cls.funcsByName.Get(fullName);

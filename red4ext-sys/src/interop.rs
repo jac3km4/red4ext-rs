@@ -30,10 +30,41 @@ pub struct CName {
     hash: u64,
 }
 
+impl From<u64> for CName {
+    fn from(hash: u64) -> Self {
+        Self { hash }
+    }
+}
+
+impl From<CName> for u64 {
+    fn from(value: CName) -> Self {
+        value.hash
+    }
+}
+
 impl CName {
     #[inline]
     pub const fn new(str: &str) -> Self {
-        Self { hash: fnv1a64(str) }
+        match str.as_bytes() {
+            b"None" => Self { hash: 0 },
+            _ => Self { hash: fnv1a64(str) },
+        }
+    }
+
+    #[cfg(not(test))] // only available in-game
+    pub fn new_pooled(str: &str) -> Self {
+        let cname = Self::new(str);
+        if cname.is_valid() {
+            return cname;
+        }
+        let created = crate::ffi::add_cname(str);
+        assert_eq!(created, cname);
+        created
+    }
+
+    #[cfg(not(test))] // only available in-game
+    pub fn is_valid(&self) -> bool {
+        !crate::ffi::resolve_cname(self).is_empty()
     }
 }
 
@@ -477,6 +508,8 @@ mod tests {
         assert_eq!(CName::new("IScriptable").hash, 3_191_163_302_135_919_211);
         assert_eq!(CName::new("Vector2").hash, 7_466_804_955_052_523_504);
         assert_eq!(CName::new("Color").hash, 3_769_135_706_557_701_272);
+        assert_eq!(CName::new("None").hash, 0);
+        assert_eq!(CName::new("").hash, 0xCBF2_9CE4_8422_2325);
     }
 
     #[test]
