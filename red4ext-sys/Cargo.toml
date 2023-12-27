@@ -11,7 +11,6 @@ thiserror = "1"
 num_enum = { version = "0.7", default-features = false }
 cxx = "1"
 const-crc32 = "1"
-const-str = "0.5.6"
 
 [build-dependencies]
 cxx-build = "1"

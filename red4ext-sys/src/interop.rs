@@ -45,10 +45,10 @@ impl From<CName> for u64 {
 impl CName {
     #[inline]
     pub const fn new(str: &str) -> Self {
-        if const_str::equal!(str, "None") {
-            return Self { hash: 0 };
+        match str.as_bytes() {
+            b"None" => Self { hash: 0 },
+            _ => Self { hash: fnv1a64(str) },
         }
-        Self { hash: fnv1a64(str) }
     }
 
     pub fn new_pooled(str: &str) -> Self {
