@@ -327,6 +327,12 @@ impl From<u64> for EntityId {
     }
 }
 
+impl From<EntityId> for u64 {
+    fn from(value: EntityId) -> Self {
+        value.hash
+    }
+}
+
 impl EntityId {
     const DYNAMIC_UPPER_BOUND: u64 = 0x00FF_FFFF;
     const PERSISTABLE_LOWER_BOUND: u64 = 9_000_000;
