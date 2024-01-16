@@ -16,3 +16,6 @@ red4ext-macros = { path = "../red4ext-macros", optional = true }
 
 [features]
 macros = ["dep:red4ext-macros"]
+
+[lints]
+workspace = true
