@@ -14,3 +14,6 @@ const-crc32 = "1"
 
 [build-dependencies]
 cxx-build = "1"
+
+[lints]
+workspace = true

@@ -45,8 +45,10 @@ void AddRTTICallback(
     const VoidPtr aPostRegFunc,
     bool aUnused)
 {
-    RTTIRegistrator::Add((RTTIRegistrator::CallbackFunc)aRegFunc,
-        (RTTIRegistrator::CallbackFunc)aPostRegFunc, aUnused);
+    IRTTISystem* rtti = GetRTTI();
+
+    rtti->AddRegisterCallback((RTTIRegistrator::CallbackFunc)aRegFunc);
+    rtti->AddPostRegisterCallback((RTTIRegistrator::CallbackFunc)aPostRegFunc);
 }
 
 void ConstructStringAt(
@@ -133,6 +135,11 @@ const CBaseRTTIType* GetPropertyType(const CProperty* prop)
 rust::Str ResolveCName(const CName& cname)
 {
     return rust::Str(CNamePool::Get(cname));
+}
+
+CName AddCName(rust::Str text)
+{
+    return CNamePool::Add(std::string(text).c_str());
 }
 
 CClassFunction* GetMethod(const CClass& cls, const CName& fullName)
