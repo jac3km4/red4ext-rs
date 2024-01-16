@@ -222,9 +222,11 @@ impl Ref<IScriptable> {
     pub fn get_class_name(&self) -> CName {
         crate::call!(*self, "GetClassName" () -> CName)
     }
+
     pub fn is_a(&self, class_name: CName) -> bool {
         crate::call!(*self, "IsA" (class_name) -> bool)
     }
+
     pub fn is_exactly_a(&self, class_name: CName) -> bool {
         crate::call!(*self, "IsExactlyA" (class_name) -> bool)
     }
