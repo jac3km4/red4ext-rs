@@ -218,17 +218,17 @@ impl<A> Deref for Ref<A> {
     }
 }
 
-impl Ref<IScriptable> {
-    pub fn get_class_name(&self) -> CName {
-        crate::call!(*self, "GetClassName" () -> CName)
+impl<A> Ref<A> {
+    pub fn get_class_name(this: Self) -> CName {
+        crate::call!(&this, "GetClassName" () -> CName)
     }
 
-    pub fn is_a(&self, class_name: CName) -> bool {
-        crate::call!(*self, "IsA" (class_name) -> bool)
+    pub fn is_a(this: Self, class_name: CName) -> bool {
+        crate::call!(&this, "IsA" (class_name) -> bool)
     }
 
-    pub fn is_exactly_a(&self, class_name: CName) -> bool {
-        crate::call!(*self, "IsExactlyA" (class_name) -> bool)
+    pub fn is_exactly_a(this: Self, class_name: CName) -> bool {
+        crate::call!(&this, "IsExactlyA" (class_name) -> bool)
     }
 }
 
