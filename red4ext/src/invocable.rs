@@ -100,6 +100,7 @@ macro_rules! call {
         $crate::call!($this, [$fn_name] ($($args),*) -> ())
     };
     ($this:expr, [$fn_name:expr] ($( $args:expr ),*) -> $rett:ty) => {{
+        #[allow(unused_mut, unused_variables)]
         let mut rtti = $crate::rtti::Rtti::get();
         let this = $crate::types::Ref::as_shared(&$this).as_scriptable();
         let method = $crate::rtti::Rtti::get_method(this.clone(), $crate::types::CName::new($fn_name));

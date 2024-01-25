@@ -23,6 +23,12 @@ fn dump_player_info(player: Ref<PlayerPuppet>) {
     info!("player vehicles: {}", player.get_unlocked_vehicles_size());
     let can_apply_breathing = PlayerPuppet::can_apply_breathing_effect(Ref::downgrade(&player));
     info!("can apply breating effect: {}", can_apply_breathing);
+    let class_name = Ref::get_class_name(player.clone());
+    info!("class name: {}", class_name);
+    let is_ent_entity = Ref::is_a(player.clone(), CName::new("entEntity"));
+    info!("is an entEntity: {}", is_ent_entity);
+    let is_exactly_a_player_puppet = Ref::is_exactly_a(player, CName::new(PlayerPuppet::NAME));
+    info!("is exactly a PlayerPuppet: {}", is_exactly_a_player_puppet);
 }
 
 /// define a binding for a class type

@@ -218,6 +218,20 @@ impl<A> Deref for Ref<A> {
     }
 }
 
+impl<A> Ref<A> {
+    pub fn get_class_name(this: Self) -> CName {
+        crate::call!(&this, "GetClassName" () -> CName)
+    }
+
+    pub fn is_a(this: Self, class_name: CName) -> bool {
+        crate::call!(&this, "IsA" (class_name) -> bool)
+    }
+
+    pub fn is_exactly_a(this: Self, class_name: CName) -> bool {
+        crate::call!(&this, "IsExactlyA" (class_name) -> bool)
+    }
+}
+
 /// A weak reference to a scripted class instance. Corresponds to `wref` in redscript.
 #[derive(Debug)]
 #[repr(C)]
