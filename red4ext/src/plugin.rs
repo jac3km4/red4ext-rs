@@ -49,6 +49,7 @@ macro_rules! define_plugin {
                     $major,
                     $minor,
                     $patch,
+                    true
                 );
             }
 
@@ -105,6 +106,7 @@ macro_rules! define_trait_plugin {
                     version.major,
                     version.minor,
                     version.patch,
+                    <$ty as $crate::plugin::Plugin>::is_version_independent()
                 );
             }
 
@@ -149,4 +151,7 @@ pub trait Plugin {
     fn register() {}
     fn post_register() {}
     fn unload() {}
+    fn is_version_independent() -> bool {
+        true
+    }
 }

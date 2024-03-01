@@ -1,0 +1,17 @@
+[package]
+name = "trait-plugin"
+version = "0.0.0"
+rust-version = "1.72"
+edition = "2021"
+license = "MIT"
+authors = ["jekky"]
+
+[lib]
+crate-type = ["cdylib"]
+# please do not rename binary, or address justfile accordingly
+
+[dependencies]
+red4ext-rs = { path = "../../red4ext", features = ["macros"] }
+
+[profile.release]
+lto = "thin"

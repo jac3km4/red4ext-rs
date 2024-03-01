@@ -139,6 +139,7 @@ pub mod ffi {
             major: u8,
             minor: u16,
             patch: u32,
+            is_version_independent: bool,
         );
 
         #[cxx_name = "GetSdkVersion"]

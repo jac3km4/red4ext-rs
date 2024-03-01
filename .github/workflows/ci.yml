@@ -63,9 +63,11 @@ jobs:
           cargo build --manifest-path .\examples\hello_world\Cargo.toml --release
           cargo build --manifest-path .\examples\menu_button\Cargo.toml --release
           cargo build --manifest-path .\examples\player_info\Cargo.toml --release
+          cargo build --manifest-path .\examples\trait_plugin\Cargo.toml --release
       - uses: actions/upload-artifact@v3
         with:
           path: |
             examples/hello_world/target/release/hello_world.dll
             examples/menu_button/target/release/menu_button.dll
             examples/player_info/target/release/player_info.dll
+            examples/trait_plugin/target/release/trait_plugin.dll
