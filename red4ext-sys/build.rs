@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo:rustc-link-lib=user32");
+
     let includes: &[PathBuf] = &[
         PathBuf::from("cpp").join("RED4ext.SDK").join("include"),
         PathBuf::from("cpp").join("glue"),
