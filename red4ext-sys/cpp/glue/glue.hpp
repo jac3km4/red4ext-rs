@@ -101,7 +101,7 @@ void AllocArray(VoidPtr array, uint32_t cap, uint32_t elemSize)
     using func_t = void (*)(VoidPtr aThis, uint32_t aCapacity,
         uint32_t aElementSize, uint32_t aAlignment,
         void (*a5)(int64_t, int64_t, int64_t, int64_t));
-    RelocFunc<func_t> func(Addresses::DynArray_Realloc);
+    static UniversalRelocFunc<func_t> func(Detail::AddressHashes::DynArray_Realloc);
     func(array, cap, elemSize, alignment, nullptr);
 }
 
