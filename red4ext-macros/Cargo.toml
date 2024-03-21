@@ -14,7 +14,7 @@ syn = "2"
 proc-macro2 = "1"
 quote = "1"
 darling = "0.20"
-heck = "0.4"
+heck = "0.5"
 
 [lints]
 workspace = true
