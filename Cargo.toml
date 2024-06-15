@@ -1,0 +1,37 @@
+[package]
+name = "red4rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winapi = { version = "0.3", features = ["minwindef"] }
+widestring = "1"
+
+[build-dependencies]
+bindgen = { version = "0.69", features = ["experimental"] }
+cmake = "0.1"
+
+[lints.rust]
+warnings = "deny"
+future-incompatible = "deny"
+let-underscore = "deny"
+nonstandard-style = "deny"
+rust-2018-compatibility = "deny"
+rust-2018-idioms = "deny"
+rust-2021-compatibility = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+match_same_arms = "deny"
+single_match_else = "deny"
+redundant_closure_for_method_calls = "deny"
+cloned_instead_of_copied = "deny"
+redundant_else = "deny"
+unnested_or_patterns = "deny"
+type_repetition_in_bounds = "deny"
+equatable_if_let = "deny"
+implicit_clone = "deny"
+explicit_deref_methods = "deny"
+explicit_iter_loop = "deny"
+inefficient_to_string = "deny"
+match_bool = "deny"
