@@ -444,7 +444,7 @@ impl StackFrame {
 
     #[inline]
     pub fn parent_iter(&self) -> impl Iterator<Item = &StackFrame> {
-        iter::successors(Some(self), |frame| frame.parent())
+        iter::successors(self.parent(), |frame| frame.parent())
     }
 
     #[inline]
@@ -578,11 +578,14 @@ impl Class {
 
     #[inline]
     pub fn base_iter(&self) -> impl Iterator<Item = &Class> {
-        iter::successors(Some(self), |class| class.base())
+        iter::successors(self.base(), |class| class.base())
     }
 
     pub fn all_properties(&self) -> impl Iterator<Item = &Property> {
-        self.base_iter().map(Class::properties).flatten().copied()
+        iter::once(self)
+            .chain(self.base_iter())
+            .flat_map(Class::properties)
+            .copied()
     }
 }
 
