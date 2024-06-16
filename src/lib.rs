@@ -502,6 +502,11 @@ impl Function {
     }
 
     #[inline]
+    pub fn is_static(&self) -> bool {
+        self.0.flags.isStatic() != 0
+    }
+
+    #[inline]
     fn vft(&self) -> &FunctionVft {
         unsafe { &*(self.0._base.vtable_ as *const FunctionVft) }
     }
