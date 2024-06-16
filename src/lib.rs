@@ -448,6 +448,11 @@ impl StackFrame {
     }
 
     #[inline]
+    pub fn context(&self) -> Option<&IScriptable> {
+        unsafe { (self.0.context as *const IScriptable).as_ref() }
+    }
+
+    #[inline]
     pub fn has_code(&self) -> bool {
         !self.0.code.is_null()
     }
