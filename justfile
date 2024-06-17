@@ -43,7 +43,7 @@ examples:
 
 # build plugin binary (pre-launch only)
 [private]
-build target='release' dir='{{justfile_directory()}}':
+build target='release' dir=justfile_directory():
     @if (-NOT('{{target}}' -EQ 'debug') -AND -NOT('{{target}}' -EQ 'release')) { \
         Write-Host "target can only be 'debug' or 'release' (default to 'release')"; exit 1; \
     }
