@@ -152,11 +152,7 @@ where
     }
 
     let mut ret = R::Repr::default();
-    let ret_ptr = unsafe {
-        mem::transmute::<&mut R::Repr, VoidPtr>(
-            &mut ret,
-        )
-    };
+    let ret_ptr = unsafe { mem::transmute::<&mut R::Repr, VoidPtr>(&mut ret) };
     invoke_shared(this, fun, args, CName::new(R::Repr::NATIVE_NAME), ret_ptr)?;
     Ok(R::from_repr(ret))
 }
