@@ -153,7 +153,7 @@ where
 
     let mut ret = R::Repr::default();
     let ret_ptr = unsafe {
-        mem::transmute::<&mut <R as crate::conv::FromRepr>::Repr, red4ext_sys::interop::VoidPtr>(
+        mem::transmute::<&mut R::Repr, VoidPtr>(
             &mut ret,
         )
     };
