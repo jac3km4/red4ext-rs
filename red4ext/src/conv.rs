@@ -219,7 +219,15 @@ where
     A::Repr: Default,
 {
     let mut init = A::Repr::default();
-    unsafe { ffi::get_parameter(frame, std::mem::transmute(&mut init)) };
+    unsafe {
+        ffi::get_parameter(
+            frame,
+            std::mem::transmute::<
+                &mut <A as crate::conv::FromRepr>::Repr,
+                red4ext_sys::interop::VoidPtr,
+            >(&mut init),
+        );
+    };
     A::from_repr(init)
 }
 

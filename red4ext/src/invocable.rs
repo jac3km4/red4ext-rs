@@ -152,7 +152,11 @@ where
     }
 
     let mut ret = R::Repr::default();
-    let ret_ptr = unsafe { mem::transmute(&mut ret) };
+    let ret_ptr = unsafe {
+        mem::transmute::<&mut <R as crate::conv::FromRepr>::Repr, red4ext_sys::interop::VoidPtr>(
+            &mut ret,
+        )
+    };
     invoke_shared(this, fun, args, CName::new(R::Repr::NATIVE_NAME), ret_ptr)?;
     Ok(R::from_repr(ret))
 }
