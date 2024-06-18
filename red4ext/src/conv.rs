@@ -223,7 +223,7 @@ where
         ffi::get_parameter(
             frame,
             std::mem::transmute::<
-                &mut <A as crate::conv::FromRepr>::Repr,
+                &mut A::Repr,
                 red4ext_sys::interop::VoidPtr,
             >(&mut init),
         );
