@@ -31,6 +31,7 @@ pub mod ffi {
         type CStackFrame;
         type CProperty;
         type PluginInfo;
+        #[allow(dead_code)]
         type Sdk;
         type EMainReason;
 
