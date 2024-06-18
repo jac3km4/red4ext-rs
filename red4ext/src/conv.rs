@@ -224,7 +224,7 @@ where
             frame,
             std::mem::transmute::<
                 &mut A::Repr,
-                red4ext_sys::interop::VoidPtr,
+                VoidPtr,
             >(&mut init),
         );
     };
