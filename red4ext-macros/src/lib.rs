@@ -1,3 +1,4 @@
+#![allow(clippy::manual_unwrap_or_default)]
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use heck::ToPascalCase;
@@ -12,8 +13,11 @@ const ATTR_KEY: &str = "redscript";
 struct FunctionAttrs {
     name: Option<String>,
     full_name: Option<String>,
+    #[darling(default)]
     native: bool,
+    #[darling(default)]
     cb: bool,
+    #[darling(default)]
     operator: bool,
 }
 
