@@ -133,6 +133,18 @@ impl<A: NativeRepr> FromRepr for A {
     }
 }
 
+impl<A: NativeRepr + Default + PartialEq> FromRepr for Option<A> {
+    type Repr = A;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        let repr = A::from_repr(repr);
+        if repr == A::default() {
+            return None;
+        }
+        Some(repr)
+    }
+}
+
 impl FromRepr for String {
     type Repr = RedString;
 
