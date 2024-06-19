@@ -1,6 +1,6 @@
 use const_combine::bounded::const_combine as combine;
 use red4ext_sys::ffi::{self, IScriptable};
-use red4ext_sys::interop::{EntityId, ItemId, Mem};
+use red4ext_sys::interop::{EntityId, ItemId, Mem, VoidPtr};
 
 use crate::prelude::{Ref, WRef};
 use crate::types::{
@@ -219,7 +219,12 @@ where
     A::Repr: Default,
 {
     let mut init = A::Repr::default();
-    unsafe { ffi::get_parameter(frame, std::mem::transmute(&mut init)) };
+    unsafe {
+        ffi::get_parameter(
+            frame,
+            std::mem::transmute::<&mut A::Repr, VoidPtr>(&mut init),
+        );
+    };
     A::from_repr(init)
 }
 

@@ -12,11 +12,8 @@ const ATTR_KEY: &str = "redscript";
 struct FunctionAttrs {
     name: Option<String>,
     full_name: Option<String>,
-    #[darling(default)]
     native: bool,
-    #[darling(default)]
     cb: bool,
-    #[darling(default)]
     operator: bool,
 }
 
