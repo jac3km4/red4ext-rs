@@ -1,3 +1,4 @@
+#![allow(clippy::manual_unwrap_or_default)]
 use darling::ast::NestedMeta;
 use darling::FromMeta;
 use heck::ToPascalCase;
