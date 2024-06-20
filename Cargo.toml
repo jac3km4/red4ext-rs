@@ -1,5 +1,5 @@
 [workspace]
-members = ["red4ext", "red4ext-sys", "red4ext-macros"]
+members = ["red4ext", "red4ext-sys", "red4ext-macros", "red4ext-types"]
 exclude = ["examples"]
 resolver = "2"
 

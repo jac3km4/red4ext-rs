@@ -13,6 +13,7 @@ const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.
 
 red4ext-sys = { path = "../red4ext-sys" }
 red4ext-macros = { path = "../red4ext-macros", optional = true }
+red4ext-types = { path = "../red4ext-types" }
 
 [features]
 macros = ["dep:red4ext-macros"]

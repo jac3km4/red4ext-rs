@@ -1,6 +1,6 @@
 use const_combine::bounded::const_combine as combine;
 use red4ext_sys::ffi::{self, IScriptable};
-use red4ext_sys::interop::{EntityId, ItemId, Mem, VoidPtr};
+use red4ext_types::{EntityId, ItemId, Mem, VoidPtr};
 
 use crate::prelude::{Ref, WRef};
 use crate::types::{

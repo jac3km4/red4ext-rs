@@ -1,4 +1,3 @@
-pub mod error;
 pub mod interop;
 
 #[allow(clippy::missing_safety_doc)]
@@ -35,14 +34,14 @@ pub mod ffi {
         type Sdk;
         type EMainReason;
 
-        type CName = crate::interop::CName;
+        type CName = red4ext_types::CName;
         type CString = crate::interop::RedString;
         #[cxx_name = "TweakDBID"]
-        type TweakDbId = crate::interop::TweakDbId;
+        type TweakDbId = red4ext_types::TweakDbId;
         #[cxx_name = "ItemID"]
-        type ItemId = crate::interop::ItemId;
+        type ItemId = red4ext_types::ItemId;
         #[cxx_name = "EntityID"]
-        type EntityId = crate::interop::EntityId;
+        type EntityId = red4ext_types::EntityId;
         type CStackType = crate::interop::StackArg;
         type Variant = crate::interop::Variant;
         type RefCnt = crate::interop::RefCount;
@@ -100,7 +99,7 @@ pub mod ffi {
     unsafe extern "C++" {
         include!("glue.hpp");
 
-        type VoidPtr = super::interop::VoidPtr;
+        type VoidPtr = red4ext_types::VoidPtr;
 
         #[cxx_name = "CreateNativeFunction"]
         fn new_native_function(

@@ -1,5 +1,5 @@
 [package]
-name = "red4ext-sys"
+name = "red4ext-types"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -7,11 +7,10 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+thiserror = "1"
+num_enum = { version = "0.7", default-features = false }
 cxx = "1"
-red4ext-types = { path = "../red4ext-types" }
-
-[build-dependencies]
-cxx-build = "1"
+const-crc32 = "1"
 
 [lints]
 workspace = true

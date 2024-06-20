@@ -2,7 +2,8 @@ use std::mem;
 use std::pin::Pin;
 
 use red4ext_sys::ffi;
-use red4ext_sys::interop::{Mem, StackArg};
+use red4ext_sys::interop::StackArg;
+use red4ext_types::Mem;
 
 use crate::conv::{fill_memory, from_frame, FromRepr, IntoRepr, NativeRepr};
 use crate::error::InvokeError;

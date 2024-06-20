@@ -4,9 +4,10 @@ use std::{mem, pin, ptr};
 pub use ffi::IScriptable;
 use red4ext_sys::ffi;
 use red4ext_sys::interop::RefCount;
-pub use red4ext_sys::interop::{
-    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, RedString, ResRef, TweakDbId,
-    Variant, VoidPtr,
+pub use red4ext_sys::interop::{RedString, Variant};
+pub use red4ext_types::{
+    CName, EntityId, GameEItemIdFlag, GamedataItemStructure, ItemId, ResRef, ResourcePathError,
+    TweakDbId, VoidPtr,
 };
 
 use crate::conv::{ClassType, FromRepr, IntoRepr, NativeRepr};
@@ -454,34 +455,5 @@ impl VariantExt for Variant {
         } else {
             None
         }
-    }
-}
-
-/// shortcut for ResRef creation.
-#[macro_export]
-macro_rules! res_ref {
-    ($base:expr, /$lit:literal $($tt:tt)*) => {
-        $crate::res_ref!($base.join($lit), $($tt)*)
-    };
-    ($base:expr, ) => {
-        $base
-    };
-    ($lit:literal $($tt:tt)*) => {
-        $crate::types::ResRef::new(
-            &$crate::res_ref!(::std::path::Path::new($lit), $($tt)*).to_string_lossy()
-        )
-    };
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn res_path() {
-        use crate::res_ref;
-        assert!(res_ref!("").is_err());
-        assert!(res_ref!(".." / "somewhere" / "in" / "archive" / "custom.ent").is_err());
-        assert!(res_ref!("base" / "somewhere" / "in" / "archive" / "custom.ent").is_ok());
-        assert!(res_ref!("custom.ent").is_ok());
-        assert!(res_ref!(".custom.ent").is_ok());
     }
 }
