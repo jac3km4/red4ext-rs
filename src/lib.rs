@@ -4,8 +4,7 @@ use std::hash::Hash;
 use std::sync::OnceLock;
 use std::{ffi, fmt, iter, mem, ops, ptr};
 
-use raw::root::versioning::constants;
-use raw::root::RED4ext as red;
+use raw::root::{versioning, RED4ext as red};
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 pub mod types;
@@ -47,10 +46,10 @@ pub struct RuntimeVersion(red::FileVer);
 
 impl RuntimeVersion {
     const RUNTIME_INDEPENDENT: Self = Self(red::FileVer {
-        major: constants::RUNTIME_INDEPENDENT as _,
-        minor: constants::RUNTIME_INDEPENDENT as _,
-        build: constants::RUNTIME_INDEPENDENT as _,
-        revision: constants::RUNTIME_INDEPENDENT as _,
+        major: versioning::RUNTIME_INDEPENDENT,
+        minor: versioning::RUNTIME_INDEPENDENT,
+        build: versioning::RUNTIME_INDEPENDENT,
+        revision: versioning::RUNTIME_INDEPENDENT,
     });
 }
 
@@ -59,9 +58,9 @@ pub struct SdkVersion(SemVer);
 
 impl SdkVersion {
     const LATEST: Self = Self(SemVer::new(
-        constants::SDK_MAJOR as _,
-        constants::SDK_MINOR as _,
-        constants::SDK_PATCH as _,
+        versioning::SDK_MAJOR,
+        versioning::SDK_MINOR,
+        versioning::SDK_PATCH,
     ));
 }
 
@@ -69,7 +68,7 @@ impl SdkVersion {
 pub struct ApiVersion(u32);
 
 impl ApiVersion {
-    const LATEST: Self = Self(constants::API_VERSION_LATEST as _);
+    const LATEST: Self = Self(versioning::API_VERSION_LATEST);
 }
 
 impl From<ApiVersion> for u32 {
