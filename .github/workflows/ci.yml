@@ -24,6 +24,8 @@ jobs:
   lint:
     name: Run clippy
     runs-on: windows-latest
+    env:
+      RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v3
         with:
@@ -32,11 +34,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: build
-      - run: cargo clippy -- -Dwarnings
+      - run: cargo clippy
 
   build:
     name: Run build
     runs-on: windows-latest
+    env:
+      RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v3
         with:
@@ -45,4 +49,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: build
-      - run: cargo build -- -Dwarnings
+      - run: cargo build
