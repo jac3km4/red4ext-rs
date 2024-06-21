@@ -8,6 +8,8 @@ use raw::root::versioning::constants;
 use raw::root::RED4ext as red;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
+pub mod types;
+
 pub mod hashes {
     pub use super::red::Detail::AddressHashes::*;
 
