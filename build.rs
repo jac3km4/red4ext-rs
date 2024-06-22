@@ -30,6 +30,7 @@ fn main() {
         .allowlist_item("versioning::.+")
         // callback handlers generate incorrect Rust code
         .blocklist_item("RED4ext::(Detail::)?CallbackHandler.*")
+        .generate_comments(false)
         .generate()
         .expect("Unable to generate bindings");
 
