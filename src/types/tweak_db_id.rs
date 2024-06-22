@@ -64,6 +64,18 @@ impl TweakDbId {
             [b1, b2, b3],
         )
     }
+
+    pub(super) const fn hash(&self) -> u32 {
+        unsafe { self.0.__bindgen_anon_1.name }.hash
+    }
+
+    pub(super) const fn len(&self) -> u8 {
+        unsafe { self.0.__bindgen_anon_1.name }.length
+    }
+
+    pub(super) const fn to_inner(self) -> red::TweakDBID {
+        self.0
+    }
 }
 
 impl Debug for TweakDbId {
