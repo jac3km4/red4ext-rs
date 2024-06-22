@@ -243,7 +243,6 @@ dependencies = [
  "const-crc32",
  "thiserror",
  "widestring",
- "winapi",
 ]
 
 [[package]]
