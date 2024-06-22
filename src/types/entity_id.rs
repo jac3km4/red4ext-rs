@@ -6,6 +6,34 @@ use crate::raw::root::RED4ext as red;
 #[repr(transparent)]
 pub struct EntityId(red::ent::EntityID);
 
+impl EntityId {
+    #[inline]
+    pub const fn is_defined(self) -> bool {
+        self.0.hash != 0
+    }
+
+    #[inline]
+    pub const fn is_static(self) -> bool {
+        self.0.hash != 0 && self.0.hash > red::ent::EntityID_DynamicUpperBound
+    }
+
+    #[inline]
+    pub const fn is_dynamic(self) -> bool {
+        self.0.hash != 0 && self.0.hash <= red::ent::EntityID_DynamicUpperBound
+    }
+
+    #[inline]
+    pub const fn is_persistable(self) -> bool {
+        self.0.hash >= red::ent::EntityID_PersistableLowerBound
+            && self.0.hash < red::ent::EntityID_PersistableUpperBound
+    }
+
+    #[inline]
+    pub const fn is_transient(self) -> bool {
+        self.0.hash != 0 && !self.is_persistable()
+    }
+}
+
 impl PartialEq for EntityId {
     fn eq(&self, other: &Self) -> bool {
         self.0.hash == other.0.hash
@@ -47,33 +75,5 @@ impl From<u64> for EntityId {
 impl From<EntityId> for u64 {
     fn from(EntityId(red::ent::EntityID { hash }): EntityId) -> Self {
         hash
-    }
-}
-
-impl EntityId {
-    #[inline]
-    pub const fn is_defined(self) -> bool {
-        self.0.hash != 0
-    }
-
-    #[inline]
-    pub const fn is_static(self) -> bool {
-        self.0.hash != 0 && self.0.hash > red::ent::EntityID_DynamicUpperBound
-    }
-
-    #[inline]
-    pub const fn is_dynamic(self) -> bool {
-        self.0.hash != 0 && self.0.hash <= red::ent::EntityID_DynamicUpperBound
-    }
-
-    #[inline]
-    pub const fn is_persistable(self) -> bool {
-        self.0.hash >= red::ent::EntityID_PersistableLowerBound
-            && self.0.hash < red::ent::EntityID_PersistableUpperBound
-    }
-
-    #[inline]
-    pub const fn is_transient(self) -> bool {
-        self.0.hash != 0 && !self.is_persistable()
     }
 }
