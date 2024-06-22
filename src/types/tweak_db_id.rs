@@ -46,10 +46,10 @@ impl TweakDbId {
     }
 
     pub fn has_tdb_offset(self) -> bool {
-        self.to_tdb_offset() != 0
+        self.tdb_offset() != 0
     }
 
-    pub fn to_tdb_offset(self) -> i32 {
+    pub fn tdb_offset(self) -> i32 {
         let [b1, b2, b3] = unsafe { self.0.__bindgen_anon_1.name }.tdbOffsetBE;
         i32::from_be_bytes([0, b1, b2, b3])
     }
@@ -146,7 +146,7 @@ mod tests {
     fn mutation() {
         let original = TweakDbId::from(90_628_141_458);
         let modified = original.with_tdb_offset(128);
-        assert_eq!(original.to_tdb_offset(), 0);
-        assert_eq!(modified.to_tdb_offset(), 128);
+        assert_eq!(original.tdb_offset(), 0);
+        assert_eq!(modified.tdb_offset(), 128);
     }
 }
