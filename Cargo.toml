@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 const-crc32 = "1"
+thiserror = "1"
 winapi = { version = "0.3", features = ["minwindef"] }
 widestring = "1"
 
