@@ -1,15 +1,54 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use super::{Type, ValuePtr};
+use super::{CName, IScriptable, Type, ValuePtr};
 use crate::raw::root::RED4ext as red;
+use crate::systems::RttiSystem;
 
-pub unsafe trait IsScriptable {}
+pub unsafe trait IsScriptable {
+    const CLASS_NAME: &'static str;
+
+    type FieldContainer;
+}
 
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Ref<T: IsScriptable>(BaseRef<T>);
 
 impl<T: IsScriptable> Ref<T> {
+    #[inline]
+    pub fn new() -> Option<Self> {
+        Self::new_with(|_| {})
+    }
+
+    pub fn new_with(init: impl FnOnce(&mut T::FieldContainer)) -> Option<Self> {
+        let class = RttiSystem::get().get_class(CName::new(T::CLASS_NAME))?;
+        let inst = class.instantiate();
+        let mut this = Self::default();
+        Self::ctor(&mut this, inst.as_ptr() as _);
+        init(this.fields_mut()?);
+        Some(this)
+    }
+
+    fn ctor(this: *mut Self, data: *mut T) {
+        unsafe {
+            let ctor = crate::fn_from_hash!(Handle_ctor, unsafe extern "C" fn(*mut Self, *mut T));
+            ctor(this, data);
+        }
+    }
+
+    #[inline]
+    pub fn fields(&self) -> Option<&T::FieldContainer> {
+        let s = self.0.scriptable()?;
+        Some(unsafe { &*s.fields().as_ptr().cast::<T::FieldContainer>() })
+    }
+
+    #[inline]
+    fn fields_mut(&mut self) -> Option<&mut T::FieldContainer> {
+        let s = self.0.scriptable()?;
+        Some(unsafe { &mut *s.fields().as_ptr().cast::<T::FieldContainer>() })
+    }
+
+    #[inline]
     pub fn downgrade(self) -> WeakRef<T> {
         self.0.inc_weak();
         WeakRef(self.0.clone())
@@ -50,6 +89,12 @@ pub struct WeakRef<T: IsScriptable>(BaseRef<T>);
 
 impl<T: IsScriptable> WeakRef<T> {
     #[inline]
+    pub fn fields(&self) -> Option<&T::FieldContainer> {
+        let s = self.0.scriptable()?;
+        Some(unsafe { &*s.fields().as_ptr().cast::<T::FieldContainer>() })
+    }
+
+    #[inline]
     pub fn upgrade(self) -> Option<Ref<T>> {
         self.0.inc_strong_if_non_zero().then(|| Ref(self.0.clone()))
     }
@@ -85,6 +130,11 @@ unsafe impl<T: IsScriptable> Sync for WeakRef<T> {}
 struct BaseRef<T>(red::SharedPtrBase<T>);
 
 impl<T> BaseRef<T> {
+    #[inline]
+    fn scriptable(&self) -> Option<&IScriptable> {
+        unsafe { self.0.instance.cast::<IScriptable>().as_ref() }
+    }
+
     #[inline]
     fn inc_strong(&self) {
         if let Some(cnt) = self.ref_count() {

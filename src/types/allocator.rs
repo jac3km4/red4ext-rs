@@ -3,7 +3,7 @@ use std::{mem, ops, ptr};
 
 use once_cell::race::OnceNonZeroUsize;
 
-use super::GlobalFunction;
+use super::{GlobalFunction, IScriptable};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{fnv1a32, VoidPtr};
@@ -67,6 +67,10 @@ impl Poolable for GlobalFunction {
     type Pool = FunctionPool;
 }
 
+impl Poolable for IScriptable {
+    type Pool = ScriptPool;
+}
+
 impl<T> Poolable for mem::MaybeUninit<T>
 where
     T: Poolable,
@@ -128,6 +132,18 @@ pub struct FunctionPool;
 
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
+}
+
+pub struct RttiPool;
+
+impl Pool for RttiPool {
+    const NAME: &'static str = "PoolRTTI";
+}
+
+pub struct ScriptPool;
+
+impl Pool for ScriptPool {
+    const NAME: &'static str = "PoolScript";
 }
 
 unsafe fn get_pool(handle: u32) -> Option<NonZero<usize>> {

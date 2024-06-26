@@ -148,6 +148,29 @@ impl Class {
             .flat_map(Class::properties)
             .copied()
     }
+
+    #[inline]
+    pub fn instantiate(&self) -> ValueContainer {
+        ValueContainer(unsafe { self.0.CreateInstance(true) })
+    }
+
+    #[inline]
+    pub fn as_type(&self) -> &Type {
+        unsafe { &*(self as *const _ as *const Type) }
+    }
+
+    #[inline]
+    pub fn as_type_mut(&mut self) -> &mut Type {
+        unsafe { &mut *(self as *mut _ as *mut Type) }
+    }
+}
+
+impl Drop for Class {
+    #[inline]
+    fn drop(&mut self) {
+        let t = self.as_type_mut();
+        unsafe { (t.vft().destroy)(t) };
+    }
 }
 
 #[derive(Debug)]
@@ -211,6 +234,13 @@ impl Function {
     #[inline]
     fn vft(&self) -> &FunctionVft {
         unsafe { &*(self.0._base.vtable_.cast::<FunctionVft>()) }
+    }
+}
+
+impl Drop for Function {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe { (self.vft().destruct)(self) };
     }
 }
 
@@ -313,8 +343,26 @@ impl ArrayType {
     }
 
     #[inline]
+    pub fn as_type(&self) -> &Type {
+        unsafe { &*(self as *const _ as *const Type) }
+    }
+
+    #[inline]
+    pub fn as_type_mut(&mut self) -> &mut Type {
+        unsafe { &mut *(self as *mut _ as *mut Type) }
+    }
+
+    #[inline]
     fn vft(&self) -> &ArrayTypeVft {
         unsafe { &*(self.0._base.vtable_ as *const ArrayTypeVft) }
+    }
+}
+
+impl Drop for ArrayType {
+    #[inline]
+    fn drop(&mut self) {
+        let t = self.as_type_mut();
+        unsafe { (t.vft().destroy)(t) };
     }
 }
 
@@ -332,6 +380,24 @@ impl Enum {
     pub fn variant_names(&self) -> &Array<CName> {
         unsafe { mem::transmute(&self.0.aliasList) }
     }
+
+    #[inline]
+    pub fn as_type(&self) -> &Type {
+        unsafe { &*(self as *const _ as *const Type) }
+    }
+
+    #[inline]
+    pub fn as_type_mut(&mut self) -> &mut Type {
+        unsafe { &mut *(self as *mut _ as *mut Type) }
+    }
+}
+
+impl Drop for Enum {
+    #[inline]
+    fn drop(&mut self) {
+        let t = self.as_type_mut();
+        unsafe { (t.vft().destroy)(t) };
+    }
 }
 
 #[derive(Debug)]
@@ -345,6 +411,22 @@ impl Bitfield {
 
     pub fn fields(&self) -> &[CName; 64] {
         unsafe { mem::transmute(&self.0.bitNames) }
+    }
+
+    pub fn as_type(&self) -> &Type {
+        unsafe { &*(self as *const _ as *const Type) }
+    }
+
+    pub fn as_type_mut(&mut self) -> &mut Type {
+        unsafe { &mut *(self as *mut _ as *mut Type) }
+    }
+}
+
+impl Drop for Bitfield {
+    #[inline]
+    fn drop(&mut self) {
+        let t = self.as_type_mut();
+        unsafe { (t.vft().destroy)(t) };
     }
 }
 
@@ -369,7 +451,11 @@ impl IScriptable {
     }
 }
 
-unsafe impl IsScriptable for IScriptable {}
+unsafe impl IsScriptable for IScriptable {
+    type FieldContainer = ();
+
+    const CLASS_NAME: &'static str = "IScriptable";
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct ValueContainer(VoidPtr);
@@ -378,6 +464,11 @@ impl ValueContainer {
     #[inline]
     pub(super) fn new(ptr: VoidPtr) -> Self {
         Self(ptr)
+    }
+
+    #[inline]
+    pub(super) fn as_ptr(&self) -> VoidPtr {
+        self.0
     }
 }
 
