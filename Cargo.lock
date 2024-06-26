@@ -241,6 +241,7 @@ dependencies = [
  "bindgen",
  "cmake",
  "const-crc32",
+ "once_cell",
  "thiserror",
  "widestring",
 ]

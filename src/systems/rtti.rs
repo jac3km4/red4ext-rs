@@ -1,16 +1,12 @@
 use crate::raw::root::RED4ext as red;
-use crate::{Array, Bitfield, CName, Class, Enum, Function, Type};
+use crate::types::{Array, Bitfield, CName, Class, Enum, Function, GlobalFunction, Type};
 
 #[repr(transparent)]
 pub struct RttiSystem(red::CRTTISystem);
 
 impl RttiSystem {
     pub fn get() -> &'static Self {
-        unsafe {
-            std::mem::transmute::<&'static red::CRTTISystem, &'static Self>(
-                &*(red::CRTTISystem_Get() as *const _) as &'static red::CRTTISystem,
-            )
-        }
+        unsafe { &*(red::CRTTISystem_Get() as *const RttiSystem) }
     }
 
     #[inline]
@@ -47,10 +43,7 @@ impl RttiSystem {
     pub fn get_native_types(&self) -> Array<&Type> {
         let mut out = Array::default();
         unsafe {
-            (self.vft().get_native_types)(
-                self,
-                &mut out as *mut Array<&Type> as *mut Array<*const Type>,
-            )
+            (self.vft().get_native_types)(self, &mut out as *mut _ as *mut Array<*const Type>)
         };
         out
     }
@@ -58,12 +51,7 @@ impl RttiSystem {
     #[inline]
     pub fn get_enums(&self) -> Array<&Enum> {
         let mut out = Array::default();
-        unsafe {
-            (self.vft().get_enums)(
-                self,
-                &mut out as *mut Array<&Enum> as *mut Array<*const Enum>,
-            )
-        };
+        unsafe { (self.vft().get_enums)(self, &mut out as *mut _ as *mut Array<*const Enum>) };
         out
     }
 
@@ -73,7 +61,7 @@ impl RttiSystem {
         unsafe {
             (self.vft().get_bitfields)(
                 self,
-                &mut out as *mut Array<&Bitfield> as *mut Array<*const Bitfield>,
+                &mut out as *mut _ as *mut Array<*const Bitfield>,
                 scripted_only,
             )
         };
@@ -86,7 +74,7 @@ impl RttiSystem {
         unsafe {
             (self.vft().get_global_functions)(
                 self,
-                &mut out as *mut Array<&Function> as *mut Array<*const Function>,
+                &mut out as *mut _ as *mut Array<*const Function>,
             )
         };
         out
@@ -98,7 +86,7 @@ impl RttiSystem {
         unsafe {
             (self.vft().get_class_functions)(
                 self,
-                &mut out as *mut Array<&Function> as *mut Array<*const Function>,
+                &mut out as *mut _ as *mut Array<*const Function>,
             )
         };
         out
@@ -112,7 +100,7 @@ impl RttiSystem {
             (self.vft().get_classes)(
                 self,
                 base,
-                &mut out as *mut Array<&Class> as *mut Array<*const Class>,
+                &mut out as *mut _ as *mut Array<*const Class>,
                 None,
                 include_abstract,
             )
@@ -128,7 +116,7 @@ impl RttiSystem {
             (self.vft().get_derived_classes)(
                 self,
                 base,
-                &mut out as *mut Array<&Class> as *mut Array<*const Class>,
+                &mut out as *mut _ as *mut Array<*const Class>,
             )
         };
         out
@@ -147,13 +135,18 @@ impl RttiSystem {
     }
 
     #[inline]
-    fn vft(&self) -> &IRTTISystemVft {
-        unsafe { &*(self.0._base.vtable_ as *const IRTTISystemVft) }
+    pub fn register_function(&self, function: &GlobalFunction) {
+        unsafe { (self.vft().register_function)(self, function) }
+    }
+
+    #[inline]
+    fn vft(&self) -> &RttiSystemVft {
+        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }
 }
 
 #[repr(C)]
-struct IRTTISystemVft {
+struct RttiSystemVft {
     get_type: unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *const Type,
     get_type_by_async_id:
         unsafe extern "fastcall" fn(this: *const RttiSystem, async_id: u32) -> *const Type,
@@ -194,12 +187,11 @@ struct IRTTISystemVft {
         unsafe extern "fastcall" fn(this: *const RttiSystem, ty: *const Type, async_id: u32),
     _sub_88: unsafe extern "fastcall" fn(this: *const RttiSystem),
     _sub_90: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    unregister_type:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, ty: *const red::CBaseRTTIType),
+    unregister_type: unsafe extern "fastcall" fn(this: *const RttiSystem, ty: *const Type),
     register_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const red::CGlobalFunction),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const GlobalFunction),
     unregister_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const red::CGlobalFunction),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const GlobalFunction),
     _sub_b0: unsafe extern "fastcall" fn(this: *const RttiSystem),
     _sub_b8: unsafe extern "fastcall" fn(this: *const RttiSystem),
     // FIXME: crashes when used, signature is probably wrong
@@ -250,8 +242,10 @@ struct IRTTISystemVft {
         unsafe extern "fastcall" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
-pub struct RTTIRegistrator;
-impl RTTIRegistrator {
+#[derive(Debug)]
+pub struct RttiRegistrator;
+
+impl RttiRegistrator {
     pub fn add(
         register: Option<unsafe extern "C" fn()>,
         post_register: Option<unsafe extern "C" fn()>,

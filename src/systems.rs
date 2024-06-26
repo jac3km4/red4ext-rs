@@ -1,2 +1,2 @@
 mod rtti;
-pub use rtti::{RTTIRegistrator, RttiSystem};
+pub use rtti::{RttiRegistrator, RttiSystem};
