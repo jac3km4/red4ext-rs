@@ -7,6 +7,7 @@ use std::{ffi, fmt, iter, mem, ops, ptr};
 use raw::root::{versioning, RED4ext as red};
 pub use widestring::{widecstr as wcstr, U16CStr};
 
+pub mod systems;
 pub mod types;
 
 pub mod hashes {
@@ -517,6 +518,26 @@ impl Function {
 #[repr(transparent)]
 pub struct CName(red::CName);
 
+impl From<u64> for CName {
+    fn from(hash: u64) -> Self {
+        Self(red::CName { hash })
+    }
+}
+
+impl std::fmt::Display for CName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            if self.0.hash == 0 {
+                "None"
+            } else {
+                self.as_str()
+            }
+        )
+    }
+}
+
 impl CName {
     #[inline]
     pub const fn undefined() -> Self {
@@ -629,6 +650,12 @@ impl ArrayType {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Array<T>(red::DynArray<T>);
+
+impl<T> Default for Array<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T> ops::Deref for Array<T> {
     type Target = [T];
@@ -748,6 +775,10 @@ pub struct Type(red::CBaseRTTIType);
 impl Type {
     #[inline]
     pub fn name(&self) -> CName {
+        // calling Type with unk8 == 0 crashes the game
+        if self.0.unk8 == 0 {
+            return CName::undefined();
+        }
         CName(unsafe { (self.vft().tail.CBaseRTTIType_GetName)(&self.0) })
     }
 
@@ -925,4 +956,34 @@ const fn fnv1a64(str: &str) -> u64 {
 fn truncated_cstring(mut s: std::string::String) -> ffi::CString {
     s.truncate(s.find('\0').unwrap_or(s.len()));
     ffi::CString::new(s).unwrap()
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Enum(red::CEnum);
+
+impl Enum {
+    #[inline]
+    pub fn name(&self) -> CName {
+        CName(self.0.name)
+    }
+
+    #[inline]
+    pub fn variant_names(&self) -> &Array<CName> {
+        unsafe { mem::transmute(&self.0.aliasList) }
+    }
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Bitfield(red::CBitfield);
+
+impl Bitfield {
+    pub fn name(&self) -> CName {
+        CName(self.0.name)
+    }
+
+    pub fn fields(&self) -> &[CName; 64] {
+        unsafe { mem::transmute(&self.0.bitNames) }
+    }
 }
