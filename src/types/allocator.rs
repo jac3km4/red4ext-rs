@@ -1,5 +1,5 @@
 use std::num::NonZero;
-use std::{mem, ops};
+use std::{mem, ops, ptr};
 
 use once_cell::race::OnceNonZeroUsize;
 
@@ -26,6 +26,15 @@ impl IAllocator {
 #[derive(Debug)]
 pub struct PoolRef<T: Poolable>(*mut T);
 
+impl<T: Poolable> PoolRef<mem::MaybeUninit<T>> {
+    #[inline]
+    pub unsafe fn assume_init(self) -> PoolRef<T> {
+        let res = PoolRef(self.0 as *mut T);
+        mem::forget(self);
+        res
+    }
+}
+
 impl<T: Poolable> ops::Deref for PoolRef<T> {
     type Target = T;
 
@@ -45,6 +54,7 @@ impl<T: Poolable> ops::DerefMut for PoolRef<T> {
 impl<T: Poolable> Drop for PoolRef<T> {
     #[inline]
     fn drop(&mut self) {
+        unsafe { ptr::drop_in_place(self.0) };
         T::free(self);
     }
 }
@@ -57,13 +67,20 @@ impl Poolable for GlobalFunction {
     type Pool = FunctionPool;
 }
 
+impl<T> Poolable for mem::MaybeUninit<T>
+where
+    T: Poolable,
+{
+    type Pool = T::Pool;
+}
+
 pub trait PoolableOps: Poolable + Sized {
-    fn alloc() -> Option<PoolRef<Self>>;
+    fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
     fn free(ptr: &mut PoolRef<Self>);
 }
 
 impl<T: Poolable> PoolableOps for T {
-    fn alloc() -> Option<PoolRef<Self>> {
+    fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>> {
         let mut result = AllocationResult::default();
         let size = mem::size_of::<Self>();
 
@@ -75,7 +92,7 @@ impl<T: Poolable> PoolableOps for T {
             alloc(T::Pool::vault(), &mut result, size as u32);
         };
 
-        (!result.memory.is_null()).then(|| PoolRef(result.memory as *mut Self))
+        (!result.memory.is_null()).then(|| PoolRef(result.memory.cast::<mem::MaybeUninit<Self>>()))
     }
 
     fn free(ptr: &mut PoolRef<Self>) {

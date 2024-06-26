@@ -220,25 +220,25 @@ pub struct GlobalFunction(red::CGlobalFunction);
 
 impl GlobalFunction {
     pub fn new<R>(
-        full_name_str: &CStr,
-        short_name_str: &CStr,
+        full_name: &CStr,
+        short_name: &CStr,
         handler: FunctionHandler<R>,
     ) -> PoolRef<Self> {
         let mut func = GlobalFunction::alloc().expect("should allocate a GlobalFunction");
-        let full_name = CNamePool::add_cstr(full_name_str);
-        let short_name = CNamePool::add_cstr(short_name_str);
-        func.ctor(full_name, short_name, handler as _);
+        let full_name = CNamePool::add_cstr(full_name);
+        let short_name = CNamePool::add_cstr(short_name);
 
-        func
+        Self::ctor(func.as_mut_ptr(), full_name, short_name, handler as _);
+        unsafe { func.assume_init() }
     }
 
-    fn ctor(&mut self, full_name: CName, short_name: CName, handler: VoidPtr) {
+    fn ctor(ptr: *mut Self, full_name: CName, short_name: CName, handler: VoidPtr) {
         unsafe {
             let ctor = crate::fn_from_hash!(
                 CGlobalFunction_ctor,
-                unsafe extern "C" fn(&mut GlobalFunction, CName, CName, VoidPtr)
+                unsafe extern "C" fn(*mut GlobalFunction, CName, CName, VoidPtr)
             );
-            ctor(self, full_name, short_name, handler);
+            ctor(ptr, full_name, short_name, handler);
         };
     }
 
@@ -250,6 +250,14 @@ impl GlobalFunction {
     #[inline]
     pub fn as_function_mut(&mut self) -> &mut Function {
         unsafe { &mut *(self as *mut _ as *mut Function) }
+    }
+}
+
+impl Drop for GlobalFunction {
+    #[inline]
+    fn drop(&mut self) {
+        let f = self.as_function_mut();
+        unsafe { (f.vft().destruct)(f) };
     }
 }
 
@@ -426,6 +434,6 @@ struct ArrayTypeVft {
 #[repr(C)]
 struct FunctionVft {
     get_allocator: unsafe extern "fastcall" fn(this: &Function) -> *mut IAllocator,
-    destroy: unsafe extern "fastcall" fn(this: &Function),
+    destruct: unsafe extern "fastcall" fn(this: &mut Function),
     get_parent: unsafe extern "fastcall" fn(this: &Function) -> *mut Class,
 }
