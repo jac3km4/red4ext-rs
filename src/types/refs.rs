@@ -9,6 +9,13 @@ pub unsafe trait IsScriptable {}
 #[repr(transparent)]
 pub struct Ref<T: IsScriptable>(BaseRef<T>);
 
+impl<T: IsScriptable> Ref<T> {
+    pub fn downgrade(self) -> WeakRef<T> {
+        self.0.inc_weak();
+        WeakRef(self.0.clone())
+    }
+}
+
 impl<T: IsScriptable> Default for Ref<T> {
     #[inline]
     fn default() -> Self {
@@ -43,7 +50,7 @@ pub struct WeakRef<T: IsScriptable>(BaseRef<T>);
 
 impl<T: IsScriptable> WeakRef<T> {
     #[inline]
-    pub fn upgrade(&self) -> Option<Ref<T>> {
+    pub fn upgrade(self) -> Option<Ref<T>> {
         self.0.inc_strong_if_non_zero().then(|| Ref(self.0.clone()))
     }
 }
