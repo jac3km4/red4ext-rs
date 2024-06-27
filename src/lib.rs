@@ -431,15 +431,18 @@ macro_rules! fn_from_hash {
         $crate::fn_from_hash!($name, $ty, offset: 0)
     }};
     ($name:ident, $ty:ty, offset: $offset:expr) => {{
-        static STATIC: ::once_cell::race::OnceNonZeroUsize =
-            ::once_cell::race::OnceNonZeroUsize::new();
-        let addr = STATIC
-            .get_or_try_init(|| {
-                ::std::num::NonZero::new($crate::hashes::resolve($crate::hashes::$name)).ok_or(())
-            })
-            .expect(::std::stringify!(should resolve $name hash))
-            .get();
-        ::std::mem::transmute::<usize, $ty>(addr + $offset)
+        unsafe fn inner() -> $ty {
+            static STATIC: ::once_cell::race::OnceNonZeroUsize =
+                ::once_cell::race::OnceNonZeroUsize::new();
+            let addr = STATIC
+                .get_or_try_init(|| {
+                    ::std::num::NonZero::new($crate::hashes::resolve($crate::hashes::$name)).ok_or(())
+                })
+                .expect(::std::stringify!(should resolve $name hash))
+                .get();
+            ::std::mem::transmute::<usize, $ty>(addr + $offset)
+        }
+        inner()
     }};
 }
 

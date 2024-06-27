@@ -5,6 +5,7 @@ use sealed::sealed;
 use super::{CName, IScriptable, Type, ValuePtr};
 use crate::raw::root::RED4ext as red;
 use crate::systems::RttiSystem;
+use crate::VoidPtr;
 
 pub unsafe trait ScriptClass: Sized {
     type Kind: ClassKind<Self>;
@@ -78,8 +79,8 @@ impl<T: ScriptClass> Ref<T> {
 
     fn ctor(this: *mut Self, data: *mut T) {
         unsafe {
-            let ctor = crate::fn_from_hash!(Handle_ctor, unsafe extern "C" fn(*mut Self, *mut T));
-            ctor(this, data);
+            let ctor = crate::fn_from_hash!(Handle_ctor, unsafe extern "C" fn(VoidPtr, VoidPtr));
+            ctor(this as *mut _ as VoidPtr, data as *mut _ as VoidPtr);
         }
     }
 
@@ -222,9 +223,8 @@ impl<T> BaseRef<T> {
             return;
         }
         unsafe {
-            let dec_weak =
-                crate::fn_from_hash!(Handle_DecWeakRef, unsafe extern "C" fn(&mut BaseRef<T>));
-            dec_weak(self);
+            let dec_weak = crate::fn_from_hash!(Handle_DecWeakRef, unsafe extern "C" fn(VoidPtr));
+            dec_weak(self as *mut _ as VoidPtr);
         }
     }
 

@@ -4,6 +4,7 @@ use std::{fmt, mem, ops, ptr, slice};
 
 use super::IAllocator;
 use crate::raw::root::RED4ext as red;
+use crate::VoidPtr;
 
 #[repr(transparent)]
 pub struct Array<T>(red::DynArray<T>);
@@ -66,15 +67,15 @@ impl<T> Array<T> {
         self.realloc(expected.max(self.capacity() + self.capacity() / 2));
     }
 
-    fn realloc(&mut self, capacity: u32) {
+    fn realloc(&mut self, cap: u32) {
         let size = mem::size_of::<T>();
         let align = mem::align_of::<T>().max(8);
         unsafe {
             let realloc = crate::fn_from_hash!(
                 DynArray_Realloc,
-                unsafe extern "C" fn(*mut Array<T>, u32, u32, u32, usize)
+                unsafe extern "C" fn(VoidPtr, u32, u32, u32, usize)
             );
-            realloc(self, capacity, size as u32, align as u32, 0);
+            realloc(self as *mut _ as VoidPtr, cap, size as u32, align as u32, 0);
         };
     }
 }
