@@ -2,8 +2,7 @@ use std::ffi::CStr;
 use std::{iter, mem};
 
 use super::{
-    Array, CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, ScriptClass, ScriptRefAny,
-    StackFrame,
+    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, ScriptClass, StackFrame,
 };
 use crate::raw::root::RED4ext as red;
 use crate::VoidPtr;
@@ -22,6 +21,11 @@ impl Type {
             return CName::undefined();
         }
         CName::from_raw(unsafe { (self.vft().tail.CBaseRTTIType_GetName)(&self.0) })
+    }
+
+    #[inline]
+    pub(crate) fn to_raw(&self) -> *const red::CBaseRTTIType {
+        &self.0
     }
 
     #[inline]
@@ -128,7 +132,7 @@ impl Class {
     }
 
     #[inline]
-    pub fn properties(&self) -> &Array<&Property> {
+    pub fn properties(&self) -> &RedArray<&Property> {
         unsafe { mem::transmute(&self.0.props) }
     }
 
@@ -189,12 +193,12 @@ impl Function {
     }
 
     #[inline]
-    pub fn locals(&self) -> &Array<&Property> {
+    pub fn locals(&self) -> &RedArray<&Property> {
         unsafe { mem::transmute(&self.0.localVars) }
     }
 
     #[inline]
-    pub fn params(&self) -> &Array<&Property> {
+    pub fn params(&self) -> &RedArray<&Property> {
         unsafe { mem::transmute(&self.0.params) }
     }
 
@@ -377,7 +381,7 @@ impl Enum {
     }
 
     #[inline]
-    pub fn variant_names(&self) -> &Array<CName> {
+    pub fn variant_names(&self) -> &RedArray<CName> {
         unsafe { mem::transmute(&self.0.aliasList) }
     }
 
@@ -489,10 +493,6 @@ impl ValueContainer {
 pub struct ValuePtr(VoidPtr);
 
 impl ValuePtr {
-    pub(super) fn new(ptr: VoidPtr) -> Self {
-        Self(ptr)
-    }
-
     pub unsafe fn unwrap_ref(&self) -> Option<&IScriptable> {
         let ptr = self.0 as *mut red::SharedPtrBase<red::IScriptable>;
         let inst = (*ptr).instance;
@@ -501,14 +501,6 @@ impl ValuePtr {
             return None;
         };
         Some(&*(inst as *const IScriptable))
-    }
-
-    pub unsafe fn unwrap_script_ref(&self) -> Option<ValuePtr> {
-        let ptr = &*(self.0 as *mut ScriptRefAny);
-        if !ptr.is_defined() {
-            return None;
-        };
-        Some(ptr.value())
     }
 
     #[inline]

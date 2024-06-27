@@ -4,30 +4,30 @@ use std::{fmt, ops, ptr};
 use crate::raw::root::RED4ext as red;
 
 #[repr(transparent)]
-pub struct String(red::CString);
+pub struct RedString(red::CString);
 
-impl String {
+impl RedString {
     #[inline]
     pub fn new() -> Self {
         Self(unsafe { red::CString::new(ptr::null_mut()) })
     }
 }
 
-impl Default for String {
+impl Default for RedString {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Clone for String {
+impl Clone for RedString {
     #[inline]
     fn clone(&self) -> Self {
         Self::from(self.as_ref())
     }
 }
 
-impl ops::Deref for String {
+impl ops::Deref for RedString {
     type Target = CStr;
 
     #[inline]
@@ -36,42 +36,42 @@ impl ops::Deref for String {
     }
 }
 
-impl From<&CStr> for String {
+impl From<&CStr> for RedString {
     #[inline]
     fn from(value: &CStr) -> Self {
         Self(unsafe { red::CString::new1(value.as_ptr(), ptr::null_mut()) })
     }
 }
 
-impl From<CString> for String {
+impl From<CString> for RedString {
     #[inline]
     fn from(value: CString) -> Self {
         value.as_c_str().into()
     }
 }
 
-impl AsRef<CStr> for String {
+impl AsRef<CStr> for RedString {
     #[inline]
     fn as_ref(&self) -> &CStr {
         self
     }
 }
 
-impl fmt::Debug for String {
+impl fmt::Debug for RedString {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.as_ref())
     }
 }
 
-impl fmt::Display for String {
+impl fmt::Display for RedString {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_string_lossy())
     }
 }
 
-impl Drop for String {
+impl Drop for RedString {
     #[inline]
     fn drop(&mut self) {
         unsafe { self.0.destruct() }

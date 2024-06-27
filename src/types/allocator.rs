@@ -136,6 +136,7 @@ impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
 }
 
+#[derive(Debug)]
 pub struct RttiPool;
 
 #[sealed]
@@ -143,6 +144,7 @@ impl Pool for RttiPool {
     const NAME: &'static str = "PoolRTTI";
 }
 
+#[derive(Debug)]
 pub struct ScriptPool;
 
 #[sealed]

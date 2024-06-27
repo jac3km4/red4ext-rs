@@ -1,5 +1,5 @@
 use crate::raw::root::RED4ext as red;
-use crate::types::{Array, Bitfield, CName, Class, Enum, Function, GlobalFunction, Type};
+use crate::types::{Bitfield, CName, Class, Enum, Function, GlobalFunction, RedArray, Type};
 
 #[repr(transparent)]
 pub struct RttiSystem(red::CRTTISystem);
@@ -40,28 +40,28 @@ impl RttiSystem {
     }
 
     #[inline]
-    pub fn get_native_types(&self) -> Array<&Type> {
-        let mut out = Array::default();
+    pub fn get_native_types(&self) -> RedArray<&Type> {
+        let mut out = RedArray::default();
         unsafe {
-            (self.vft().get_native_types)(self, &mut out as *mut _ as *mut Array<*const Type>)
+            (self.vft().get_native_types)(self, &mut out as *mut _ as *mut RedArray<*const Type>)
         };
         out
     }
 
     #[inline]
-    pub fn get_enums(&self) -> Array<&Enum> {
-        let mut out = Array::default();
-        unsafe { (self.vft().get_enums)(self, &mut out as *mut _ as *mut Array<*const Enum>) };
+    pub fn get_enums(&self) -> RedArray<&Enum> {
+        let mut out = RedArray::default();
+        unsafe { (self.vft().get_enums)(self, &mut out as *mut _ as *mut RedArray<*const Enum>) };
         out
     }
 
     #[inline]
-    pub fn get_bitfields(&self, scripted_only: bool) -> Array<&Bitfield> {
-        let mut out = Array::default();
+    pub fn get_bitfields(&self, scripted_only: bool) -> RedArray<&Bitfield> {
+        let mut out = RedArray::default();
         unsafe {
             (self.vft().get_bitfields)(
                 self,
-                &mut out as *mut _ as *mut Array<*const Bitfield>,
+                &mut out as *mut _ as *mut RedArray<*const Bitfield>,
                 scripted_only,
             )
         };
@@ -69,24 +69,24 @@ impl RttiSystem {
     }
 
     #[inline]
-    pub fn get_global_functions(&self) -> Array<&Function> {
-        let mut out = Array::default();
+    pub fn get_global_functions(&self) -> RedArray<&Function> {
+        let mut out = RedArray::default();
         unsafe {
             (self.vft().get_global_functions)(
                 self,
-                &mut out as *mut _ as *mut Array<*const Function>,
+                &mut out as *mut _ as *mut RedArray<*const Function>,
             )
         };
         out
     }
 
     #[inline]
-    pub fn get_class_functions(&self) -> Array<&Function> {
-        let mut out = Array::default();
+    pub fn get_class_functions(&self) -> RedArray<&Function> {
+        let mut out = RedArray::default();
         unsafe {
             (self.vft().get_class_functions)(
                 self,
-                &mut out as *mut _ as *mut Array<*const Function>,
+                &mut out as *mut _ as *mut RedArray<*const Function>,
             )
         };
         out
@@ -94,13 +94,13 @@ impl RttiSystem {
 
     /// retrieve base class and its inheritors, optionally including abstract classes.
     #[inline]
-    pub fn get_classes(&self, base: &Class, include_abstract: bool) -> Array<&Class> {
-        let mut out = Array::default();
+    pub fn get_classes(&self, base: &Class, include_abstract: bool) -> RedArray<&Class> {
+        let mut out = RedArray::default();
         unsafe {
             (self.vft().get_classes)(
                 self,
                 base,
-                &mut out as *mut _ as *mut Array<*const Class>,
+                &mut out as *mut _ as *mut RedArray<*const Class>,
                 None,
                 include_abstract,
             )
@@ -110,13 +110,13 @@ impl RttiSystem {
 
     /// retrieve derived classes, omitting base in the output.
     #[inline]
-    pub fn get_derived_classes(&self, base: &Class) -> Array<&Class> {
-        let mut out = Array::default();
+    pub fn get_derived_classes(&self, base: &Class) -> RedArray<&Class> {
+        let mut out = RedArray::default();
         unsafe {
             (self.vft().get_derived_classes)(
                 self,
                 base,
-                &mut out as *mut _ as *mut Array<*const Class>,
+                &mut out as *mut _ as *mut RedArray<*const Class>,
             )
         };
         out
@@ -159,29 +159,30 @@ struct RttiSystemVft {
         unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *const Function,
     _sub_38: unsafe extern "fastcall" fn(this: *const RttiSystem),
     get_native_types:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut Array<*const Type>),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*const Type>),
     get_global_functions:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut Array<*const Function>),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*const Function>),
     _sub_50: unsafe extern "fastcall" fn(this: *const RttiSystem),
     get_class_functions:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut Array<*const Function>),
-    get_enums: unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut Array<*const Enum>),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*const Function>),
+    get_enums:
+        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*const Enum>),
     get_bitfields: unsafe extern "fastcall" fn(
         this: *const RttiSystem,
-        out: *mut Array<*const Bitfield>,
+        out: *mut RedArray<*const Bitfield>,
         scripted_only: bool,
     ),
     get_classes: unsafe extern "fastcall" fn(
         this: *const RttiSystem,
         base_class: *const Class,
-        out: *mut Array<*const Class>,
+        out: *mut RedArray<*const Class>,
         filter: Option<unsafe extern "C" fn(*const Class) -> bool>,
         include_abstract: bool,
     ),
     get_derived_classes: unsafe extern "fastcall" fn(
         this: *const RttiSystem,
         base_class: *const Class,
-        out: *mut Array<*const Class>,
+        out: *mut RedArray<*const Class>,
     ),
     register_type:
         unsafe extern "fastcall" fn(this: *const RttiSystem, ty: *const Type, async_id: u32),
@@ -218,12 +219,12 @@ struct RttiSystemVft {
         this: *const RttiSystem,
         name: CName,
         size: i8,
-        variants: *mut Array<u64>,
+        variants: *mut RedArray<u64>,
     ),
     // FIXME: signature is wrong, but how to represent name and bit ?
     // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L54
     _create_scripted_bitfield:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName, bits: *mut Array<u64>),
+        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
     _initialize_script_runtime: unsafe extern "fastcall" fn(this: *const RttiSystem),
     register_script_name: unsafe extern "fastcall" fn(
         this: *const RttiSystem,
