@@ -1,5 +1,7 @@
 use std::mem;
 
+use sealed::sealed;
+
 use super::{CName, Function, IScriptable, StackFrame};
 use crate::VoidPtr;
 
@@ -8,6 +10,7 @@ pub const CALL_INSTR_SIZE: isize = mem::size_of::<InvokeStatic>() as isize;
 
 pub type OpcodeHandler = unsafe extern "C" fn(Option<&IScriptable>, &StackFrame, VoidPtr, VoidPtr);
 
+#[sealed]
 pub trait Instr {
     const OPCODE: u8;
 }
@@ -21,6 +24,7 @@ pub struct InvokeStatic {
     pub flags: u16,
 }
 
+#[sealed]
 impl Instr for InvokeStatic {
     const OPCODE: u8 = 36;
 }
@@ -34,6 +38,7 @@ pub struct InvokeVirtual {
     pub flags: u16,
 }
 
+#[sealed]
 impl Instr for InvokeVirtual {
     const OPCODE: u8 = 37;
 }

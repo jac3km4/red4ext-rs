@@ -2,6 +2,7 @@ use std::num::NonZero;
 use std::{mem, ops, ptr};
 
 use once_cell::race::OnceNonZeroUsize;
+use sealed::sealed;
 
 use super::{GlobalFunction, IScriptable};
 use crate::raw::root::RED4ext as red;
@@ -78,11 +79,13 @@ where
     type Pool = T::Pool;
 }
 
+#[sealed]
 pub trait PoolableOps: Poolable + Sized {
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
     fn free(ptr: &mut PoolRef<Self>);
 }
 
+#[sealed]
 impl<T: Poolable> PoolableOps for T {
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>> {
         let mut result = AllocationResult::default();
@@ -115,6 +118,7 @@ impl<T: Poolable> PoolableOps for T {
     }
 }
 
+#[sealed]
 pub trait Pool {
     const NAME: &'static str;
 
@@ -130,18 +134,21 @@ pub trait Pool {
 #[derive(Debug)]
 pub struct FunctionPool;
 
+#[sealed]
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
 }
 
 pub struct RttiPool;
 
+#[sealed]
 impl Pool for RttiPool {
     const NAME: &'static str = "PoolRTTI";
 }
 
 pub struct ScriptPool;
 
+#[sealed]
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }

@@ -1,31 +1,82 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use sealed::sealed;
+
 use super::{CName, IScriptable, Type, ValuePtr};
 use crate::raw::root::RED4ext as red;
 use crate::systems::RttiSystem;
 
-pub unsafe trait IsScriptable {
-    const CLASS_NAME: &'static str;
+pub unsafe trait ScriptClass: Sized {
+    type Kind: ClassKind<Self>;
 
-    type FieldContainer;
+    const CLASS_NAME: &'static str;
+}
+
+#[sealed]
+pub trait ClassKind<T> {
+    type ScriptedFields;
+    type NativeFields: AsRef<IScriptable> + AsMut<IScriptable>;
+
+    fn get(inst: &Self::NativeFields) -> &T;
+    fn get_mut(inst: &mut Self::NativeFields) -> &mut T;
 }
 
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct Ref<T: IsScriptable>(BaseRef<T>);
+pub struct Scripted;
 
-impl<T: IsScriptable> Ref<T> {
+#[sealed]
+impl<T> ClassKind<T> for Scripted {
+    type NativeFields = IScriptable;
+    type ScriptedFields = T;
+
+    #[inline]
+    fn get(inst: &Self::NativeFields) -> &T {
+        unsafe { &*inst.fields().as_ptr().cast::<T>() }
+    }
+
+    #[inline]
+    fn get_mut(inst: &mut Self::NativeFields) -> &mut T {
+        unsafe { &mut *inst.fields().as_ptr().cast::<T>() }
+    }
+}
+
+#[derive(Debug)]
+pub struct Native;
+
+#[sealed]
+impl<T: AsRef<IScriptable> + AsMut<IScriptable>> ClassKind<T> for Native {
+    type NativeFields = T;
+    type ScriptedFields = ();
+
+    #[inline]
+    fn get(inst: &Self::NativeFields) -> &T {
+        inst
+    }
+
+    #[inline]
+    fn get_mut(inst: &mut Self::NativeFields) -> &mut T {
+        inst
+    }
+}
+
+type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeFields;
+
+#[repr(transparent)]
+pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
+
+impl<T: ScriptClass> Ref<T> {
     #[inline]
     pub fn new() -> Option<Self> {
         Self::new_with(|_| {})
     }
 
-    pub fn new_with(init: impl FnOnce(&mut T::FieldContainer)) -> Option<Self> {
+    pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
         let class = RttiSystem::get().get_class(CName::new(T::CLASS_NAME))?;
-        let inst = class.instantiate();
+        let inst = class.instantiate().as_ptr() as *mut T;
         let mut this = Self::default();
-        Self::ctor(&mut this, inst.as_ptr() as _);
-        init(this.fields_mut()?);
+        Self::ctor(&mut this, inst);
+
+        init(T::Kind::get_mut(this.0.instance_mut()?));
         Some(this)
     }
 
@@ -37,15 +88,8 @@ impl<T: IsScriptable> Ref<T> {
     }
 
     #[inline]
-    pub fn fields(&self) -> Option<&T::FieldContainer> {
-        let s = self.0.scriptable()?;
-        Some(unsafe { &*s.fields().as_ptr().cast::<T::FieldContainer>() })
-    }
-
-    #[inline]
-    fn fields_mut(&mut self) -> Option<&mut T::FieldContainer> {
-        let s = self.0.scriptable()?;
-        Some(unsafe { &mut *s.fields().as_ptr().cast::<T::FieldContainer>() })
+    pub fn fields(&self) -> Option<&T> {
+        Some(T::Kind::get(self.0.instance()?))
     }
 
     #[inline]
@@ -55,14 +99,14 @@ impl<T: IsScriptable> Ref<T> {
     }
 }
 
-impl<T: IsScriptable> Default for Ref<T> {
+impl<T: ScriptClass> Default for Ref<T> {
     #[inline]
     fn default() -> Self {
         Self(BaseRef::default())
     }
 }
 
-impl<T: IsScriptable> Clone for Ref<T> {
+impl<T: ScriptClass> Clone for Ref<T> {
     #[inline]
     fn clone(&self) -> Self {
         self.0.inc_strong();
@@ -70,7 +114,7 @@ impl<T: IsScriptable> Clone for Ref<T> {
     }
 }
 
-impl<T: IsScriptable> Drop for Ref<T> {
+impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
         if self.0.dec_strong() && !self.0 .0.instance.is_null() {
@@ -80,18 +124,16 @@ impl<T: IsScriptable> Drop for Ref<T> {
     }
 }
 
-unsafe impl<T: IsScriptable> Send for Ref<T> {}
-unsafe impl<T: IsScriptable> Sync for Ref<T> {}
+unsafe impl<T: ScriptClass> Send for Ref<T> {}
+unsafe impl<T: ScriptClass> Sync for Ref<T> {}
 
-#[derive(Debug)]
 #[repr(transparent)]
-pub struct WeakRef<T: IsScriptable>(BaseRef<T>);
+pub struct WeakRef<T: ScriptClass>(BaseRef<NativeType<T>>);
 
-impl<T: IsScriptable> WeakRef<T> {
+impl<T: ScriptClass> WeakRef<T> {
     #[inline]
-    pub fn fields(&self) -> Option<&T::FieldContainer> {
-        let s = self.0.scriptable()?;
-        Some(unsafe { &*s.fields().as_ptr().cast::<T::FieldContainer>() })
+    pub fn fields(&self) -> Option<&T> {
+        Some(T::Kind::get(self.0.instance()?))
     }
 
     #[inline]
@@ -100,14 +142,14 @@ impl<T: IsScriptable> WeakRef<T> {
     }
 }
 
-impl<T: IsScriptable> Default for WeakRef<T> {
+impl<T: ScriptClass> Default for WeakRef<T> {
     #[inline]
     fn default() -> Self {
         Self(BaseRef::default())
     }
 }
 
-impl<T: IsScriptable> Clone for WeakRef<T> {
+impl<T: ScriptClass> Clone for WeakRef<T> {
     #[inline]
     fn clone(&self) -> Self {
         self.0.inc_weak();
@@ -115,15 +157,15 @@ impl<T: IsScriptable> Clone for WeakRef<T> {
     }
 }
 
-impl<T: IsScriptable> Drop for WeakRef<T> {
+impl<T: ScriptClass> Drop for WeakRef<T> {
     #[inline]
     fn drop(&mut self) {
         self.0.dec_weak();
     }
 }
 
-unsafe impl<T: IsScriptable> Send for WeakRef<T> {}
-unsafe impl<T: IsScriptable> Sync for WeakRef<T> {}
+unsafe impl<T: ScriptClass> Send for WeakRef<T> {}
+unsafe impl<T: ScriptClass> Sync for WeakRef<T> {}
 
 #[derive(Debug)]
 #[repr(transparent)]
@@ -131,8 +173,13 @@ struct BaseRef<T>(red::SharedPtrBase<T>);
 
 impl<T> BaseRef<T> {
     #[inline]
-    fn scriptable(&self) -> Option<&IScriptable> {
-        unsafe { self.0.instance.cast::<IScriptable>().as_ref() }
+    fn instance(&self) -> Option<&T> {
+        unsafe { self.0.instance.as_ref() }
+    }
+
+    #[inline]
+    fn instance_mut(&mut self) -> Option<&mut T> {
+        unsafe { self.0.instance.as_mut() }
     }
 
     #[inline]

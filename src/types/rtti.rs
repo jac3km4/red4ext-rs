@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::{iter, mem};
 
 use super::{
-    Array, CName, CNamePool, IAllocator, IsScriptable, PoolRef, PoolableOps, ScriptRefAny,
+    Array, CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, ScriptClass, ScriptRefAny,
     StackFrame,
 };
 use crate::raw::root::RED4ext as red;
@@ -451,8 +451,22 @@ impl IScriptable {
     }
 }
 
-unsafe impl IsScriptable for IScriptable {
-    type FieldContainer = ();
+impl AsRef<IScriptable> for IScriptable {
+    #[inline]
+    fn as_ref(&self) -> &IScriptable {
+        self
+    }
+}
+
+impl AsMut<IScriptable> for IScriptable {
+    #[inline]
+    fn as_mut(&mut self) -> &mut IScriptable {
+        self
+    }
+}
+
+unsafe impl ScriptClass for IScriptable {
+    type Kind = Native;
 
     const CLASS_NAME: &'static str = "IScriptable";
 }

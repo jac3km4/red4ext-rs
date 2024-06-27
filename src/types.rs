@@ -9,7 +9,7 @@ pub use tweak_db_id::TweakDbId;
 mod array;
 pub use array::{Array, IntoIter};
 mod refs;
-pub use refs::{IsScriptable, Ref, ScriptRef, ScriptRefAny, WeakRef};
+pub use refs::{Native, Ref, ScriptClass, ScriptRef, ScriptRefAny, Scripted, WeakRef};
 mod string;
 pub use string::String;
 mod cname;

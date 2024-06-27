@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
 
 use raw::root::{versioning, RED4ext as red};
+use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod raw;
@@ -227,12 +228,14 @@ impl<O, R> Hook<O, R> {
     }
 }
 
+#[sealed]
 pub trait FnPtr<Args, Ret> {
     fn to_ptr(&self) -> VoidPtr;
 }
 
 macro_rules! impl_fn_ptr {
     ($($ty:ident),*) => {
+        #[sealed]
         impl <$($ty,)* Ret> FnPtr<($($ty,)*), Ret> for unsafe extern "C" fn($($ty,)*) -> Ret {
             #[inline]
             fn to_ptr(&self) -> VoidPtr {
@@ -263,12 +266,14 @@ pub trait Plugin<Env: From<SdkEnv> = SdkEnv> {
     fn on_init(env: &Env);
 }
 
+#[sealed]
 pub trait PluginOps<Env: From<SdkEnv>>: Plugin<Env> {
     fn env() -> &'static Env;
     fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>>;
     fn plugin_info() -> red::PluginInfo;
 }
 
+#[sealed]
 impl<P, Env> PluginOps<Env> for P
 where
     Env: From<SdkEnv>,
