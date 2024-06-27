@@ -14,11 +14,10 @@ pub unsafe trait ScriptClass: Sized {
 
 #[sealed]
 pub trait ClassKind<T> {
-    type ScriptedFields;
-    type NativeFields: AsRef<IScriptable> + AsMut<IScriptable>;
+    type NativeType: AsRef<IScriptable> + AsMut<IScriptable>;
 
-    fn get(inst: &Self::NativeFields) -> &T;
-    fn get_mut(inst: &mut Self::NativeFields) -> &mut T;
+    fn get(inst: &Self::NativeType) -> &T;
+    fn get_mut(inst: &mut Self::NativeType) -> &mut T;
 }
 
 #[derive(Debug)]
@@ -26,16 +25,15 @@ pub struct Scripted;
 
 #[sealed]
 impl<T> ClassKind<T> for Scripted {
-    type NativeFields = IScriptable;
-    type ScriptedFields = T;
+    type NativeType = IScriptable;
 
     #[inline]
-    fn get(inst: &Self::NativeFields) -> &T {
+    fn get(inst: &Self::NativeType) -> &T {
         unsafe { &*inst.fields().as_ptr().cast::<T>() }
     }
 
     #[inline]
-    fn get_mut(inst: &mut Self::NativeFields) -> &mut T {
+    fn get_mut(inst: &mut Self::NativeType) -> &mut T {
         unsafe { &mut *inst.fields().as_ptr().cast::<T>() }
     }
 }
@@ -45,21 +43,20 @@ pub struct Native;
 
 #[sealed]
 impl<T: AsRef<IScriptable> + AsMut<IScriptable>> ClassKind<T> for Native {
-    type NativeFields = T;
-    type ScriptedFields = ();
+    type NativeType = T;
 
     #[inline]
-    fn get(inst: &Self::NativeFields) -> &T {
+    fn get(inst: &Self::NativeType) -> &T {
         inst
     }
 
     #[inline]
-    fn get_mut(inst: &mut Self::NativeFields) -> &mut T {
+    fn get_mut(inst: &mut Self::NativeType) -> &mut T {
         inst
     }
 }
 
-type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeFields;
+type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeType;
 
 #[repr(transparent)]
 pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
@@ -72,9 +69,8 @@ impl<T: ScriptClass> Ref<T> {
 
     pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
         let class = RttiSystem::get().get_class(CName::new(T::CLASS_NAME))?;
-        let inst = class.instantiate().as_ptr() as *mut T;
         let mut this = Self::default();
-        Self::ctor(&mut this, inst);
+        Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
         init(T::Kind::get_mut(this.0.instance_mut()?));
         Some(this)
