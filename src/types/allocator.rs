@@ -87,34 +87,21 @@ pub trait PoolableOps: Poolable + Sized {
 
 #[sealed]
 impl<T: Poolable> PoolableOps for T {
+    #[inline]
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>> {
         let mut result = AllocationResult::default();
         let size = mem::size_of::<Self>();
-
-        unsafe {
-            let alloc = crate::fn_from_hash!(
-                Memory_Vault_Alloc,
-                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
-            );
-            alloc(T::Pool::vault(), &mut result, size as u32);
-        };
-
+        unsafe { vault_alloc(T::Pool::vault(), &mut result, size as u32) };
         (!result.memory.is_null()).then(|| PoolRef(result.memory.cast::<mem::MaybeUninit<Self>>()))
     }
 
+    #[inline]
     fn free(ptr: &mut PoolRef<Self>) {
         let mut alloc = AllocationResult {
             memory: ptr.0 as VoidPtr,
             size: 0,
         };
-
-        unsafe {
-            let free = crate::fn_from_hash!(
-                Memory_Vault_Free,
-                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
-            );
-            free(T::Pool::vault(), &mut alloc);
-        }
+        unsafe { vault_free(T::Pool::vault(), &mut alloc) };
     }
 }
 
@@ -125,7 +112,7 @@ pub trait Pool {
     fn vault() -> *mut red::Memory::Vault {
         static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
         VAULT
-            .get_or_try_init(|| unsafe { get_pool(fnv1a32(Self::NAME)) }.ok_or(()))
+            .get_or_try_init(|| unsafe { vault_get(fnv1a32(Self::NAME)) }.ok_or(()))
             .expect("should resolve vault")
             .get() as _
     }
@@ -153,7 +140,25 @@ impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }
 
-unsafe fn get_pool(handle: u32) -> Option<NonZero<usize>> {
+unsafe fn vault_alloc(vault: *mut red::Memory::Vault, memory: *mut AllocationResult, size: u32) {
+    let alloc = crate::fn_from_hash!(
+        Memory_Vault_Alloc,
+        unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
+    );
+    alloc(vault, memory, size);
+}
+
+unsafe fn vault_free(vault: *mut red::Memory::Vault, memory: *mut AllocationResult) {
+    let free = crate::fn_from_hash!(
+        Memory_Vault_Free,
+        unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
+    );
+    free(vault, memory);
+}
+
+// the vault is cached, so this function is called only once per pool, inlining is unproductive
+#[inline(never)]
+unsafe fn vault_get(handle: u32) -> Option<NonZero<usize>> {
     let vault = &mut *red::Memory::Vault::Get();
 
     vault.poolRegistry.nodesLock.lock_shared();
