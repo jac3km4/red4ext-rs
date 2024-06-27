@@ -9,6 +9,7 @@ sealed = "0.5"
 once_cell = "1"
 widestring = "1"
 const-crc32 = "1"
+const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.4" }
 
 [build-dependencies]
 bindgen = { version = "0.69", features = ["experimental"] }

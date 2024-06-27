@@ -1,9 +1,11 @@
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use sealed::sealed;
 
-use super::{CName, IScriptable, Type, ValuePtr};
+use super::{CName, IScriptable, Type};
 use crate::raw::root::RED4ext as red;
+use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
 use crate::VoidPtr;
 
@@ -11,6 +13,7 @@ pub unsafe trait ScriptClass: Sized {
     type Kind: ClassKind<Self>;
 
     const CLASS_NAME: &'static str;
+    const NATIVE_NAME: &'static str = Self::CLASS_NAME;
 }
 
 #[sealed]
@@ -270,9 +273,24 @@ impl RefCount {
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct ScriptRef<T>(red::ScriptRef<T>);
+pub struct ScriptRef<'a, T>(red::ScriptRef<T>, PhantomData<&'a mut T>);
 
-impl<T> ScriptRef<T> {
+impl<'a, T: NativeRepr> ScriptRef<'a, T> {
+    pub fn new(val: &'a mut T) -> Option<Self> {
+        let inner = RttiSystem::get().get_type(CName::new(T::NATIVE_NAME))?;
+        let ref_ = red::ScriptRef {
+            innerType: inner.to_raw() as *mut _,
+            ref_: val as *mut T,
+            ..Default::default()
+        };
+        Some(Self(ref_, PhantomData))
+    }
+
+    #[inline]
+    pub fn value(&self) -> Option<&T> {
+        unsafe { self.0.ref_.as_ref() }
+    }
+
     #[inline]
     pub fn inner_type(&self) -> &Type {
         unsafe { &*(self.0.innerType.cast::<Type>()) }
@@ -281,14 +299,5 @@ impl<T> ScriptRef<T> {
     #[inline]
     pub fn is_defined(&self) -> bool {
         !self.0.ref_.is_null()
-    }
-}
-
-pub type ScriptRefAny = ScriptRef<std::os::raw::c_void>;
-
-impl ScriptRefAny {
-    #[inline]
-    pub fn value(&self) -> ValuePtr {
-        ValuePtr::new(self.0.ref_)
     }
 }

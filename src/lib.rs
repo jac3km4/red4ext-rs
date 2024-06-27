@@ -7,6 +7,7 @@ use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod raw;
+pub mod repr;
 pub mod systems;
 pub mod types;
 
