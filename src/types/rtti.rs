@@ -744,7 +744,9 @@ impl IScriptable {
 
     #[inline]
     pub fn fields(&self) -> ValueContainer {
-        ValueContainer(self.0.valueHolder)
+        ValueContainer(unsafe {
+            red::IScriptable_GetValueHolder(self as *const _ as *mut red::IScriptable)
+        })
     }
 }
 
