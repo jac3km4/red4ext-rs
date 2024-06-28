@@ -7,7 +7,7 @@ use super::{
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
-use crate::repr::NativeRepr;
+use crate::repr::{FromRepr, NativeRepr};
 use crate::VoidPtr;
 
 pub type FunctionHandler<R> = extern "C" fn(Option<&IScriptable>, &mut StackFrame, R, i64);
@@ -311,14 +311,16 @@ impl Function {
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
     where
         A: Args,
-        R: NativeRepr + Default,
+        R: FromRepr,
+        R::Repr: Default,
     {
-        let mut ret = R::default();
-        let mut out = StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::NATIVE_NAME))?;
+        let mut ret = R::Repr::default();
+        let mut out =
+            StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::Repr::NATIVE_NAME))?;
         let arr = args.to_array()?;
         self.validate_stack(arr.as_ref(), &out)?;
         self.execute_internal(ctx, arr.as_ref(), &mut out)?;
-        Ok(ret)
+        Ok(R::from_repr(ret))
     }
 
     #[inline(never)]
