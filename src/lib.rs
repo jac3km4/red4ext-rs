@@ -25,59 +25,89 @@ pub mod internal {
     pub use crate::red::{EMainReason, PluginHandle, PluginInfo, Sdk};
 }
 
-#[derive(Debug)]
-pub struct SemVer(red::SemVer);
+pub type VoidPtr = *mut std::os::raw::c_void;
 
-impl SemVer {
+pub trait Plugin<Env: From<SdkEnv> = SdkEnv> {
+    const NAME: &'static U16CStr;
+    const AUTHOR: &'static U16CStr;
+    const VERSION: SemVer;
+    const SDK: SdkVersion = SdkVersion::LATEST;
+    const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
+    const API_VERSION: ApiVersion = ApiVersion::LATEST;
+
+    fn on_init(env: &Env);
+}
+
+#[sealed]
+pub trait PluginOps<Env: From<SdkEnv>>: Plugin<Env> {
+    fn env() -> &'static Env;
+    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>>;
+    fn info() -> PluginInfo;
+}
+
+#[sealed]
+impl<P, Env> PluginOps<Env> for P
+where
+    Env: From<SdkEnv>,
+    P: Plugin<Env>,
+{
+    fn env() -> &'static Env {
+        Self::env_lock()
+            .get()
+            .expect("plugin environment should be initialized")
+            .downcast_ref()
+            .unwrap()
+    }
+
     #[inline]
-    pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
-        Self(red::SemVer {
-            major,
-            minor,
-            patch,
-            prerelease: red::v0::SemVer_PrereleaseInfo {
-                type_: 0,
-                number: 0,
-            },
-        })
+    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>> {
+        static ENV: OnceLock<Box<dyn std::any::Any + Send + Sync>> = OnceLock::new();
+        &ENV
+    }
+
+    fn info() -> PluginInfo {
+        PluginInfo::new(
+            Self::NAME,
+            Self::AUTHOR,
+            Self::SDK,
+            Self::VERSION,
+            Self::RUNTIME,
+        )
     }
 }
 
-#[derive(Debug)]
-pub struct RuntimeVersion(red::FileVer);
+#[macro_export]
+macro_rules! export_plugin {
+    ($trait:ty) => {
+        mod __api {
+            use super::*;
 
-impl RuntimeVersion {
-    const RUNTIME_INDEPENDENT: Self = Self(red::FileVer {
-        major: versioning::RUNTIME_INDEPENDENT,
-        minor: versioning::RUNTIME_INDEPENDENT,
-        build: versioning::RUNTIME_INDEPENDENT,
-        revision: versioning::RUNTIME_INDEPENDENT,
-    });
-}
+            #[no_mangle]
+            #[allow(non_snake_case, unused_variables)]
+            unsafe extern "C" fn Query(info: *mut $crate::internal::PluginInfo) {
+                *info = <$trait as $crate::PluginOps<_>>::info().into_raw();
+            }
 
-#[derive(Debug)]
-pub struct SdkVersion(SemVer);
+            #[no_mangle]
+            #[allow(non_snake_case, unused_variables)]
+            extern "C" fn Main(
+                handle: $crate::internal::PluginHandle,
+                reason: $crate::internal::EMainReason::Type,
+                sdk: $crate::internal::Sdk,
+            ) {
+                let lock = <$trait as $crate::PluginOps<_>>::env_lock();
+                lock.set(Box::new($crate::SdkEnv::new(handle, sdk)))
+                    .expect("plugin environment should be initialized");
+                <$trait as $crate::Plugin<_>>::on_init(<$trait as $crate::PluginOps<_>>::env());
+            }
 
-impl SdkVersion {
-    const LATEST: Self = Self(SemVer::new(
-        versioning::SDK_MAJOR,
-        versioning::SDK_MINOR,
-        versioning::SDK_PATCH,
-    ));
-}
-
-#[derive(Debug)]
-pub struct ApiVersion(u32);
-
-impl ApiVersion {
-    const LATEST: Self = Self(versioning::API_VERSION_LATEST);
-}
-
-impl From<ApiVersion> for u32 {
-    #[inline]
-    fn from(api: ApiVersion) -> u32 {
-        api.0
-    }
+            #[no_mangle]
+            #[allow(non_snake_case, unused_variables)]
+            extern "C" fn Supports() -> u32 {
+                <$trait as $crate::Plugin<_>>::API_VERSION.into()
+            }
+        }
+    };
 }
 
 macro_rules! log_internal {
@@ -87,6 +117,38 @@ macro_rules! log_internal {
             ((*$self.sdk.logger).$level.unwrap())($self.handle, str.as_ptr());
         }
     };
+}
+
+pub mod log {
+    pub use crate::{debug, error, info, warn};
+
+    #[macro_export]
+    macro_rules! info {
+        ($env:expr, $($arg:tt)*) => {
+            $env.info(format_args!($($arg)*))
+        };
+    }
+
+    #[macro_export]
+    macro_rules! warn {
+        ($env:expr, $($arg:tt)*) => {
+            $env.warn(format_args!($($arg)*))
+        };
+    }
+
+    #[macro_export]
+    macro_rules! error {
+        ($env:expr, $($arg:tt)*) => {
+            $env.error(format_args!($($arg)*))
+        };
+    }
+
+    #[macro_export]
+    macro_rules! debug {
+        ($env:expr, $($arg:tt)*) => {
+            $env.debug(format_args!($($arg)*))
+        };
+    }
 }
 
 #[derive(Debug)]
@@ -160,35 +222,58 @@ impl SdkEnv {
 unsafe impl Send for SdkEnv {}
 unsafe impl Sync for SdkEnv {}
 
-pub mod log {
-    pub use crate::{debug, error, info, warn};
+#[derive(Debug)]
+pub struct SemVer(red::SemVer);
 
-    #[macro_export]
-    macro_rules! info {
-        ($env:expr, $($arg:tt)*) => {
-            $env.info(format_args!($($arg)*))
-        };
+impl SemVer {
+    #[inline]
+    pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
+        Self(red::SemVer {
+            major,
+            minor,
+            patch,
+            prerelease: red::v0::SemVer_PrereleaseInfo {
+                type_: 0,
+                number: 0,
+            },
+        })
     }
+}
 
-    #[macro_export]
-    macro_rules! warn {
-        ($env:expr, $($arg:tt)*) => {
-            $env.warn(format_args!($($arg)*))
-        };
-    }
+#[derive(Debug)]
+pub struct RuntimeVersion(red::FileVer);
 
-    #[macro_export]
-    macro_rules! error {
-        ($env:expr, $($arg:tt)*) => {
-            $env.error(format_args!($($arg)*))
-        };
-    }
+impl RuntimeVersion {
+    pub const RUNTIME_INDEPENDENT: Self = Self(red::FileVer {
+        major: versioning::RUNTIME_INDEPENDENT,
+        minor: versioning::RUNTIME_INDEPENDENT,
+        build: versioning::RUNTIME_INDEPENDENT,
+        revision: versioning::RUNTIME_INDEPENDENT,
+    });
+}
 
-    #[macro_export]
-    macro_rules! debug {
-        ($env:expr, $($arg:tt)*) => {
-            $env.debug(format_args!($($arg)*))
-        };
+#[derive(Debug)]
+pub struct SdkVersion(SemVer);
+
+impl SdkVersion {
+    pub const LATEST: Self = Self(SemVer::new(
+        versioning::SDK_MAJOR,
+        versioning::SDK_MINOR,
+        versioning::SDK_PATCH,
+    ));
+}
+
+#[derive(Debug)]
+pub struct ApiVersion(u32);
+
+impl ApiVersion {
+    pub const LATEST: Self = Self(versioning::API_VERSION_LATEST);
+}
+
+impl From<ApiVersion> for u32 {
+    #[inline]
+    fn from(api: ApiVersion) -> u32 {
+        api.0
     }
 }
 
@@ -256,92 +341,7 @@ impl_fn_ptr!(A, B, C, D, E, F);
 impl_fn_ptr!(A, B, C, D, E, F, G);
 impl_fn_ptr!(A, B, C, D, E, F, G, H);
 
-pub trait Plugin<Env: From<SdkEnv> = SdkEnv> {
-    const NAME: &'static U16CStr;
-    const AUTHOR: &'static U16CStr;
-    const VERSION: SemVer;
-    const SDK: SdkVersion = SdkVersion::LATEST;
-    const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
-    const API_VERSION: ApiVersion = ApiVersion::LATEST;
-
-    fn on_init(env: &Env);
-}
-
-#[sealed]
-pub trait PluginOps<Env: From<SdkEnv>>: Plugin<Env> {
-    fn env() -> &'static Env;
-    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>>;
-    fn plugin_info() -> red::PluginInfo;
-}
-
-#[sealed]
-impl<P, Env> PluginOps<Env> for P
-where
-    Env: From<SdkEnv>,
-    P: Plugin<Env>,
-{
-    fn env() -> &'static Env {
-        Self::env_lock()
-            .get()
-            .expect("plugin environment should be initialized")
-            .downcast_ref()
-            .unwrap()
-    }
-
-    #[inline]
-    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>> {
-        static ENV: OnceLock<Box<dyn std::any::Any + Send + Sync>> = OnceLock::new();
-        &ENV
-    }
-
-    fn plugin_info() -> red::PluginInfo {
-        red::PluginInfo {
-            name: Self::NAME.as_ptr(),
-            author: Self::AUTHOR.as_ptr(),
-            version: Self::VERSION.0,
-            runtime: Self::RUNTIME.0,
-            sdk: Self::SDK.0 .0,
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! export_plugin {
-    ($trait:ty) => {
-        mod __api {
-            use super::*;
-
-            #[no_mangle]
-            #[allow(non_snake_case, unused_variables)]
-            unsafe extern "C" fn Query(info: *mut $crate::internal::PluginInfo) {
-                *info = <$trait as $crate::PluginOps<_>>::plugin_info();
-            }
-
-            #[no_mangle]
-            #[allow(non_snake_case, unused_variables)]
-            extern "C" fn Main(
-                handle: $crate::internal::PluginHandle,
-                reason: $crate::internal::EMainReason::Type,
-                sdk: $crate::internal::Sdk,
-            ) {
-                let lock = <$trait as $crate::PluginOps<_>>::env_lock();
-                lock.set(Box::new($crate::SdkEnv::new(handle, sdk)))
-                    .expect("plugin environment should be initialized");
-                <$trait as $crate::Plugin<_>>::on_init(<$trait as $crate::PluginOps<_>>::env());
-            }
-
-            #[no_mangle]
-            #[allow(non_snake_case, unused_variables)]
-            extern "C" fn Supports() -> u32 {
-                <$trait as $crate::Plugin<_>>::API_VERSION.into()
-            }
-        }
-    };
-}
-
 pub type StateHandler = unsafe extern "C" fn(app: &GameApp);
-
-pub type VoidPtr = *mut std::os::raw::c_void;
 
 #[repr(transparent)]
 pub struct GameApp(red::CGameApplication);
@@ -384,6 +384,34 @@ pub enum StateType {
     Initialization = red::EGameStateType::Initialization,
     Running = red::EGameStateType::Running,
     Shutdown = red::EGameStateType::Shutdown,
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct PluginInfo(red::PluginInfo);
+
+impl PluginInfo {
+    #[inline]
+    pub const fn new(
+        name: &'static U16CStr,
+        author: &'static U16CStr,
+        sdk: SdkVersion,
+        version: SemVer,
+        runtime: RuntimeVersion,
+    ) -> Self {
+        Self(red::PluginInfo {
+            name: name.as_ptr(),
+            author: author.as_ptr(),
+            sdk: sdk.0 .0,
+            version: version.0,
+            runtime: runtime.0,
+        })
+    }
+
+    #[inline]
+    pub fn into_raw(self) -> red::PluginInfo {
+        self.0
+    }
 }
 
 const fn fnv1a64(str: &str) -> u64 {
