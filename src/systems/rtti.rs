@@ -1,5 +1,9 @@
+use std::mem;
+
 use crate::raw::root::RED4ext as red;
-use crate::types::{Bitfield, CName, Class, Enum, Function, GlobalFunction, RedArray, Type};
+use crate::types::{
+    Bitfield, CName, Class, Enum, Function, GlobalFunction, PoolRef, RedArray, Type,
+};
 
 #[repr(transparent)]
 pub struct RttiSystem(red::CRTTISystem);
@@ -135,8 +139,10 @@ impl RttiSystem {
     }
 
     #[inline]
-    pub fn register_function(&self, function: &GlobalFunction) {
-        unsafe { (self.vft().register_function)(self, function) }
+    pub fn register_function(&self, function: PoolRef<GlobalFunction>) {
+        unsafe { (self.vft().register_function)(self, &*function) }
+        // RTTI takes ownership of it from now on
+        mem::forget(function);
     }
 
     #[inline]

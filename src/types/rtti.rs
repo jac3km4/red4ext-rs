@@ -190,18 +190,24 @@ impl Class {
     }
 
     #[inline]
-    pub fn add_method(&mut self, func: &Method) {
-        self.methods_mut().push(func);
+    pub fn add_method(&mut self, func: PoolRef<Method>) {
+        self.methods_mut().push(&func);
+        // RTTI takes ownership of it from now on
+        mem::forget(func);
     }
 
     #[inline]
-    pub fn add_static_method(&mut self, func: &StaticMethod) {
-        self.static_methods_mut().push(func);
+    pub fn add_static_method(&mut self, func: PoolRef<StaticMethod>) {
+        self.static_methods_mut().push(&func);
+        // RTTI takes ownership of it from now on
+        mem::forget(func);
     }
 
     #[inline]
-    pub fn add_property(&mut self, prop: &Property) {
-        self.properties_mut().push(prop);
+    pub fn add_property(&mut self, prop: PoolRef<Property>) {
+        self.properties_mut().push(&prop);
+        // RTTI takes ownership of it from now on
+        mem::forget(prop);
     }
 
     #[inline]
