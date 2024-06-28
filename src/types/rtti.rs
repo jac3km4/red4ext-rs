@@ -160,7 +160,6 @@ impl Class {
         unsafe { mem::transmute(&self.0.funcsByName) }
     }
 
-    #[inline]
     pub fn get_method(&self, name: CName) -> Option<&Method> {
         iter::once(self)
             .chain(self.base_iter())
@@ -307,7 +306,6 @@ impl Function {
         self.0.flags.set_isStatic(is_static as u32)
     }
 
-    #[inline]
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
     where
         A: Args,
