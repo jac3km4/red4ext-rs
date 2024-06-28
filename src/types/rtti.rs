@@ -2,8 +2,8 @@ use std::ffi::CStr;
 use std::{iter, mem, ptr};
 
 use super::{
-    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, ScriptClass,
-    StackArg, StackFrame,
+    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
+    ScriptClass, StackArg, StackFrame,
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
@@ -64,8 +64,8 @@ impl Type {
         }
     }
 
-    pub unsafe fn to_string(&self, value: ValuePtr) -> String {
-        let mut str = String::new();
+    pub unsafe fn to_string(&self, value: ValuePtr) -> RedString {
+        let mut str = RedString::new();
         unsafe {
             (self.vft().tail.CBaseRTTIType_ToString)(
                 &self.0,
