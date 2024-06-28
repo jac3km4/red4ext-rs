@@ -16,8 +16,8 @@ mod cname;
 pub use cname::{CName, CNamePool};
 mod rtti;
 pub use rtti::{
-    ArrayType, Bitfield, Class, Enum, Function, GlobalFunction, IScriptable, Kind, Property, Type,
-    ValueContainer, ValuePtr,
+    ArrayType, Bitfield, Class, Enum, Function, FunctionHandler, GlobalFunction, IScriptable, Kind,
+    Method, Property, StaticMethod, Type, ValueContainer, ValuePtr,
 };
 mod bytecode;
 pub use bytecode::{

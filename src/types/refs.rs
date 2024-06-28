@@ -279,7 +279,7 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
     pub fn new(val: &'a mut T) -> Option<Self> {
         let inner = RttiSystem::get().get_type(CName::new(T::NATIVE_NAME))?;
         let ref_ = red::ScriptRef {
-            innerType: inner.to_raw() as *mut _,
+            innerType: inner.as_raw() as *mut _,
             ref_: val as *mut T,
             ..Default::default()
         };

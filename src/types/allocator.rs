@@ -4,7 +4,7 @@ use std::{mem, ops, ptr};
 use once_cell::race::OnceNonZeroUsize;
 use sealed::sealed;
 
-use super::{GlobalFunction, IScriptable};
+use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{fnv1a32, VoidPtr};
@@ -66,6 +66,18 @@ pub trait Poolable {
 
 impl Poolable for GlobalFunction {
     type Pool = FunctionPool;
+}
+
+impl Poolable for Method {
+    type Pool = FunctionPool;
+}
+
+impl Poolable for StaticMethod {
+    type Pool = FunctionPool;
+}
+
+impl Poolable for Property {
+    type Pool = PropertyPool;
 }
 
 impl Poolable for IScriptable {
@@ -134,6 +146,14 @@ pub struct FunctionPool;
 #[sealed]
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
+}
+
+#[derive(Debug)]
+pub struct PropertyPool;
+
+#[sealed]
+impl Pool for PropertyPool {
+    const NAME: &'static str = "PoolRTTIProperty";
 }
 
 #[derive(Debug)]

@@ -6,6 +6,7 @@ use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
+pub mod invocable;
 mod raw;
 pub mod repr;
 pub mod systems;
