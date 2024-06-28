@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::TweakDbId;
 use crate::raw::root::RED4ext as red;
 
@@ -40,6 +42,16 @@ impl ItemId {
 
     pub fn is_valid(&self) -> bool {
         unsafe { self.0.IsValid() }
+    }
+}
+
+impl fmt::Debug for ItemId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ItemId")
+            .field("tdbid", &self.tdbid())
+            .field("structure", &self.structure())
+            .field("flags", &self.flags())
+            .finish()
     }
 }
 

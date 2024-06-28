@@ -1,7 +1,10 @@
+use std::marker::PhantomData;
 use std::{iter, ptr};
 
-use super::{Function, IScriptable, Instr, ValueContainer, OPCODE_SIZE};
+use super::{CName, Function, IScriptable, Instr, Type, ValueContainer, OPCODE_SIZE};
 use crate::raw::root::RED4ext as red;
+use crate::repr::NativeRepr;
+use crate::systems::RttiSystem;
 use crate::VoidPtr;
 
 #[derive(Debug)]
@@ -73,5 +76,30 @@ impl StackFrame {
             self.step();
             red::OpcodeHandlers::Run(opcode, self.0.context, &mut self.0, ptr, ptr::null_mut());
         }
+    }
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct StackArg<'a>(red::CStackType, PhantomData<&'a ()>);
+
+impl<'a> StackArg<'a> {
+    pub fn new<A: NativeRepr>(val: &'a mut A) -> Option<Self> {
+        let type_ = RttiSystem::get().get_type(CName::new(A::NATIVE_NAME))?;
+        let inner = red::CStackType {
+            type_: type_.as_raw() as *const _ as *mut red::CBaseRTTIType,
+            value: val as *const A as VoidPtr,
+        };
+        Some(Self(inner, PhantomData))
+    }
+
+    #[inline]
+    pub fn type_(&self) -> Option<&'static Type> {
+        unsafe { self.0.type_.cast::<Type>().as_ref() }
+    }
+
+    #[inline]
+    pub(super) fn as_raw_mut(&mut self) -> &mut red::CStackType {
+        &mut self.0
     }
 }

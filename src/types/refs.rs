@@ -72,7 +72,7 @@ impl<T: ScriptClass> Ref<T> {
     }
 
     pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
-        let class = RttiSystem::get().get_class(CName::new(T::CLASS_NAME))?;
+        let class = RttiSystem::get().get_class(CName::new(T::NATIVE_NAME))?;
         let mut this = Self::default();
         Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
@@ -90,6 +90,11 @@ impl<T: ScriptClass> Ref<T> {
     #[inline]
     pub fn fields(&self) -> Option<&T> {
         Some(T::Kind::get(self.0.instance()?))
+    }
+
+    #[inline]
+    pub fn instance(&self) -> Option<&NativeType<T>> {
+        self.0.instance()
     }
 
     #[inline]
@@ -279,7 +284,7 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
     pub fn new(val: &'a mut T) -> Option<Self> {
         let inner = RttiSystem::get().get_type(CName::new(T::NATIVE_NAME))?;
         let ref_ = red::ScriptRef {
-            innerType: inner.as_raw() as *mut _,
+            innerType: inner.as_raw() as *const _ as *mut red::CBaseRTTIType,
             ref_: val as *mut T,
             ..Default::default()
         };

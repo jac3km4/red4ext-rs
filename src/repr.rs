@@ -93,6 +93,26 @@ impl<A: NativeRepr> IntoRepr for A {
     }
 }
 
+impl IntoRepr for String {
+    type Repr = RedString;
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        RedString::from(self)
+    }
+}
+
+impl<A> IntoRepr for Vec<A>
+where
+    A: IntoRepr,
+{
+    type Repr = RedArray<A::Repr>;
+
+    fn into_repr(self) -> Self::Repr {
+        self.into_iter().map(IntoRepr::into_repr).collect()
+    }
+}
+
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 
@@ -105,5 +125,25 @@ impl<A: NativeRepr> FromRepr for A {
     #[inline]
     fn from_repr(repr: Self::Repr) -> Self {
         repr
+    }
+}
+
+impl FromRepr for String {
+    type Repr = RedString;
+
+    #[inline]
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.into()
+    }
+}
+
+impl<A> FromRepr for Vec<A>
+where
+    A: FromRepr,
+{
+    type Repr = RedArray<A::Repr>;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        repr.into_iter().map(FromRepr::from_repr).collect()
     }
 }

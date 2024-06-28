@@ -50,6 +50,22 @@ impl From<CString> for RedString {
     }
 }
 
+impl From<String> for RedString {
+    #[inline]
+    fn from(mut value: String) -> Self {
+        value.truncate(value.find('\0').unwrap_or(value.len()));
+        let cstr = unsafe { CString::from_vec_unchecked(value.into_bytes()) };
+        RedString::from(cstr)
+    }
+}
+
+impl From<RedString> for String {
+    #[inline]
+    fn from(value: RedString) -> Self {
+        value.to_string_lossy().into_owned()
+    }
+}
+
 impl AsRef<CStr> for RedString {
     #[inline]
     fn as_ref(&self) -> &CStr {

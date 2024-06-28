@@ -1,10 +1,13 @@
 use std::ffi::CStr;
-use std::{iter, mem};
+use std::{iter, mem, ptr};
 
 use super::{
-    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, ScriptClass, StackFrame,
+    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, ScriptClass,
+    StackArg, StackFrame,
 };
+use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
+use crate::repr::NativeRepr;
 use crate::VoidPtr;
 
 pub type FunctionHandler<R> = extern "C" fn(Option<&IScriptable>, &mut StackFrame, R, i64);
@@ -24,7 +27,7 @@ impl Type {
     }
 
     #[inline]
-    pub(crate) fn as_raw(&self) -> *const red::CBaseRTTIType {
+    pub(crate) fn as_raw(&self) -> &red::CBaseRTTIType {
         &self.0
     }
 
@@ -133,7 +136,7 @@ impl Class {
     }
 
     #[inline]
-    pub(super) fn as_raw(&self) -> *const red::CClass {
+    pub(super) fn as_raw(&self) -> &red::CClass {
         &self.0
     }
 
@@ -145,6 +148,23 @@ impl Class {
     #[inline]
     pub fn properties(&self) -> &RedArray<&Property> {
         unsafe { mem::transmute(&self.0.props) }
+    }
+
+    #[inline]
+    pub fn methods(&self) -> &RedArray<&Method> {
+        unsafe { mem::transmute(&self.0.funcs) }
+    }
+
+    #[inline]
+    pub fn method_map(&self) -> &RedHashMap<CName, &Method> {
+        unsafe { mem::transmute(&self.0.funcsByName) }
+    }
+
+    #[inline]
+    pub fn get_method(&self, name: CName) -> Option<&Method> {
+        iter::once(self)
+            .chain(self.base_iter())
+            .find_map(|class| class.method_map().get(&name).copied())
     }
 
     #[inline]
@@ -244,6 +264,11 @@ impl Function {
     }
 
     #[inline]
+    pub fn return_value(&self) -> &Property {
+        unsafe { &*(self.0.returnType.cast::<Property>()) }
+    }
+
+    #[inline]
     pub fn is_static(&self) -> bool {
         self.0.flags.isStatic() != 0
     }
@@ -274,6 +299,66 @@ impl Function {
     #[inline]
     pub fn set_is_static(&mut self, is_static: bool) {
         self.0.flags.set_isStatic(is_static as u32)
+    }
+
+    #[inline]
+    pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
+    where
+        A: Args,
+        R: NativeRepr + Default,
+    {
+        let mut ret = R::default();
+        let mut out = StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::NATIVE_NAME))?;
+        let arr = args.to_array()?;
+        self.validate_stack(arr.as_ref(), &out)?;
+        self.execute_internal(ctx, arr.as_ref(), &mut out)?;
+        Ok(ret)
+    }
+
+    #[inline(never)]
+    fn validate_stack(&self, args: &[StackArg<'_>], ret: &StackArg<'_>) -> Result<(), InvokeError> {
+        if self.params().len() != args.len() as u32 {
+            return Err(InvokeError::InvalidArgCount(self.params().len()));
+        }
+
+        for (index, (param, arg)) in self.params().iter().zip(args.iter()).enumerate() {
+            if !arg.type_().is_some_and(|ty| ptr::eq(ty, param.type_())) {
+                let expected = param.type_().name().as_str();
+                return Err(InvokeError::ArgMismatch { expected, index });
+            }
+        }
+
+        if !ret
+            .type_()
+            .is_some_and(|ty| ptr::eq(ty, self.return_value().type_()))
+        {
+            let expected = self.return_value().type_().name().as_str();
+            return Err(InvokeError::ReturnMismatch { expected });
+        }
+
+        Ok(())
+    }
+
+    fn execute_internal(
+        &self,
+        ctx: Option<&IScriptable>,
+        args: &[StackArg<'_>],
+        ret: &mut StackArg<'_>,
+    ) -> Result<(), InvokeError> {
+        let success = unsafe {
+            let mut stack = red::CStack::new(
+                mem::transmute::<Option<&IScriptable>, VoidPtr>(ctx),
+                mem::transmute::<*const StackArg<'_>, *mut red::CStackType>(args.as_ptr()),
+                args.len() as u32,
+                ret.as_raw_mut(),
+            );
+            red::CBaseFunction_Execute(&self.0 as *const _ as *mut red::CBaseFunction, &mut stack)
+        };
+        if success {
+            Ok(())
+        } else {
+            Err(InvokeError::ExecutionFailed)
+        }
     }
 
     #[inline]
@@ -497,8 +582,8 @@ impl Property {
         unsafe {
             (*ptr).0.name = name.to_raw();
             (*ptr).0.group = group.to_raw();
-            (*ptr).0.type_ = type_.as_raw() as *mut _;
-            (*ptr).0.parent = parent.as_raw() as *mut _;
+            (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::CBaseRTTIType;
+            (*ptr).0.parent = parent.as_raw() as *const _ as *mut red::CClass;
             (*ptr).0.valueOffset = offset;
             prop.assume_init()
         }

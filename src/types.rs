@@ -24,6 +24,8 @@ pub use bytecode::{
     Instr, InvokeStatic, InvokeVirtual, OpcodeHandler, CALL_INSTR_SIZE, OPCODE_SIZE,
 };
 mod stack;
-pub use stack::StackFrame;
+pub use stack::{StackArg, StackFrame};
 mod allocator;
 pub use allocator::{IAllocator, PoolRef, Poolable, PoolableOps};
+mod hash;
+pub use hash::{Hash, RedHashMap};

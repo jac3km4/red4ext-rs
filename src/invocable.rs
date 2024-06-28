@@ -1,11 +1,35 @@
 use std::ffi::CStr;
 
+use sealed::sealed;
+use thiserror::Error;
+
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
     CName, Class, Function, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
-    StackFrame,
+    StackArg, StackFrame,
 };
 use crate::VoidPtr;
+
+#[derive(Debug, Error)]
+pub enum InvokeError {
+    #[error("function not found")]
+    FunctionNotFound,
+    #[error("invalid number of arguments, expected {0}")]
+    InvalidArgCount(u32),
+    #[error("expected {expected} argument at index {index}")]
+    ArgMismatch {
+        expected: &'static str,
+        index: usize,
+    },
+    #[error("return type mismatch, expected {expected}")]
+    ReturnMismatch { expected: &'static str },
+    #[error("could not resolve type {0}")]
+    UnresolvedType(&'static str),
+    #[error("execution failed")]
+    ExecutionFailed,
+    #[error("unexpected null reference as 'this'")]
+    NullReference,
+}
 
 pub trait Invocable<A, R> {
     const ARG_TYPES: &'static [CName];
@@ -112,3 +136,75 @@ macro_rules! invocable {
         $crate::invocable::FnMetadata::new(native_impl, &$fun)
     }};
 }
+
+#[macro_export]
+macro_rules! call {
+    ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+        (|| {
+            $crate::systems::RttiSystem::get()
+                .get_function($crate::types::CName::new($fn_name))
+                .ok_or($crate::invocable::InvokeError::FunctionNotFound)?
+                .execute::<_, $rett>(None, ($( $crate::repr::IntoRepr::into_repr($args), )*))
+        })()
+    };
+    ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+        (|| {
+            $crate::types::IScriptable::class(::std::convert::AsRef::as_ref($this))
+                .get_method($crate::types::CName::new($fn_name))
+                .ok_or($crate::invocable::InvokeError::FunctionNotFound)?
+                .as_function()
+                .execute::<_, $rett>(
+                    Some(::std::convert::AsRef::as_ref($this)),
+                    ($( $crate::repr::IntoRepr::into_repr($args), )*)
+                )
+        })()
+    };
+}
+
+#[sealed]
+pub trait Args {
+    type Array<'a>: AsRef<[StackArg<'a>]>
+    where
+        Self: 'a;
+
+    fn to_array(&mut self) -> Result<Self::Array<'_>, InvokeError>;
+}
+
+macro_rules! impl_args {
+    ($( ($( $ids:ident ),*) ),*) => {
+        $(
+            #[allow(unused_parens, non_snake_case)]
+            #[sealed]
+            impl <$($ids: NativeRepr),*> Args for ($($ids,)*) {
+                type Array<'a> = [StackArg<'a>; count_args!($($ids)*)] where Self: 'a;
+
+                #[inline]
+                fn to_array(&mut self) -> Result<Self::Array<'_>, InvokeError> {
+                    let ($($ids,)*) = self;
+                    Ok([$(
+                        StackArg::new($ids).ok_or_else(||
+                            InvokeError::UnresolvedType($ids::NATIVE_NAME)
+                        )?),*
+                    ])
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! count_args {
+    ($id:ident $( $t:tt )*) => {
+        1 + count_args!($($t)*)
+    };
+    () => { 0 }
+}
+
+impl_args!(
+    (),
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F)
+);
