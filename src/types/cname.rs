@@ -44,8 +44,8 @@ impl From<u64> for CName {
 }
 
 impl From<CName> for u64 {
-    fn from(name: CName) -> u64 {
-        name.0.hash
+    fn from(CName(red::CName { hash }): CName) -> Self {
+        hash
     }
 }
 
