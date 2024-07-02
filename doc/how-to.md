@@ -96,18 +96,6 @@ struct ScanningEvent {
     state: u8,
 }
 
-impl AsRef<IScriptable> for ScanningEvent {
-    fn as_ref(&self) -> &IScriptable {
-        &self.base
-    }
-}
-
-impl AsMut<IScriptable> for ScanningEvent {
-    fn as_mut(&mut self) -> &mut IScriptable {
-        &mut self.base
-    }
-}
-
 unsafe impl ScriptClass for ScanningEvent {
     const CLASS_NAME: &'static str = "ScanningEvent";
     const NATIVE_NAME: &'static str = "gameScanningEvent";
@@ -164,18 +152,6 @@ struct MyClass {
 impl MyClass {
     fn value(&self) -> i32 {
         self.value
-    }
-}
-
-impl AsRef<IScriptable> for MyClass {
-    fn as_ref(&self) -> &IScriptable {
-        &self.base
-    }
-}
-
-impl AsMut<IScriptable> for MyClass {
-    fn as_mut(&mut self) -> &mut IScriptable {
-        &mut self.base
     }
 }
 

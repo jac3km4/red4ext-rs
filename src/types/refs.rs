@@ -19,7 +19,7 @@ pub unsafe trait ScriptClass: Sized {
 
 #[sealed]
 pub trait ClassKind<T> {
-    type NativeType: AsRef<IScriptable> + AsMut<IScriptable>;
+    type NativeType;
 
     fn get(inst: &Self::NativeType) -> &T;
     fn get_mut(inst: &mut Self::NativeType) -> &mut T;
@@ -47,7 +47,7 @@ impl<T> ClassKind<T> for Scripted {
 pub struct Native;
 
 #[sealed]
-impl<T: AsRef<IScriptable> + AsMut<IScriptable>> ClassKind<T> for Native {
+impl<T> ClassKind<T> for Native {
     type NativeType = T;
 
     #[inline]

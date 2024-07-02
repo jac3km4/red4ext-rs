@@ -870,20 +870,6 @@ impl Clone for IScriptable {
     }
 }
 
-impl AsRef<IScriptable> for IScriptable {
-    #[inline]
-    fn as_ref(&self) -> &IScriptable {
-        self
-    }
-}
-
-impl AsMut<IScriptable> for IScriptable {
-    #[inline]
-    fn as_mut(&mut self) -> &mut IScriptable {
-        self
-    }
-}
-
 impl Drop for IScriptable {
     #[inline]
     fn drop(&mut self) {
