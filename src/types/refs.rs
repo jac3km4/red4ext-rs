@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::ptr;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use sealed::sealed;
@@ -123,8 +124,8 @@ impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
         if self.0.dec_strong() && !self.0 .0.instance.is_null() {
-            let ptr = self.0 .0.instance.cast::<red::IScriptable>();
-            unsafe { red::IScriptable_IScriptable_destructor(ptr) }
+            let ptr = self.0 .0.instance.cast::<NativeType<T>>();
+            unsafe { ptr::drop_in_place(ptr) }
         }
     }
 }

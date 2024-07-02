@@ -1,12 +1,14 @@
 use std::ffi::CStr;
+use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 use sealed::sealed;
 use thiserror::Error;
 
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, Class, Function, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
-    StackArg, StackFrame,
+    CName, Function, FunctionHandler, GlobalFunction, IScriptable, Method, NativeClass, PoolRef,
+    ScriptClass, StackArg, StackFrame,
 };
 use crate::VoidPtr;
 
@@ -31,38 +33,85 @@ pub enum InvokeError {
     NullReference,
 }
 
-pub trait Invocable<A, R> {
-    const ARG_TYPES: &'static [CName];
-    const RETURN_TYPE: CName;
+#[sealed]
+pub trait GlobalInvocable<A, R> {
+    const FN_TYPE: FnType;
 
-    fn invoke(self, ctx: Option<&IScriptable>, frame: &mut StackFrame, ret: &mut R);
+    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
 }
 
-macro_rules! impl_invocable {
+macro_rules! impl_global_invocable {
     ($( ($( $types:ident ),*) ),*) => {
         $(
             #[allow(non_snake_case, unused_variables)]
-            impl<$($types,)* R, FN> Invocable<($($types,)*), R::Repr> for FN
+            #[sealed]
+            impl<$($types,)* R, FN> GlobalInvocable<($($types,)*), R::Repr> for FN
             where
                 FN: Fn($($types,)*) -> R,
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
-                const ARG_TYPES: &'static [CName] = &[$(CName::new($types::Repr::NATIVE_NAME),)*];
-                const RETURN_TYPE: CName = CName::new(R::Repr::NATIVE_NAME);
+                const FN_TYPE: FnType = FnType {
+                    args: &[$(CName::new($types::Repr::NATIVE_NAME),)*],
+                    ret: CName::new(R::Repr::NATIVE_NAME)
+                };
 
                 #[inline]
-                fn invoke(self, ctx: Option<&IScriptable>, frame: &mut StackFrame, ret: &mut R::Repr) {
+                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
                     $(let $types = $types::from_repr(unsafe { frame.get_arg::<$types::Repr>() });)*
                     let res = self($($types,)*);
-                    *ret = res.into_repr();
+                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
                 }
             }
         )*
     };
 }
 
-impl_invocable!(
+impl_global_invocable!(
+    (),
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F)
+);
+
+#[sealed]
+pub trait MethodInvocable<Ctx, A, R> {
+    const FN_TYPE: FnType;
+
+    fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
+}
+
+macro_rules! impl_method_invocable {
+    ($( ($( $types:ident ),*) ),*) => {
+        $(
+            #[allow(non_snake_case, unused_variables)]
+            #[sealed]
+            impl<Ctx, $($types,)* R, FN> MethodInvocable<Ctx, ($($types,)*), R::Repr> for FN
+            where
+                FN: Fn(&Ctx, $($types,)*) -> R,
+                $($types: FromRepr, $types::Repr: Default,)*
+                R: IntoRepr
+            {
+                const FN_TYPE: FnType = FnType {
+                    args: &[$(CName::new($types::Repr::NATIVE_NAME),)*],
+                    ret: CName::new(R::Repr::NATIVE_NAME)
+                };
+
+                #[inline]
+                fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
+                    $(let $types = $types::from_repr(unsafe { frame.get_arg::<$types::Repr>() });)*
+                    let res = self(ctx, $($types,)*);
+                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                }
+            }
+        )*
+    };
+}
+
+impl_method_invocable!(
     (),
     (A),
     (A, B),
@@ -73,44 +122,13 @@ impl_invocable!(
 );
 
 #[derive(Debug)]
-pub struct FnMetadata {
-    ptr: FunctionHandler<VoidPtr>,
+pub struct FnType {
     args: &'static [CName],
     ret: CName,
 }
 
-impl FnMetadata {
-    #[inline]
-    pub fn new<A, R, F: Invocable<A, R>>(ptr: FunctionHandler<VoidPtr>, _f: &F) -> Self {
-        Self {
-            ptr,
-            args: F::ARG_TYPES,
-            ret: F::RETURN_TYPE,
-        }
-    }
-
-    #[inline]
-    pub fn to_global(&self, name: &CStr) -> PoolRef<GlobalFunction> {
-        let mut func = GlobalFunction::new(name, name, self.ptr);
-        self.initialize(func.as_function_mut());
-        func
-    }
-
-    #[inline]
-    pub fn to_method(&self, name: &CStr, parent: &Class) -> PoolRef<Method> {
-        let mut func = Method::new(name, name, parent, self.ptr);
-        self.initialize(func.as_function_mut());
-        func
-    }
-
-    #[inline]
-    pub fn to_static_method(&self, name: &CStr, parent: &Class) -> PoolRef<Method> {
-        let mut func = Method::new(name, name, parent, self.ptr);
-        self.initialize(func.as_function_mut());
-        func
-    }
-
-    fn initialize(&self, func: &mut Function) {
+impl FnType {
+    fn initialize_func(&self, func: &mut Function) {
         for &arg in self.args {
             func.add_param(arg, c"", false, false);
         }
@@ -119,21 +137,93 @@ impl FnMetadata {
     }
 }
 
+#[derive(Debug)]
+pub struct GlobalMetadata {
+    ptr: FunctionHandler<IScriptable, VoidPtr>,
+    typ: FnType,
+}
+
+impl GlobalMetadata {
+    #[inline]
+    pub fn new<F: GlobalInvocable<A, R>, A, R>(
+        ptr: FunctionHandler<IScriptable, VoidPtr>,
+        _f: &F,
+    ) -> Self {
+        Self {
+            ptr,
+            typ: F::FN_TYPE,
+        }
+    }
+
+    #[inline]
+    pub fn to_rtti(&self, name: &CStr) -> PoolRef<GlobalFunction> {
+        let mut func = GlobalFunction::new(name, name, self.ptr);
+        self.typ.initialize_func(func.as_function_mut());
+        func
+    }
+}
+
+#[derive(Debug)]
+pub struct MethodMetadata<Ctx> {
+    ptr: FunctionHandler<Ctx, VoidPtr>,
+    typ: FnType,
+    parent: PhantomData<fn() -> *const Ctx>,
+}
+
+impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
+    #[inline]
+    pub fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
+        ptr: FunctionHandler<Ctx, VoidPtr>,
+        _f: &F,
+    ) -> Self {
+        Self {
+            ptr,
+            typ: F::FN_TYPE,
+            parent: PhantomData,
+        }
+    }
+
+    #[inline]
+    pub fn to_rtti(&self, class: &NativeClass<Ctx>, name: &CStr) -> PoolRef<Method> {
+        let mut func = Method::new(name, name, class.as_class(), self.ptr);
+        self.typ.initialize_func(func.as_function_mut());
+        func
+    }
+}
+
 #[macro_export]
-macro_rules! invocable {
+macro_rules! global {
     ($fun:expr) => {{
         extern "C" fn native_impl(
-            ctx: Option<&$crate::types::IScriptable>,
+            ctx: &$crate::types::IScriptable,
             frame: &mut $crate::types::StackFrame,
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
             let out = unsafe { std::mem::transmute(ret) };
-            $crate::invocable::Invocable::invoke($fun, ctx, frame, out);
+            $crate::invocable::GlobalInvocable::invoke($fun, ctx, frame, out);
             unsafe { frame.step() };
         }
 
-        $crate::invocable::FnMetadata::new(native_impl, &$fun)
+        $crate::invocable::GlobalMetadata::new(native_impl, &$fun)
+    }};
+}
+
+#[macro_export]
+macro_rules! method {
+    ($ty:ident::$name:ident) => {{
+        extern "C" fn native_impl(
+            ctx: &$ty,
+            frame: &mut $crate::types::StackFrame,
+            ret: $crate::VoidPtr,
+            _unk: i64,
+        ) {
+            let out = unsafe { std::mem::transmute(ret) };
+            $crate::invocable::MethodInvocable::invoke($ty::$name, ctx, frame, out);
+            unsafe { frame.step() };
+        }
+
+        $crate::invocable::MethodMetadata::new(native_impl, &$ty::$name)
     }};
 }
 

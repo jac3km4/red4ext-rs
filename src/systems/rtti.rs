@@ -146,6 +146,21 @@ impl RttiSystem {
     }
 
     #[inline]
+    pub fn register_type(&self, type_: &'static Type) {
+        unsafe {
+            red::CRTTISystem_RegisterType(
+                self as *const _ as *mut red::CRTTISystem,
+                type_ as *const _ as *mut red::CBaseRTTIType,
+            )
+        };
+    }
+
+    #[inline]
+    pub fn register_class(&self, class: &'static Class) {
+        self.register_type(class.as_type());
+    }
+
+    #[inline]
     fn vft(&self) -> &RttiSystemVft {
         unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }

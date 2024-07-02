@@ -15,12 +15,29 @@ pub struct IAllocator(red::Memory::IAllocator);
 
 impl IAllocator {
     #[inline]
-    pub unsafe fn free<T>(&mut self, memory: *mut T) {
+    pub unsafe fn free<T>(&self, memory: *mut T) {
         let mut alloc = AllocationResult {
             memory: memory as VoidPtr,
             size: 0,
         };
-        unsafe { ((*self.0.vtable_).IAllocator_Free)(&mut self.0, &mut alloc) }
+        unsafe {
+            ((*self.0.vtable_).IAllocator_Free)(
+                &self.0 as *const _ as *mut red::Memory::IAllocator,
+                &mut alloc,
+            )
+        }
+    }
+
+    #[inline]
+    pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
+        let result = unsafe {
+            ((*self.0.vtable_).IAllocator_AllocAligned)(
+                &self.0 as *const _ as *mut red::Memory::IAllocator,
+                size,
+                alignment,
+            )
+        };
+        result.memory.cast()
     }
 }
 

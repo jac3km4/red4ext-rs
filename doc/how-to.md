@@ -27,7 +27,7 @@ export_plugin!(Example);
 
 unsafe extern "C" fn post_register() {
     // register your function
-    RttiSystem::get().register_function(invocable!(example).to_global(c"Example"));
+    RttiSystem::get().register_function(global!(example).to_rtti(c"Example"));
 }
 
 
@@ -41,7 +41,7 @@ fn example() {
 ```rs
 unsafe extern "C" fn post_register() {
     // register your function
-    RttiSystem::get().register_function(invocable!(example).to_global(c"Example"));
+    RttiSystem::get().register_function(global!(example).to_rtti(c"Example"));
 }
 
 
@@ -125,4 +125,74 @@ fn example() -> Ref<ScanningEvent> {
 
     inst
 }
+```
+
+
+### define a custom class type
+```rs
+...
+    fn on_init(_env: &SdkEnv) {
+        RttiRegistrator::add(Some(register), Some(post_register));
+    }
+}
+
+export_plugin!(Example);
+
+unsafe extern "C" fn register() {
+    let rtti = RttiSystem::get();
+
+    let parent = rtti.get_class(CName::new("IScriptable")).unwrap();
+    let class = NativeClass::<MyClass>::new(parent);
+    let method = method!(MyClass::value).to_rtti(class, c"GetValue");
+    class.as_class_mut().add_method(method);
+    rtti.register_class(class.as_class());
+}
+
+unsafe extern "C" fn post_register() {
+    let rtti = RttiSystem::get();
+
+    rtti.register_function(global!(example).to_rtti(c"Example"));
+}
+
+#[derive(Debug, Default, Clone)]
+#[repr(C)]
+struct MyClass {
+    base: IScriptable,
+    value: i32,
+}
+
+impl MyClass {
+    fn value(&self) -> i32 {
+        self.value
+    }
+}
+
+impl AsRef<IScriptable> for MyClass {
+    fn as_ref(&self) -> &IScriptable {
+        &self.base
+    }
+}
+
+impl AsMut<IScriptable> for MyClass {
+    fn as_mut(&mut self) -> &mut IScriptable {
+        &mut self.base
+    }
+}
+
+unsafe impl ScriptClass for MyClass {
+    const CLASS_NAME: &'static str = "MyClass";
+    type Kind = Native;
+}
+
+fn example() -> Ref<MyClass> {
+    Ref::<MyClass>::new_with(|t| t.value = 1337).unwrap()
+}
+```
+...and on REDscript side:
+```swift
+native class MyClass {
+    native func GetValue() -> Int32;
+}
+
+native func Example() -> ref<MyClass>;
 ```

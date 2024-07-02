@@ -1,5 +1,6 @@
-use std::ffi::CStr;
-use std::{iter, mem, ptr};
+use std::ffi::{CStr, CString};
+use std::marker::PhantomData;
+use std::{iter, mem, ptr, slice};
 
 use super::{
     CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
@@ -10,7 +11,7 @@ use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
 use crate::VoidPtr;
 
-pub type FunctionHandler<R> = extern "C" fn(Option<&IScriptable>, &mut StackFrame, R, i64);
+pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
 
 #[derive(Debug)]
 #[repr(transparent)]
@@ -44,6 +45,11 @@ impl Type {
     #[inline]
     pub fn kind(&self) -> Kind {
         unsafe { mem::transmute((self.vft().tail.CBaseRTTIType_GetType)(&self.0)) }
+    }
+
+    #[inline]
+    pub fn allocator(&self) -> &IAllocator {
+        unsafe { &*((self.vft().tail.CBaseRTTIType_GetAllocator)(&self.0).cast::<IAllocator>()) }
     }
 
     #[inline]
@@ -133,6 +139,14 @@ impl Class {
     pub fn new(name: &CStr, size: u32) -> Self {
         let name = CNamePool::add_cstr(name);
         Self(unsafe { red::CClass::new(name.to_raw(), size, Default::default()) })
+    }
+
+    #[inline]
+    fn new_native(name: &CStr, size: u32) -> Self {
+        let name = CNamePool::add_cstr(name);
+        let mut flags = red::CClass_Flags::default();
+        flags.set_isNative(1);
+        Self(unsafe { red::CClass::new(name.to_raw(), size, flags) })
     }
 
     #[inline]
@@ -240,6 +254,94 @@ impl Drop for Class {
     fn drop(&mut self) {
         let t = self.as_type_mut();
         unsafe { (t.vft().destroy)(t) };
+    }
+}
+
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct NativeClass<T>(Class, PhantomData<*mut T>);
+
+impl<T> NativeClass<T> {
+    pub fn new(parent: &Class) -> &'static mut Self
+    where
+        T: Default + Clone + ScriptClass,
+    {
+        const VFT_SIZE: usize = 30;
+        const IS_EQUAL_SLOT: usize = 9;
+        const ASSIGN_SLOT: usize = 10;
+        const CONSTRUCT_SLOT: usize = 27;
+        const DESTRUCT_SLOT: usize = 28;
+        const ALLOC_SLOT: usize = 29;
+
+        let cstr = CString::new(T::NATIVE_NAME)
+            .expect("should create a CString")
+            .into_boxed_c_str();
+        let cstr = Box::leak(cstr);
+
+        let mut class = Class::new_native(cstr, mem::size_of::<T>() as u32);
+        class.0.parent = parent.as_raw() as *const _ as *mut red::CClass;
+
+        let vft = class.as_raw()._base.vtable_ as *mut usize;
+        let vft = unsafe { slice::from_raw_parts(vft, VFT_SIZE) };
+        let mut vft = vft.to_vec();
+        vft[IS_EQUAL_SLOT] = Self::is_equal as _;
+        vft[ASSIGN_SLOT] = Self::assign as _;
+        vft[CONSTRUCT_SLOT] = Self::construct as _;
+        vft[DESTRUCT_SLOT] = Self::destruct as _;
+        vft[ALLOC_SLOT] = Self::alloc as _;
+
+        class.0._base.vtable_ = vft.leak().as_ptr() as _;
+
+        let this = Box::new(Self(class, PhantomData));
+        Box::leak(this)
+    }
+
+    #[inline]
+    pub fn as_class(&self) -> &Class {
+        &self.0
+    }
+
+    #[inline]
+    pub fn as_class_mut(&mut self) -> &mut Class {
+        &mut self.0
+    }
+
+    fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
+        unsafe {
+            crate::fn_from_hash!(
+                TTypedClass_IsEqual,
+                unsafe extern "C" fn(VoidPtr, VoidPtr, VoidPtr, u32) -> bool
+            )(this, lhs, rhs, unk)
+        }
+    }
+
+    fn assign(&self, lhs: &mut T, rhs: &T)
+    where
+        T: Clone,
+    {
+        lhs.clone_from(rhs)
+    }
+
+    fn construct(&self, mem: *mut T)
+    where
+        T: Default,
+    {
+        unsafe {
+            ptr::write(mem, T::default());
+        }
+    }
+
+    fn destruct(&self, mem: *mut T) {
+        unsafe {
+            ptr::drop_in_place(mem);
+        }
+    }
+
+    fn alloc(&self) -> *mut T {
+        let align = self.0.as_type().alignment();
+        let size = self.0.as_type().size().next_multiple_of(align);
+        let alloc: *mut T = unsafe { self.0.as_type().allocator().alloc_aligned(size, align) };
+        alloc
     }
 }
 
@@ -381,7 +483,7 @@ impl GlobalFunction {
     pub fn new<R>(
         full_name: &CStr,
         short_name: &CStr,
-        handler: FunctionHandler<R>,
+        handler: FunctionHandler<IScriptable, R>,
     ) -> PoolRef<Self> {
         let mut func = GlobalFunction::alloc().expect("should allocate a GlobalFunction");
         let full_name = CNamePool::add_cstr(full_name);
@@ -425,11 +527,11 @@ impl Drop for GlobalFunction {
 pub struct Method(red::CClassFunction);
 
 impl Method {
-    pub fn new<R>(
+    pub fn new<C, R>(
         full_name: &CStr,
         short_name: &CStr,
         class: &Class,
-        handler: FunctionHandler<R>,
+        handler: FunctionHandler<C, R>,
     ) -> PoolRef<Self> {
         let mut func = Method::alloc().expect("should allocate a Method");
         let full_name = CNamePool::add_cstr(full_name);
@@ -503,7 +605,7 @@ impl StaticMethod {
         full_name: &CStr,
         short_name: &CStr,
         class: &Class,
-        handler: FunctionHandler<R>,
+        handler: FunctionHandler<IScriptable, R>,
     ) -> PoolRef<Self> {
         let mut func = StaticMethod::alloc().expect("should allocate a StaticMethod");
         let full_name = CNamePool::add_cstr(full_name);
@@ -734,6 +836,7 @@ impl Drop for Bitfield {
 pub struct IScriptable(red::IScriptable);
 
 impl IScriptable {
+    #[inline]
     pub fn class(&self) -> &'static Class {
         unsafe {
             &*(((*self.0._base.vtable_).ISerializable_GetType)(
@@ -745,6 +848,25 @@ impl IScriptable {
     #[inline]
     pub fn fields(&self) -> ValueContainer {
         ValueContainer(self.0.valueHolder)
+    }
+
+    #[inline]
+    pub fn set_native_type(&mut self, class: &Class) {
+        self.0.nativeType = class.as_raw() as *const _ as *mut red::CClass;
+    }
+}
+
+impl Default for IScriptable {
+    #[inline]
+    fn default() -> Self {
+        Self(unsafe { red::IScriptable::new() })
+    }
+}
+
+impl Clone for IScriptable {
+    #[inline]
+    fn clone(&self) -> Self {
+        unsafe { ptr::read(self) }
     }
 }
 
@@ -759,6 +881,13 @@ impl AsMut<IScriptable> for IScriptable {
     #[inline]
     fn as_mut(&mut self) -> &mut IScriptable {
         self
+    }
+}
+
+impl Drop for IScriptable {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe { red::IScriptable_IScriptable_destructor(&mut self.0) }
     }
 }
 
