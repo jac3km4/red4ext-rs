@@ -239,12 +239,12 @@ macro_rules! call {
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            $crate::types::IScriptable::class(::std::convert::AsRef::as_ref($this))
+            $crate::types::IScriptable::class(::std::convert::AsRef::<IScriptable>::as_ref($this))
                 .get_method($crate::types::CName::new($fn_name))
                 .ok_or($crate::invocable::InvokeError::FunctionNotFound)?
                 .as_function()
                 .execute::<_, $rett>(
-                    Some(::std::convert::AsRef::as_ref($this)),
+                    Some(::std::convert::AsRef::<IScriptable>::as_ref($this)),
                     ($( $crate::repr::IntoRepr::into_repr($args), )*)
                 )
         })()
