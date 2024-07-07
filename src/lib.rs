@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![allow(clippy::missing_safety_doc)]
 use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
