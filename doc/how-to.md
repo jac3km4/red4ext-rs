@@ -26,8 +26,13 @@ export_plugin!(Example);
 }
 
 unsafe extern "C" fn post_register() {
-    // register your function
-    RttiSystem::get().register_function(global!(example).to_rtti(c"Example"));
+    // create your RTTI bindings first
+    let global = global!(example).to_rtti(c"Example");
+
+    // then acquire the RTTI, you have to order it this way to avoid a deadlock
+    let mut rtti = RttiSystem::get_mut();
+    // then register your stuff
+    rtti.register_function(global!(example).to_rtti(c"Example"));
 }
 
 
@@ -40,8 +45,13 @@ fn example() {
 ### accept and return compatible types
 ```rs
 unsafe extern "C" fn post_register() {
-    // register your function
-    RttiSystem::get().register_function(global!(example).to_rtti(c"Example"));
+    // create your RTTI bindings first
+    let global = global!(example).to_rtti(c"Example");
+
+    // then acquire the RTTI
+    let mut rtti = RttiSystem::get_mut();
+    // then register your stuff
+    rtti.register_function(global!(example).to_rtti(c"Example"));
 }
 
 
@@ -127,19 +137,23 @@ fn example() -> Ref<ScanningEvent> {
 export_plugin!(Example);
 
 unsafe extern "C" fn register() {
-    let rtti = RttiSystem::get();
-
-    let parent = rtti.get_class(CName::new("IScriptable")).unwrap();
+    let mut rtti = RttiSystem::get_mut();
+    let parent = rtti.get_class_mut(CName::new("IScriptable")).unwrap();
     let class = NativeClass::<MyClass>::new(parent);
-    let method = method!(MyClass::value).to_rtti(class, c"GetValue");
-    class.as_class_mut().add_method(method);
-    rtti.register_class(class.as_class());
+    rtti.register_class(class);
 }
 
 unsafe extern "C" fn post_register() {
-    let rtti = RttiSystem::get();
+    // create your RTTI bindings first
+    let method = method!(MyClass::value).to_rtti(c"GetValue");
+    let global = global!(example).to_rtti(c"Example");
 
-    rtti.register_function(global!(example).to_rtti(c"Example"));
+    // then acquire the RTTI
+    let mut rtti = RttiSystem::get_mut();
+    // then register your stuff
+    let my_class = rtti.get_class_mut(CName::new("MyClass")).unwrap();
+    my_class.add_method(method);
+    rtti.register_function(global);
 }
 
 #[derive(Debug, Default, Clone)]

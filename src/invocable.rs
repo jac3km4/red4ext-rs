@@ -7,8 +7,8 @@ use thiserror::Error;
 
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, Function, FunctionHandler, GlobalFunction, IScriptable, Method, NativeClass, PoolRef,
-    ScriptClass, StackArg, StackFrame,
+    CName, Function, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef, ScriptClass,
+    StackArg, StackFrame,
 };
 use crate::VoidPtr;
 
@@ -184,8 +184,8 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
     }
 
     #[inline]
-    pub fn to_rtti(&self, class: &NativeClass<Ctx>, name: &CStr) -> PoolRef<Method> {
-        let mut func = Method::new(name, name, class.as_class(), self.ptr);
+    pub fn to_rtti(&self, name: &CStr) -> PoolRef<Method> {
+        let mut func = Method::new(name, name, self.ptr);
         self.typ.initialize_func(func.as_function_mut());
         func
     }

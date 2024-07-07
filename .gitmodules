@@ -1,3 +1,4 @@
 [submodule "deps/RED4ext.SDK"]
 	path = deps/RED4ext.SDK
-	url = https://github.com/WopsS/RED4ext.SDK
+	url = https://github.com/jac3km4/RED4ext.SDK
+	branch = mutex-spin-lock

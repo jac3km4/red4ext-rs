@@ -1,5 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
+use std::ptr::NonNull;
 use std::{iter, mem, ptr, slice};
 
 use super::{
@@ -9,6 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
+use crate::systems::RttiSystem;
 use crate::VoidPtr;
 
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
@@ -56,6 +58,15 @@ impl Type {
     pub fn as_class(&self) -> Option<&Class> {
         if self.kind().is_class() {
             Some(unsafe { mem::transmute::<&red::CBaseRTTIType, &Class>(&self.0) })
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn as_class_mut(&mut self) -> Option<&mut Class> {
+        if self.kind().is_class() {
+            Some(unsafe { mem::transmute::<&mut red::CBaseRTTIType, &mut Class>(&mut self.0) })
         } else {
             None
         }
@@ -135,12 +146,6 @@ impl Kind {
 pub struct Class(red::CClass);
 
 impl Class {
-    #[inline]
-    pub fn new(name: &CStr, size: u32) -> Self {
-        let name = CNamePool::add_cstr(name);
-        Self(unsafe { red::CClass::new(name.to_raw(), size, Default::default()) })
-    }
-
     #[inline]
     fn new_native(name: &CStr, size: u32) -> Self {
         let name = CNamePool::add_cstr(name);
@@ -262,7 +267,10 @@ impl Drop for Class {
 pub struct NativeClass<T>(Class, PhantomData<*mut T>);
 
 impl<T> NativeClass<T> {
-    pub fn new(parent: &Class) -> &'static mut Self
+    /// Creates a new native class with the given parent.
+    /// Returns a handle to the class, it can only be used to register the class. Any further
+    /// use should be done through the RTTI system.
+    pub fn new_handle(parent: &Class) -> ClassHandle
     where
         T: Default + Clone + ScriptClass,
     {
@@ -273,12 +281,9 @@ impl<T> NativeClass<T> {
         const DESTRUCT_SLOT: usize = 28;
         const ALLOC_SLOT: usize = 29;
 
-        let cstr = CString::new(T::NATIVE_NAME)
-            .expect("should create a CString")
-            .into_boxed_c_str();
-        let cstr = Box::leak(cstr);
+        let cstr = CString::new(T::NATIVE_NAME).expect("should create a CString");
 
-        let mut class = Class::new_native(cstr, mem::size_of::<T>() as u32);
+        let mut class = Class::new_native(&cstr, mem::size_of::<T>() as u32);
         class.0.parent = parent.as_raw() as *const _ as *mut red::CClass;
 
         let vft = class.as_raw()._base.vtable_ as *mut usize;
@@ -292,8 +297,9 @@ impl<T> NativeClass<T> {
 
         class.0._base.vtable_ = vft.leak().as_ptr() as _;
 
-        let this = Box::new(Self(class, PhantomData));
-        Box::leak(this)
+        // we leak the class and wrap it as pointer, because RTTI expects all references to it
+        // to live forever - this prevents accidental misuse
+        ClassHandle(NonNull::from(Box::leak(Box::new(class))))
     }
 
     #[inline]
@@ -342,6 +348,21 @@ impl<T> NativeClass<T> {
         let size = self.0.as_type().size().next_multiple_of(align);
         let alloc: *mut T = unsafe { self.0.as_type().allocator().alloc_aligned(size, align) };
         alloc
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ClassHandle(NonNull<Class>);
+
+impl ClassHandle {
+    #[inline]
+    pub(crate) fn as_ref(&self) -> &Class {
+        unsafe { self.0.as_ref() }
+    }
+
+    #[inline]
+    pub(crate) fn as_mut(&mut self) -> &mut Class {
+        unsafe { self.0.as_mut() }
     }
 }
 
@@ -530,12 +551,19 @@ impl Method {
     pub fn new<C, R>(
         full_name: &CStr,
         short_name: &CStr,
-        class: &Class,
         handler: FunctionHandler<C, R>,
-    ) -> PoolRef<Self> {
+    ) -> PoolRef<Self>
+    where
+        C: ScriptClass,
+    {
         let mut func = Method::alloc().expect("should allocate a Method");
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
+
+        let rtti = RttiSystem::get();
+        let class = rtti
+            .get_class(CName::new(C::NATIVE_NAME))
+            .expect("should find the class");
 
         Self::ctor(
             func.as_mut_ptr(),
@@ -703,7 +731,7 @@ impl Property {
     }
 
     #[inline]
-    pub fn type_(&self) -> &'static Type {
+    pub fn type_(&self) -> &Type {
         unsafe { &*(self.0.type_ as *const Type) }
     }
 
@@ -729,7 +757,7 @@ pub struct ArrayType(red::CRTTIBaseArrayType);
 
 impl ArrayType {
     #[inline]
-    pub fn inner_type(&self) -> &'static Type {
+    pub fn inner_type(&self) -> &Type {
         unsafe { &*(self.vft().get_inner_type)(self) }
     }
 
@@ -837,7 +865,7 @@ pub struct IScriptable(red::IScriptable);
 
 impl IScriptable {
     #[inline]
-    pub fn class(&self) -> &'static Class {
+    pub fn class(&self) -> &Class {
         unsafe {
             &*(((*self.0._base.vtable_).ISerializable_GetType)(
                 (&self.0._base) as *const _ as *mut red::ISerializable,
