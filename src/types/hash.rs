@@ -11,6 +11,43 @@ impl<K, V> RedHashMap<K, V> {
     const INVALID_INDEX: u32 = u32::MAX;
 
     #[inline]
+    pub fn get(&self, key: &K) -> Option<&V>
+    where
+        K: Hash + PartialEq,
+    {
+        self.get_by_hash(key.hash())
+    }
+
+    #[inline]
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V>
+    where
+        K: Hash + PartialEq,
+    {
+        self.get_by_hash_mut(key.hash())
+    }
+
+    pub fn insert(&mut self, key: K, value: V) -> Option<V>
+    where
+        K: Hash + PartialEq,
+    {
+        let hash = key.hash();
+
+        if self.size() > 0 {
+            if let Some(val) = self.get_by_hash_mut(hash) {
+                return Some(mem::replace(val, value));
+            }
+        }
+        if self.size() + 1 > self.capacity() {
+            self.realloc((self.capacity() + self.capacity() / 2).max(4));
+        }
+        let (node_list, index_table) = self.split_mut();
+        Self::push_node(node_list, index_table, hash, key, value);
+        self.0.size += 1;
+
+        None
+    }
+
+    #[inline]
     pub fn size(&self) -> u32 {
         self.0.size
     }
@@ -20,15 +57,11 @@ impl<K, V> RedHashMap<K, V> {
         self.0.capacity
     }
 
-    pub fn get(&self, key: &K) -> Option<&V>
-    where
-        K: Hash + PartialEq,
-    {
-        let hash = key.hash();
+    fn get_by_hash(&self, hash: u32) -> Option<&V> {
         let mut cur = self.indexes()[(hash % self.capacity()) as usize];
         while cur != Self::INVALID_INDEX {
             let node = &self.nodes()[cur as usize];
-            if node.hashedKey == hash && node.key == *key {
+            if node.hashedKey == hash {
                 return Some(&node.value);
             }
             cur = node.next;
@@ -36,49 +69,15 @@ impl<K, V> RedHashMap<K, V> {
         None
     }
 
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V>
-    where
-        K: Hash + PartialEq,
-    {
-        let hash = key.hash();
+    fn get_by_hash_mut(&mut self, hash: u32) -> Option<&mut V> {
         let mut cur = self.indexes()[(hash % self.capacity()) as usize];
         while cur != Self::INVALID_INDEX {
-            let node = &self.nodes()[cur as usize];
-            if node.hashedKey == hash && node.key == *key {
+            let node = &self.nodes_mut()[cur as usize];
+            if node.hashedKey == hash {
                 return Some(&mut self.nodes_mut()[cur as usize].value);
             }
             cur = node.next;
         }
-        None
-    }
-
-    pub fn insert(&mut self, key: K, value: V) -> Option<V>
-    where
-        K: Hash + PartialEq,
-    {
-        let hash = key.hash();
-        let cap = self.capacity();
-
-        if self.size() > 0 {
-            let mut cur = self.indexes()[(hash % cap) as usize];
-            while cur != Self::INVALID_INDEX {
-                let node = &mut self.nodes_mut()[cur as usize];
-                if node.hashedKey == hash && node.key == key {
-                    let old = mem::replace(&mut node.value, value);
-                    return Some(old);
-                }
-                cur = node.next;
-            }
-        }
-
-        if self.size() + 1 > cap {
-            self.realloc((cap + cap / 2).max(4));
-        }
-
-        let (node_list, index_table) = self.split_mut();
-        Self::push_node(node_list, index_table, hash, key, value);
-        self.0.size += 1;
-
         None
     }
 
