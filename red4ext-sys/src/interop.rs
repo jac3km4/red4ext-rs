@@ -3,7 +3,7 @@ use std::{fmt, pin, ptr};
 
 use cxx::{type_id, ExternType};
 pub use ffi::EMainReason;
-use red4ext_types::{CName, Mem};
+use red4ext_types::Mem;
 
 use crate::ffi;
 
@@ -13,8 +13,8 @@ pub trait CNameExt {
     fn display(&self) -> impl fmt::Display;
 }
 
-// #[cfg(not(test))] // only available in-game
-impl CNameExt for CName {
+#[cfg(not(test))] // only available in-game
+impl CNameExt for red4ext_types::CName {
     fn new_pooled(str: &str) -> Self {
         let cname = Self::new(str);
         if cname.is_valid() {
@@ -34,8 +34,10 @@ impl CNameExt for CName {
     }
 }
 
-struct DisplayCName(CName);
+#[cfg(not(test))]
+struct DisplayCName(red4ext_types::CName);
 
+#[cfg(not(test))]
 impl std::fmt::Display for DisplayCName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", crate::ffi::resolve_cname(&self.0))
