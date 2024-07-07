@@ -10,6 +10,7 @@ use crate::types::{
 pub struct RttiSystem(red::CRTTISystem);
 
 impl RttiSystem {
+    /// Acquire a read lock on the RTTI system.
     #[inline]
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
@@ -19,35 +20,10 @@ impl RttiSystem {
         }
     }
 
-    /// Acquires a write lock on the RTTI system.
-    ///
-    /// # Notes
-    /// You should avoid calling non-mut methods while the lock is held, because some methods
-    /// may try to acquire the lock for reading, causing a deadlock.
-    #[inline]
-    pub fn get_mut<'a>() -> RwSpinLockWriteGuard<'a, Self> {
-        unsafe {
-            let rtti = red::CRTTISystem_Get();
-            let lock = &(*rtti).typesLock;
-            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
-        }
-    }
-
     #[inline]
     pub fn get_class(&self, name: CName) -> Option<&Class> {
         let ty = unsafe { (self.vft().get_class)(self, name) };
         unsafe { ty.cast::<Class>().as_ref() }
-    }
-
-    #[inline]
-    pub fn get_class_mut(&mut self, name: CName) -> Option<&mut Class> {
-        // implemented manually to avoid the game trying to obtain the type lock
-        let (types, types_by_id, type_ids) = self.type_tables_mut();
-        if let Some(ty) = types.get_mut(&name) {
-            return ty.as_class_mut();
-        }
-        let &id = type_ids.get(&name)?;
-        types_by_id.get_mut(&id)?.as_class_mut()
     }
 
     #[inline]
@@ -170,6 +146,47 @@ impl RttiSystem {
     }
 
     #[inline]
+    fn vft(&self) -> &RttiSystemVft {
+        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
+    }
+}
+
+#[repr(transparent)]
+pub struct RttiSystemMut(red::CRTTISystem);
+
+impl RttiSystemMut {
+    /// Acquire a write lock on the RTTI system.
+    #[inline]
+    pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
+        unsafe {
+            let rtti = red::CRTTISystem_Get();
+            let lock = &(*rtti).typesLock;
+            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
+        }
+    }
+
+    #[inline]
+    pub fn get_class(&mut self, name: CName) -> Option<&mut Class> {
+        // implemented manually to avoid the game trying to obtain the type lock
+        let (types, types_by_id, type_ids) = self.split_types();
+        if let Some(ty) = types.get_mut(&name) {
+            return ty.as_class_mut();
+        }
+        let &id = type_ids.get(&name)?;
+        types_by_id.get_mut(&id)?.as_class_mut()
+    }
+
+    #[inline]
+    pub fn register_class(&mut self, mut class: ClassHandle) {
+        // implemented manually to avoid the game trying to obtain the type lock
+        let id = unsafe { red::RTTIRegistrator::GetNextId() };
+        self.types()
+            .insert(class.as_ref().name(), class.as_mut().as_type_mut());
+        self.types_by_id().insert(id, class.as_mut().as_type_mut());
+        self.type_ids().insert(class.as_ref().name(), id);
+    }
+
+    #[inline]
     pub fn register_function(&mut self, function: PoolRef<GlobalFunction>) {
         unsafe { (self.vft().register_function)(self, &*function) }
         // RTTI takes ownership of it from now on
@@ -177,39 +194,23 @@ impl RttiSystem {
     }
 
     #[inline]
-    pub fn register_class(&mut self, mut class: ClassHandle) {
-        // implemented manually to avoid the game trying to obtain the type lock
-        let id = unsafe { red::RTTIRegistrator::GetNextId() };
-        self.types_mut()
-            .insert(class.as_ref().name(), class.as_mut().as_type_mut());
-        self.types_by_id_mut()
-            .insert(id, class.as_mut().as_type_mut());
-        self.type_ids_mut().insert(class.as_ref().name(), id);
-    }
-
-    #[inline]
-    fn vft(&self) -> &RttiSystemVft {
-        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
-    }
-
-    #[inline]
-    fn types_mut(&mut self) -> &mut RedHashMap<CName, &mut Type> {
+    fn types(&mut self) -> &mut RedHashMap<CName, &mut Type> {
         unsafe { &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>) }
     }
 
     #[inline]
-    fn types_by_id_mut(&mut self) -> &mut RedHashMap<u32, &mut Type> {
+    fn types_by_id(&mut self) -> &mut RedHashMap<u32, &mut Type> {
         unsafe { &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>) }
     }
 
     #[inline]
-    fn type_ids_mut(&mut self) -> &mut RedHashMap<CName, u32> {
+    fn type_ids(&mut self) -> &mut RedHashMap<CName, u32> {
         unsafe { &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>) }
     }
 
     #[inline]
     #[allow(clippy::type_complexity)]
-    fn type_tables_mut(
+    fn split_types(
         &mut self,
     ) -> (
         &mut RedHashMap<CName, &mut Type>,
@@ -223,6 +224,11 @@ impl RttiSystem {
                 &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>),
             )
         }
+    }
+
+    #[inline]
+    fn vft(&self) -> &RttiSystemVft {
+        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }
 }
 
@@ -269,7 +275,7 @@ struct RttiSystemVft {
     _sub_90: unsafe extern "fastcall" fn(this: *const RttiSystem),
     unregister_type: unsafe extern "fastcall" fn(this: *mut RttiSystem, ty: *mut Type),
     register_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const GlobalFunction),
+        unsafe extern "fastcall" fn(this: *const RttiSystemMut, function: *const GlobalFunction),
     unregister_function:
         unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const GlobalFunction),
     _sub_b0: unsafe extern "fastcall" fn(this: *const RttiSystem),
