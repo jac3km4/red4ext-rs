@@ -14,23 +14,28 @@ use crate::VoidPtr;
 
 #[derive(Debug, Error)]
 pub enum InvokeError {
-    #[error("function not found")]
-    FunctionNotFound,
-    #[error("invalid number of arguments, expected {0}")]
-    InvalidArgCount(u32),
-    #[error("expected {expected} argument at index {index}")]
+    #[error("function '{0}' not found")]
+    FunctionNotFound(&'static str),
+    #[error("invalid number of arguments, expected {expected} for {function}")]
+    InvalidArgCount {
+        function: &'static str,
+        expected: u32,
+    },
+    #[error("expected '{expected}' argument type at index {index} for '{function}'")]
     ArgMismatch {
+        function: &'static str,
         expected: &'static str,
         index: usize,
     },
-    #[error("return type mismatch, expected {expected}")]
-    ReturnMismatch { expected: &'static str },
+    #[error("return type mismatch, expected '{expected}' for '{function}'")]
+    ReturnMismatch {
+        function: &'static str,
+        expected: &'static str,
+    },
     #[error("could not resolve type {0}")]
     UnresolvedType(&'static str),
-    #[error("execution failed")]
-    ExecutionFailed,
-    #[error("unexpected null reference as 'this'")]
-    NullReference,
+    #[error("execution of '{0}' has failed")]
+    ExecutionFailed(&'static str),
 }
 
 #[sealed]
@@ -233,7 +238,7 @@ macro_rules! call {
         (|| {
             $crate::systems::RttiSystem::get()
                 .get_function($crate::types::CName::new($fn_name))
-                .ok_or($crate::invocable::InvokeError::FunctionNotFound)?
+                .ok_or($crate::invocable::InvokeError::FunctionNotFound($fn_name))?
                 .execute::<_, $rett>(None, ($( $crate::repr::IntoRepr::into_repr($args), )*))
         })()
     };
@@ -241,7 +246,7 @@ macro_rules! call {
         (|| {
             $crate::types::IScriptable::class(::std::convert::AsRef::<IScriptable>::as_ref($this))
                 .get_method($crate::types::CName::new($fn_name))
-                .ok_or($crate::invocable::InvokeError::FunctionNotFound)?
+                .ok_or($crate::invocable::InvokeError::FunctionNotFound($fn_name))?
                 .as_function()
                 .execute::<_, $rett>(
                     Some(::std::convert::AsRef::<IScriptable>::as_ref($this)),

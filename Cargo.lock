@@ -253,6 +253,7 @@ dependencies = [
  "cmake",
  "const-combine",
  "const-crc32",
+ "log",
  "once_cell",
  "sealed",
  "thiserror",

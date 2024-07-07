@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::missing_safety_doc)]
+use std::ffi::CString;
 use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
 
@@ -29,7 +30,7 @@ pub mod internal {
 
 pub type VoidPtr = *mut std::os::raw::c_void;
 
-pub trait Plugin<Env: From<SdkEnv> = SdkEnv> {
+pub trait Plugin {
     const NAME: &'static U16CStr;
     const AUTHOR: &'static U16CStr;
     const VERSION: SemVer;
@@ -37,36 +38,37 @@ pub trait Plugin<Env: From<SdkEnv> = SdkEnv> {
     const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
     const API_VERSION: ApiVersion = ApiVersion::LATEST;
 
-    fn on_init(env: &Env);
+    fn on_init(env: &SdkEnv);
 }
 
 #[sealed]
-pub trait PluginOps<Env: From<SdkEnv>>: Plugin<Env> {
-    fn env() -> &'static Env;
-    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>>;
+pub trait PluginOps: Plugin {
+    fn env() -> &'static SdkEnv;
+
+    #[doc(hidden)]
+    fn env_lock() -> &'static OnceLock<Box<SdkEnv>>;
+    #[doc(hidden)]
     fn info() -> PluginInfo;
+    #[doc(hidden)]
+    fn init(env: SdkEnv);
 }
 
 #[sealed]
-impl<P, Env> PluginOps<Env> for P
+impl<P> PluginOps for P
 where
-    Env: From<SdkEnv>,
-    P: Plugin<Env>,
+    P: Plugin,
 {
-    fn env() -> &'static Env {
-        Self::env_lock()
-            .get()
-            .expect("plugin environment should be initialized")
-            .downcast_ref()
-            .unwrap()
+    fn env() -> &'static SdkEnv {
+        Self::env_lock().get().unwrap()
     }
 
     #[inline]
-    fn env_lock() -> &'static OnceLock<Box<dyn std::any::Any + Send + Sync>> {
-        static ENV: OnceLock<Box<dyn std::any::Any + Send + Sync>> = OnceLock::new();
+    fn env_lock() -> &'static OnceLock<Box<SdkEnv>> {
+        static ENV: OnceLock<Box<SdkEnv>> = OnceLock::new();
         &ENV
     }
 
+    #[inline]
     fn info() -> PluginInfo {
         PluginInfo::new(
             Self::NAME,
@@ -75,6 +77,20 @@ where
             Self::VERSION,
             Self::RUNTIME,
         )
+    }
+
+    fn init(env: SdkEnv) {
+        Self::env_lock()
+            .set(Box::new(env))
+            .expect("plugin environment should not be initialized");
+
+        #[cfg(feature = "log")]
+        {
+            log::set_logger(Self::env()).unwrap();
+            log::set_max_level(log::LevelFilter::Trace);
+        }
+
+        Self::on_init(Self::env());
     }
 }
 
@@ -87,7 +103,7 @@ macro_rules! export_plugin {
             #[no_mangle]
             #[allow(non_snake_case, unused_variables)]
             unsafe extern "C" fn Query(info: *mut $crate::internal::PluginInfo) {
-                *info = <$trait as $crate::PluginOps<_>>::info().into_raw();
+                *info = <$trait as $crate::PluginOps>::info().into_raw();
             }
 
             #[no_mangle]
@@ -97,32 +113,21 @@ macro_rules! export_plugin {
                 reason: $crate::internal::EMainReason::Type,
                 sdk: $crate::internal::Sdk,
             ) {
-                let lock = <$trait as $crate::PluginOps<_>>::env_lock();
-                lock.set(Box::new($crate::SdkEnv::new(handle, sdk)))
-                    .expect("plugin environment should be initialized");
-                <$trait as $crate::Plugin<_>>::on_init(<$trait as $crate::PluginOps<_>>::env());
+                <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
             }
 
             #[no_mangle]
             #[allow(non_snake_case, unused_variables)]
             extern "C" fn Supports() -> u32 {
-                <$trait as $crate::Plugin<_>>::API_VERSION.into()
+                ::std::convert::Into::into(<$trait as $crate::Plugin>::API_VERSION)
             }
         }
     };
 }
 
-macro_rules! log_internal {
-    ($self:ident, $level:ident, $msg:expr) => {
-        unsafe {
-            let str = truncated_cstring($msg.to_string());
-            ((*$self.sdk.logger).$level.unwrap())($self.handle, str.as_ptr());
-        }
-    };
-}
-
+#[cfg(not(feature = "log"))]
 pub mod log {
-    pub use crate::{debug, error, info, warn};
+    pub use crate::{debug, error, info, trace, warn};
 
     #[macro_export]
     macro_rules! info {
@@ -151,6 +156,25 @@ pub mod log {
             $env.debug(format_args!($($arg)*))
         };
     }
+
+    #[macro_export]
+    macro_rules! trace {
+        ($env:expr, $($arg:tt)*) => {
+            $env.trace(format_args!($($arg)*))
+        };
+    }
+}
+
+#[cfg(feature = "log")]
+pub use log;
+
+macro_rules! log_internal {
+    ($self:ident, $level:ident, $msg:expr) => {
+        unsafe {
+            let str = truncated_cstring($msg.to_string());
+            ((*$self.sdk.logger).$level.unwrap())($self.handle, str.as_ptr());
+        }
+    };
 }
 
 #[derive(Debug)]
@@ -182,6 +206,11 @@ impl SdkEnv {
     #[inline]
     pub fn debug(&self, txt: impl fmt::Display) {
         log_internal!(self, Debug, txt);
+    }
+
+    #[inline]
+    pub fn trace(&self, txt: impl fmt::Display) {
+        log_internal!(self, Trace, txt);
     }
 
     #[inline]
@@ -223,6 +252,25 @@ impl SdkEnv {
 
 unsafe impl Send for SdkEnv {}
 unsafe impl Sync for SdkEnv {}
+
+#[cfg(feature = "log")]
+impl log::Log for SdkEnv {
+    fn enabled(&self, _metadata: &log::Metadata<'_>) -> bool {
+        true
+    }
+
+    fn log(&self, record: &log::Record<'_>) {
+        match record.level() {
+            log::Level::Error => self.error(record.args()),
+            log::Level::Warn => self.warn(record.args()),
+            log::Level::Info => self.info(record.args()),
+            log::Level::Debug => self.debug(record.args()),
+            log::Level::Trace => self.trace(record.args()),
+        };
+    }
+
+    fn flush(&self) {}
+}
 
 #[derive(Debug)]
 pub struct SemVer(red::SemVer);
@@ -452,9 +500,9 @@ const fn fnv1a32(str: &str) -> u32 {
     }
 }
 
-fn truncated_cstring(mut s: std::string::String) -> ffi::CString {
+fn truncated_cstring(mut s: String) -> ffi::CString {
     s.truncate(s.find('\0').unwrap_or(s.len()));
-    ffi::CString::new(s).unwrap()
+    unsafe { CString::from_vec_unchecked(s.into_bytes()) }
 }
 
 macro_rules! fn_from_hash {

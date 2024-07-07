@@ -439,7 +439,16 @@ impl Function {
         let mut out =
             StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::Repr::NATIVE_NAME))?;
         let arr = args.to_array()?;
+
+        #[cfg(not(all(debug_assertions, feature = "log")))]
         self.validate_stack(arr.as_ref(), &out)?;
+
+        #[cfg(all(debug_assertions, feature = "log"))]
+        if let Err(err) = self.validate_stack(arr.as_ref(), &out) {
+            log::error!("Call error: {}", err);
+            return Err(err);
+        }
+
         self.execute_internal(ctx, arr.as_ref(), &mut out)?;
         Ok(R::from_repr(ret))
     }
@@ -447,13 +456,20 @@ impl Function {
     #[inline(never)]
     fn validate_stack(&self, args: &[StackArg<'_>], ret: &StackArg<'_>) -> Result<(), InvokeError> {
         if self.params().len() != args.len() as u32 {
-            return Err(InvokeError::InvalidArgCount(self.params().len()));
+            return Err(InvokeError::InvalidArgCount {
+                function: self.name().as_str(),
+                expected: self.params().len(),
+            });
         }
 
         for (index, (param, arg)) in self.params().iter().zip(args.iter()).enumerate() {
             if !arg.type_().is_some_and(|ty| ptr::eq(ty, param.type_())) {
                 let expected = param.type_().name().as_str();
-                return Err(InvokeError::ArgMismatch { expected, index });
+                return Err(InvokeError::ArgMismatch {
+                    function: self.name().as_str(),
+                    expected,
+                    index,
+                });
             }
         }
 
@@ -462,7 +478,10 @@ impl Function {
             .is_some_and(|ty| ptr::eq(ty, self.return_value().type_()))
         {
             let expected = self.return_value().type_().name().as_str();
-            return Err(InvokeError::ReturnMismatch { expected });
+            return Err(InvokeError::ReturnMismatch {
+                function: self.name().as_str(),
+                expected,
+            });
         }
 
         Ok(())
@@ -486,7 +505,7 @@ impl Function {
         if success {
             Ok(())
         } else {
-            Err(InvokeError::ExecutionFailed)
+            Err(InvokeError::ExecutionFailed(self.name().as_str()))
         }
     }
 
