@@ -4,6 +4,8 @@ mod engine_time;
 pub use engine_time::EngineTime;
 mod entity_id;
 pub use entity_id::EntityId;
+mod game_time;
+pub use game_time::GameTime;
 mod item_id;
 pub use item_id::{GameEItemIdFlag, GamedataItemStructure, ItemId};
 mod res;
