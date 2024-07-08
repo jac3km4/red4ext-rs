@@ -6,7 +6,7 @@ Convenience Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.S
 ### set up a basic plugin
 ```rs
 use red4rs::{
-    export_plugin, log, systems::RttiRegistrator, wcstr, Plugin, PluginOps, SdkEnv, SemVer, U16CStr,
+    export_plugin, exports, global, wcstr, Exportable, GlobalExport, Plugin, SemVer, U16CStr,
 };
 
 pub struct Example;
@@ -16,45 +16,16 @@ impl Plugin for Example {
     const AUTHOR: &'static U16CStr = wcstr!("jekky");
     const VERSION: SemVer = SemVer::new(0, 1, 0);
 
-    fn on_init(env: &SdkEnv) {
-        // we can use the env to write red4ext logs
-        log::info!(env, "Hello world!");
-
-        // we can request the RTTI to invoke our functions to do some setup
-        RttiRegistrator::add(Some(register), Some(post_register));
+    // exports a named global function
+    fn exports() -> impl Exportable {
+        exports![GlobalExport(global!(c"Add2", add2)),]
     }
 }
 
 export_plugin!(Example);
 
-unsafe extern "C" fn register() {
-    // you can obtain the env anywhere as long as it's been initialized
-    let env = Example::env();
-    log::info!(env, "I'm registering!");
-    // we will register types here
-}
-
-unsafe extern "C" fn post_register() {
-    // we will register functions here
-}
-```
-
-### expose a native function
-```rust
-use red4rs::{global, systems::RttiSystemMut};
-
-unsafe extern "C" fn post_register() {
-    // create your RTTI bindings first
-    let global = global!(example).to_rtti(c"Example");
-
-    // then acquire the RTTI for writing, you have to order it this way to avoid a deadlock
-    let mut rtti = RttiSystemMut::get();
-    // then register your stuff
-    rtti.register_function(global);
-}
-
-fn example() -> String {
-    "Hello world!".to_owned()
+fn add2(a: i32) -> i32 {
+    a + 2
 }
 ```
 
@@ -121,43 +92,39 @@ fn example() -> Ref<ScanningEvent> {
 
 ### define a custom class type
 ```rust
+use std::cell::Cell;
+
 use red4rs::{
-    global, method,
-    systems::RttiSystemMut,
-    types::{CName, IScriptable, Native, NativeClass, Ref, ScriptClass},
+    exports, methods,
+    types::{IScriptable, Native, ScriptClass},
+    ClassExport, Exportable,
 };
 
-unsafe extern "C" fn register() {
-    let mut rtti = RttiSystemMut::get();
-    let parent = rtti.get_class(CName::new("IScriptable")).unwrap();
-    let class = NativeClass::<MyClass>::new_handle(parent);
-    rtti.register_class(class);
-}
-
-unsafe extern "C" fn post_register() {
-    // create your RTTI bindings first
-    let method = method!(MyClass::value).to_rtti(c"GetValue");
-    let global = global!(example).to_rtti(c"Example");
-
-    // then acquire the RTTI
-    let mut rtti = RttiSystemMut::get();
-    // then register your stuff
-    rtti.get_class(CName::new("MyClass"))
-        .unwrap()
-        .add_method(method);
-    rtti.register_function(global);
+// ...defined in impl Plugin
+fn exports() -> impl Exportable {
+    exports![ClassExport::<MyClass>::builder()
+        .base("IScriptable")
+        .methods(methods![
+            c"GetValue" => MyClass::value,
+            c"SetValue" => MyClass::set_value,
+        ])
+        .build(),]
 }
 
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
 struct MyClass {
     base: IScriptable,
-    value: i32,
+    value: Cell<i32>,
 }
 
 impl MyClass {
     fn value(&self) -> i32 {
-        self.value
+        self.value.get()
+    }
+
+    fn set_value(&self, value: i32) {
+        self.value.set(value);
     }
 }
 
@@ -165,16 +132,11 @@ unsafe impl ScriptClass for MyClass {
     const CLASS_NAME: &'static str = "MyClass";
     type Kind = Native;
 }
-
-fn example() -> Ref<MyClass> {
-    Ref::<MyClass>::new_with(|t| t.value = 1337).unwrap()
-}
 ```
 ...and on REDscript side:
 ```swift
 native class MyClass {
     native func GetValue() -> Int32;
+    native func SetValue(a: Int32);
 }
-
-native func Example() -> ref<MyClass>;
 ```

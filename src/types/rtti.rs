@@ -267,10 +267,10 @@ impl Drop for Class {
 pub struct NativeClass<T>(Class, PhantomData<*mut T>);
 
 impl<T> NativeClass<T> {
-    /// Creates a new native class with the given parent.
+    /// Creates a new native class with the given base type.
     /// Returns a handle to the class, it can only be used to register the class. Any further
     /// use should be done through the RTTI system.
-    pub fn new_handle(parent: &Class) -> ClassHandle
+    pub fn new_handle(base: Option<&Class>) -> ClassHandle
     where
         T: Default + Clone + ScriptClass,
     {
@@ -284,7 +284,9 @@ impl<T> NativeClass<T> {
         let cstr = CString::new(T::NATIVE_NAME).expect("should create a CString");
 
         let mut class = Class::new_native(&cstr, mem::size_of::<T>() as u32);
-        class.0.parent = parent.as_raw() as *const _ as *mut red::CClass;
+        if let Some(base) = base {
+            class.0.parent = base.as_raw() as *const _ as *mut red::CClass;
+        }
 
         let vft = class.as_raw()._base.vtable_ as *mut usize;
         let vft = unsafe { slice::from_raw_parts(vft, VFT_SIZE) };

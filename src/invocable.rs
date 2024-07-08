@@ -144,25 +144,27 @@ impl FnType {
 
 #[derive(Debug)]
 pub struct GlobalMetadata {
-    ptr: FunctionHandler<IScriptable, VoidPtr>,
+    name: &'static CStr,
+    func: FunctionHandler<IScriptable, VoidPtr>,
     typ: FnType,
 }
 
 impl GlobalMetadata {
     #[inline]
-    pub fn new<F: GlobalInvocable<A, R>, A, R>(
-        ptr: FunctionHandler<IScriptable, VoidPtr>,
+    pub const fn new<F: GlobalInvocable<A, R>, A, R>(
+        name: &'static CStr,
+        func: FunctionHandler<IScriptable, VoidPtr>,
         _f: &F,
     ) -> Self {
         Self {
-            ptr,
+            name,
+            func,
             typ: F::FN_TYPE,
         }
     }
 
-    #[inline]
-    pub fn to_rtti(&self, name: &CStr) -> PoolRef<GlobalFunction> {
-        let mut func = GlobalFunction::new(name, name, self.ptr);
+    pub fn to_rtti(&self) -> PoolRef<GlobalFunction> {
+        let mut func = GlobalFunction::new(self.name, self.name, self.func);
         self.typ.initialize_func(func.as_function_mut());
         func
     }
@@ -170,27 +172,29 @@ impl GlobalMetadata {
 
 #[derive(Debug)]
 pub struct MethodMetadata<Ctx> {
-    ptr: FunctionHandler<Ctx, VoidPtr>,
+    name: &'static CStr,
+    func: FunctionHandler<Ctx, VoidPtr>,
     typ: FnType,
     parent: PhantomData<fn() -> *const Ctx>,
 }
 
 impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
     #[inline]
-    pub fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
+    pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
+        name: &'static CStr,
         ptr: FunctionHandler<Ctx, VoidPtr>,
         _f: &F,
     ) -> Self {
         Self {
-            ptr,
+            name,
+            func: ptr,
             typ: F::FN_TYPE,
             parent: PhantomData,
         }
     }
 
-    #[inline]
-    pub fn to_rtti(&self, name: &CStr) -> PoolRef<Method> {
-        let mut func = Method::new(name, name, self.ptr);
+    pub fn to_rtti(&self) -> PoolRef<Method> {
+        let mut func = Method::new(self.name, self.name, self.func);
         self.typ.initialize_func(func.as_function_mut());
         func
     }
@@ -198,7 +202,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 
 #[macro_export]
 macro_rules! global {
-    ($fun:expr) => {{
+    ($name:literal, $fun:expr) => {{
         extern "C" fn native_impl(
             ctx: &$crate::types::IScriptable,
             frame: &mut $crate::types::StackFrame,
@@ -210,13 +214,13 @@ macro_rules! global {
             unsafe { frame.step() };
         }
 
-        $crate::invocable::GlobalMetadata::new(native_impl, &$fun)
+        $crate::invocable::GlobalMetadata::new($name, native_impl, &$fun)
     }};
 }
 
 #[macro_export]
 macro_rules! method {
-    ($ty:ident::$name:ident) => {{
+    ($name:literal, $ty:ident::$id:ident) => {{
         extern "C" fn native_impl(
             ctx: &$ty,
             frame: &mut $crate::types::StackFrame,
@@ -224,11 +228,11 @@ macro_rules! method {
             _unk: i64,
         ) {
             let out = unsafe { std::mem::transmute(ret) };
-            $crate::invocable::MethodInvocable::invoke($ty::$name, ctx, frame, out);
+            $crate::invocable::MethodInvocable::invoke($ty::$id, ctx, frame, out);
             unsafe { frame.step() };
         }
 
-        $crate::invocable::MethodMetadata::new(native_impl, &$ty::$name)
+        $crate::invocable::MethodMetadata::new($name, native_impl, &$ty::$id)
     }};
 }
 

@@ -4,10 +4,12 @@ use std::ffi::CString;
 use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
 
+pub use export::{ClassExport, ExportList, ExportNil, Exportable, GlobalExport};
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
+mod export;
 pub mod invocable;
 mod raw;
 pub mod repr;
@@ -38,7 +40,10 @@ pub trait Plugin {
     const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
     const API_VERSION: ApiVersion = ApiVersion::LATEST;
 
-    fn on_init(env: &SdkEnv);
+    fn exports() -> impl Exportable {
+        ExportNil
+    }
+    fn on_init(_env: &SdkEnv) {}
 }
 
 #[sealed]
@@ -114,12 +119,23 @@ macro_rules! export_plugin {
                 sdk: $crate::internal::Sdk,
             ) {
                 <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
+                $crate::systems::RttiRegistrator::add(Some(on_register), Some(on_post_register));
             }
 
             #[no_mangle]
             #[allow(non_snake_case, unused_variables)]
             extern "C" fn Supports() -> u32 {
                 ::std::convert::Into::into(<$trait as $crate::Plugin>::API_VERSION)
+            }
+
+            extern "C" fn on_register() {
+                let exports = <$trait as $crate::Plugin>::exports();
+                $crate::Exportable::register(&exports);
+            }
+
+            extern "C" fn on_post_register() {
+                let exports = <$trait as $crate::Plugin>::exports();
+                $crate::Exportable::post_register(&exports);
             }
         }
     };
