@@ -165,7 +165,6 @@ impl RttiSystemMut {
         }
     }
 
-    #[inline]
     pub fn get_class(&mut self, name: CName) -> Option<&mut Class> {
         // implemented manually to avoid the game trying to obtain the type lock
         let (types, types_by_id, type_ids) = self.split_types();
@@ -176,7 +175,6 @@ impl RttiSystemMut {
         types_by_id.get_mut(&id)?.as_class_mut()
     }
 
-    #[inline]
     pub fn register_class(&mut self, mut class: ClassHandle) {
         // implemented manually to avoid the game trying to obtain the type lock
         let id = unsafe { red::RTTIRegistrator::GetNextId() };
