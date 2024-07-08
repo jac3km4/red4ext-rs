@@ -18,7 +18,17 @@ impl Plugin for Example {
 
     // exports a named global function
     fn exports() -> impl Exportable {
-        exports![GlobalExport(global!(c"Add2", add2)),]
+        exports![
+            GlobalExport(global!(c"Add2", add2)),
+            // you can export global functions and classes
+            // ClassExport::<MyClass>::builder()
+            //     .base("IScriptable")
+            //     .methods(methods![
+            //         c"GetValue" => MyClass::value,
+            //         c"SetValue" => MyClass::set_value,
+            //     ])
+            //     .build()
+        ]
     }
 }
 
