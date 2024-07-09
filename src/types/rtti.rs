@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
-use std::{iter, mem, ptr, slice};
+use std::{fmt, iter, mem, ptr, slice};
 
 use super::{
     CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
@@ -165,6 +165,11 @@ impl Class {
     }
 
     #[inline]
+    pub fn flags(&self) -> ClassFlags {
+        ClassFlags(self.0.flags)
+    }
+
+    #[inline]
     pub fn properties(&self) -> &RedArray<&Property> {
         unsafe { mem::transmute(&self.0.props) }
     }
@@ -259,6 +264,31 @@ impl Drop for Class {
     fn drop(&mut self) {
         let t = self.as_type_mut();
         unsafe { (t.vft().destroy)(t) };
+    }
+}
+
+#[repr(transparent)]
+pub struct ClassFlags(red::CClass_Flags);
+
+impl fmt::Debug for ClassFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ClassFlags")
+            .field("is_abstract", &self.0.isAbstract())
+            .field("is_native", &self.0.isNative())
+            .field("is_scripted_class", &self.0.isScriptedClass())
+            .field("is_scripted_struct", &self.0.isScriptedStruct())
+            .field(
+                "has_no_default_object_serialization",
+                &self.0.hasNoDefaultObjectSerialization(),
+            )
+            .field("is_always_transient", &self.0.isAlwaysTransient())
+            .field("is_import_only", &self.0.isImportOnly())
+            .field("is_private", &self.0.isPrivate())
+            .field("is_protected", &self.0.isProtected())
+            .field("is_test_only", &self.0.isTestOnly())
+            .field("is_savable", &self.0.isSavable())
+            .field("b10", &self.0.b10())
+            .finish()
     }
 }
 
