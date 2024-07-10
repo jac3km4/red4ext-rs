@@ -15,7 +15,7 @@ pub use tweak_db_id::TweakDbId;
 mod array;
 pub use array::{IntoIter, RedArray};
 mod refs;
-pub use refs::{Native, Ref, ScriptClass, ScriptRef, Scripted, WeakRef};
+pub use refs::{ClassKind, Native, Ref, ScriptClass, ScriptClassOps, ScriptRef, Scripted, WeakRef};
 mod string;
 pub use string::RedString;
 mod cname;

@@ -60,6 +60,25 @@ impl<T> ClassKind<T> for Native {
     }
 }
 
+#[sealed]
+pub trait ScriptClassOps: ScriptClass {
+    fn new_ref() -> Option<Ref<Self>>;
+    fn new_ref_with(init: impl FnOnce(&mut Self)) -> Option<Ref<Self>>;
+}
+
+#[sealed]
+impl<T: ScriptClass> ScriptClassOps for T {
+    #[inline]
+    fn new_ref() -> Option<Ref<Self>> {
+        Ref::new()
+    }
+
+    #[inline]
+    fn new_ref_with(init: impl FnOnce(&mut Self)) -> Option<Ref<Self>> {
+        Ref::new_with(init)
+    }
+}
+
 type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeType;
 
 #[repr(transparent)]

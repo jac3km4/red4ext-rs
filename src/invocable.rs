@@ -7,8 +7,8 @@ use thiserror::Error;
 
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, Function, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef, ScriptClass,
-    StackArg, StackFrame,
+    CName, ClassKind, Function, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef, Ref,
+    ScriptClass, StackArg, StackFrame,
 };
 use crate::VoidPtr;
 
@@ -36,6 +36,8 @@ pub enum InvokeError {
     UnresolvedType(&'static str),
     #[error("execution of '{0}' has failed")]
     ExecutionFailed(&'static str),
+    #[error("the 'this' pointer for class '{0}' was null")]
+    NullReceiver(&'static str),
 }
 
 #[sealed]
@@ -248,16 +250,43 @@ macro_rules! call {
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            $crate::types::IScriptable::class(::std::convert::AsRef::<IScriptable>::as_ref($this))
+            let receiver = $crate::invocable::Receiver::as_receiver(&$this)?;
+            $crate::types::IScriptable::class(receiver)
                 .get_method($crate::types::CName::new($fn_name))
                 .ok_or($crate::invocable::InvokeError::FunctionNotFound($fn_name))?
                 .as_function()
                 .execute::<_, $rett>(
-                    Some(::std::convert::AsRef::<IScriptable>::as_ref($this)),
+                    Some(receiver),
                     ($( $crate::repr::IntoRepr::into_repr($args), )*)
                 )
         })()
     };
+}
+
+#[sealed]
+pub trait Receiver {
+    fn as_receiver(&self) -> Result<&IScriptable, InvokeError>;
+}
+
+#[sealed]
+impl<T: AsRef<IScriptable>> Receiver for T {
+    #[inline]
+    fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
+        Ok(self.as_ref())
+    }
+}
+
+#[sealed]
+impl<T: ScriptClass> Receiver for Ref<T>
+where
+    <T::Kind as ClassKind<T>>::NativeType: AsRef<IScriptable>,
+{
+    #[inline]
+    fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
+        self.instance()
+            .map(AsRef::as_ref)
+            .ok_or_else(|| InvokeError::NullReceiver(T::CLASS_NAME))
+    }
 }
 
 #[sealed]

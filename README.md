@@ -47,7 +47,7 @@ use red4rs::{
 };
 
 fn example(player: Ref<IScriptable>) -> i32 {
-    let size = call!(player.instance().unwrap(), "GetDeviceActionMaxQueueSize;" () -> i32).unwrap();
+    let size = call!(player, "GetDeviceActionMaxQueueSize;" () -> i32).unwrap();
     let added1 = call!("OperatorAdd;Int32Int32;Int32" (size, 4i32) -> i32).unwrap();
     added1
 }
@@ -55,7 +55,7 @@ fn example(player: Ref<IScriptable>) -> i32 {
 
 ### instantiate and interact with scripted classes
 ```rust
-use red4rs::types::{EntityId, Ref, ScriptClass, Scripted};
+use red4rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
 
 #[repr(C)]
 struct AddInvestigatorEvent {
@@ -68,16 +68,23 @@ unsafe impl ScriptClass for AddInvestigatorEvent {
 }
 
 fn example() -> Ref<AddInvestigatorEvent> {
-    Ref::<AddInvestigatorEvent>::new_with(|inst| {
+    // we can create new refs of script classes
+    let instance = AddInvestigatorEvent::new_ref_with(|inst| {
         inst.investigator = EntityId::from(0xdeadbeef);
     })
-    .unwrap()
+    .unwrap();
+
+    // we can obtain a reference to the fields of the ref
+    let fields = unsafe { instance.fields() }.unwrap();
+    let _investigator = fields.investigator;
+    
+    instance
 }
 ```
 
 ### instantiate and interact with native classes
 ```rust
-use red4rs::types::{IScriptable, Native, Ref, ScriptClass};
+use red4rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
 
 #[repr(C)]
 struct ScanningEvent {
@@ -91,7 +98,7 @@ unsafe impl ScriptClass for ScanningEvent {
 }
 
 fn example() -> Ref<ScanningEvent> {
-    Ref::<ScanningEvent>::new_with(|inst| {
+    ScanningEvent::new_ref_with(|inst| {
         inst.state = 1;
     })
     .unwrap()
