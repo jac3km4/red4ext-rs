@@ -86,8 +86,7 @@ struct ScanningEvent {
 }
 
 unsafe impl ScriptClass for ScanningEvent {
-    const CLASS_NAME: &'static str = "ScanningEvent";
-    const NATIVE_NAME: &'static str = "gameScanningEvent";
+    const CLASS_NAME: &'static str = "gameScanningEvent";
     type Kind = Native;
 }
 
