@@ -1,7 +1,6 @@
 use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
-use crate::repr::{FromRepr, IntoRepr};
 
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
@@ -122,22 +121,6 @@ impl From<u32> for GameTime {
 impl From<GameTime> for u32 {
     fn from(value: GameTime) -> Self {
         value.0.seconds
-    }
-}
-
-impl IntoRepr for GameTime {
-    type Repr = u32;
-
-    fn into_repr(self) -> Self::Repr {
-        self.0.seconds
-    }
-}
-
-impl FromRepr for GameTime {
-    type Repr = u32;
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        Self::from(repr)
     }
 }
 

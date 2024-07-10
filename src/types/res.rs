@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::marker::PhantomData;
 use std::path::Path;
 
 use thiserror::Error;
@@ -10,39 +11,42 @@ pub const MAX_LENGTH: usize = 216;
 
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
-pub struct RaRef(red::RaRef);
+pub struct RaRef<T>(red::RaRef, PhantomData<T>);
 
-impl RaRef {
+impl<T> RaRef<T> {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, ResourcePathError> {
-        Ok(Self(red::RaRef {
-            path: red::ResourcePath {
-                hash: encode_path(path)?,
+        Ok(Self(
+            red::RaRef {
+                path: red::ResourcePath {
+                    hash: encode_path(path)?,
+                },
             },
-        }))
+            PhantomData,
+        ))
     }
 }
 
-impl PartialEq for RaRef {
+impl<T> PartialEq for RaRef<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0.path.hash.eq(&other.0.path.hash)
     }
 }
 
-impl Eq for RaRef {}
+impl<T> Eq for RaRef<T> {}
 
-impl PartialOrd for RaRef {
+impl<T> PartialOrd for RaRef<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for RaRef {
+impl<T> Ord for RaRef<T> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.path.hash.cmp(&other.0.path.hash)
     }
 }
 
-impl Hash for RaRef {
+impl<T> Hash for RaRef<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.path.hash.hash(state);
     }

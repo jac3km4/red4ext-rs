@@ -90,8 +90,13 @@ impl<T: ScriptClass> Ref<T> {
     }
 
     #[inline]
-    pub fn fields(&self) -> Option<&T> {
+    pub unsafe fn fields(&self) -> Option<&T> {
         Some(T::Kind::get(self.0.instance()?))
+    }
+
+    #[inline]
+    pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
+        Some(T::Kind::get_mut(self.0.instance_mut()?))
     }
 
     #[inline]

@@ -6,7 +6,7 @@ use const_crc32::{crc32, crc32_seed};
 use crate::raw::root::RED4ext as red;
 
 #[derive(Default, Clone, Copy)]
-#[repr(transparent)]
+#[repr(C, align(4))]
 pub struct TweakDbId(red::TweakDBID);
 
 impl TweakDbId {

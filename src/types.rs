@@ -22,9 +22,10 @@ mod cname;
 pub use cname::{CName, CNamePool};
 mod rtti;
 pub use rtti::{
-    ArrayType, Bitfield, Class, ClassFlags, ClassHandle, Enum, Function, FunctionHandler,
-    GlobalFunction, IScriptable, Kind, Method, NativeClass, Property, StaticMethod, Type,
-    ValueContainer, ValuePtr,
+    ArrayType, Bitfield, Class, ClassFlags, ClassHandle, CurveType, Enum, Function,
+    FunctionHandler, GlobalFunction, IScriptable, ISerializable, Kind, Method, NativeArrayType,
+    NativeClass, PointerType, Property, RaRefType, RefType, ResourceRefType, ScriptRefType,
+    StaticArrayType, StaticMethod, TaggedType, Type, ValueContainer, ValuePtr, WeakRefType,
 };
 mod bytecode;
 pub use bytecode::{
@@ -38,3 +39,9 @@ mod hash;
 pub use hash::{Hash, RedHashMap};
 mod sync;
 pub use sync::{RwSpinLockReadGuard, RwSpinLockWriteGuard};
+mod misc;
+pub use misc::{
+    Curve, DataBuffer, DateTime, DeferredDataBuffer, EditorObjectId, Guid, LocalizationString,
+    MessageResourcePath, MultiChannelCurve, NodeRef, ResourceRef, SharedDataBuffer, StaticArray,
+    Variant,
+};

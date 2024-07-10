@@ -146,6 +146,21 @@ impl RttiSystem {
     }
 
     #[inline]
+    pub fn types(&self) -> &RedHashMap<CName, &Type> {
+        unsafe { &*(&self.0.types as *const _ as *const RedHashMap<CName, &Type>) }
+    }
+
+    #[inline]
+    pub fn script_to_native_map(&self) -> &RedHashMap<CName, CName> {
+        unsafe { &*(&self.0.scriptToNative as *const _ as *const RedHashMap<CName, CName>) }
+    }
+
+    #[inline]
+    pub fn native_to_script_map(&self) -> &RedHashMap<CName, CName> {
+        unsafe { &*(&self.0.nativeToScript as *const _ as *const RedHashMap<CName, CName>) }
+    }
+
+    #[inline]
     fn vft(&self) -> &RttiSystemVft {
         unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }
