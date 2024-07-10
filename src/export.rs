@@ -88,7 +88,7 @@ impl<C: Default + Clone + ScriptClass> Exportable for ClassExport<C> {
 
         let mut rtti = RttiSystemMut::get();
         let class = rtti
-            .get_class(CName::new(C::NATIVE_NAME))
+            .get_class(CName::new(C::CLASS_NAME))
             .expect("class should exist");
         for method in converted {
             class.add_method(method);

@@ -11,7 +11,6 @@ use crate::types::{
 /// is idetical to the representation of type with name Self::NAME in-game.
 pub unsafe trait NativeRepr {
     const NAME: &'static str;
-    const NATIVE_NAME: &'static str = Self::NAME;
 }
 
 unsafe impl NativeRepr for () {
@@ -24,22 +23,18 @@ unsafe impl NativeRepr for RedString {
 
 unsafe impl<A: NativeRepr> NativeRepr for RedArray<A> {
     const NAME: &'static str = combine!("array:", A::NAME);
-    const NATIVE_NAME: &'static str = combine!("array:", A::NATIVE_NAME);
 }
 
 unsafe impl<A: ScriptClass> NativeRepr for Ref<A> {
     const NAME: &'static str = combine!("handle:", A::CLASS_NAME);
-    const NATIVE_NAME: &'static str = combine!("handle:", A::NATIVE_NAME);
 }
 
 unsafe impl<A: ScriptClass> NativeRepr for WeakRef<A> {
     const NAME: &'static str = combine!("whandle:", A::CLASS_NAME);
-    const NATIVE_NAME: &'static str = combine!("whandle:", A::NATIVE_NAME);
 }
 
 unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
-    const NATIVE_NAME: &'static str = combine!("script_ref:", A::NATIVE_NAME);
 }
 
 macro_rules! impl_native_repr {
@@ -51,7 +46,6 @@ macro_rules! impl_native_repr {
     ($ty:ty, $name:literal, $native_name:literal) => {
         unsafe impl NativeRepr for $ty {
             const NAME: &'static str = $name;
-            const NATIVE_NAME: &'static str = $native_name;
         }
     };
 }

@@ -14,7 +14,6 @@ pub unsafe trait ScriptClass: Sized {
     type Kind: ClassKind<Self>;
 
     const CLASS_NAME: &'static str;
-    const NATIVE_NAME: &'static str = Self::CLASS_NAME;
 }
 
 #[sealed]
@@ -74,7 +73,7 @@ impl<T: ScriptClass> Ref<T> {
 
     pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
         let system = RttiSystem::get();
-        let class = system.get_class(CName::new(T::NATIVE_NAME))?;
+        let class = system.get_class(CName::new(T::CLASS_NAME))?;
         let mut this = Self::default();
         Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
@@ -143,11 +142,6 @@ unsafe impl<T: ScriptClass> Sync for Ref<T> {}
 pub struct WeakRef<T: ScriptClass>(BaseRef<NativeType<T>>);
 
 impl<T: ScriptClass> WeakRef<T> {
-    #[inline]
-    pub fn fields(&self) -> Option<&T> {
-        Some(T::Kind::get(self.0.instance()?))
-    }
-
     #[inline]
     pub fn upgrade(self) -> Option<Ref<T>> {
         self.0.inc_strong_if_non_zero().then(|| Ref(self.0.clone()))
@@ -290,7 +284,7 @@ pub struct ScriptRef<'a, T>(red::ScriptRef<T>, PhantomData<&'a mut T>);
 impl<'a, T: NativeRepr> ScriptRef<'a, T> {
     pub fn new(val: &'a mut T) -> Option<Self> {
         let rtti = RttiSystem::get();
-        let inner = rtti.get_type(CName::new(T::NATIVE_NAME))?;
+        let inner = rtti.get_type(CName::new(T::NAME))?;
         let ref_ = red::ScriptRef {
             innerType: inner.as_raw() as *const _ as *mut red::CBaseRTTIType,
             ref_: val as *mut T,

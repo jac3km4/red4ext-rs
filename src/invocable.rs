@@ -57,8 +57,8 @@ macro_rules! impl_global_invocable {
                 R: IntoRepr
             {
                 const FN_TYPE: FnType = FnType {
-                    args: &[$(CName::new($types::Repr::NATIVE_NAME),)*],
-                    ret: CName::new(R::Repr::NATIVE_NAME)
+                    args: &[$(CName::new($types::Repr::NAME),)*],
+                    ret: CName::new(R::Repr::NAME)
                 };
 
                 #[inline]
@@ -101,8 +101,8 @@ macro_rules! impl_method_invocable {
                 R: IntoRepr
             {
                 const FN_TYPE: FnType = FnType {
-                    args: &[$(CName::new($types::Repr::NATIVE_NAME),)*],
-                    ret: CName::new(R::Repr::NATIVE_NAME)
+                    args: &[$(CName::new($types::Repr::NAME),)*],
+                    ret: CName::new(R::Repr::NAME)
                 };
 
                 #[inline]
@@ -282,7 +282,7 @@ macro_rules! impl_args {
                     let ($($ids,)*) = self;
                     Ok([$(
                         StackArg::new($ids).ok_or_else(||
-                            InvokeError::UnresolvedType($ids::NATIVE_NAME)
+                            InvokeError::UnresolvedType($ids::NAME)
                         )?),*
                     ])
                 }

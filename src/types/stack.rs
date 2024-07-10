@@ -86,7 +86,7 @@ pub struct StackArg<'a>(red::CStackType, PhantomData<&'a ()>);
 impl<'a> StackArg<'a> {
     pub fn new<A: NativeRepr>(val: &'a mut A) -> Option<Self> {
         let rtti = RttiSystem::get();
-        let type_ = rtti.get_type(CName::new(A::NATIVE_NAME))?;
+        let type_ = rtti.get_type(CName::new(A::NAME))?;
         let inner = red::CStackType {
             type_: type_.as_raw() as *const _ as *mut red::CBaseRTTIType,
             value: val as *const A as VoidPtr,

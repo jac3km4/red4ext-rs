@@ -480,7 +480,7 @@ impl<T> NativeClass<T> {
         const DESTRUCT_SLOT: usize = 28;
         const ALLOC_SLOT: usize = 29;
 
-        let cstr = CString::new(T::NATIVE_NAME).expect("should create a CString");
+        let cstr = CString::new(T::CLASS_NAME).expect("should create a CString");
 
         let mut class = Class::new_native(&cstr, mem::size_of::<T>() as u32);
         if let Some(base) = base {
@@ -827,8 +827,7 @@ impl Function {
         R::Repr: Default,
     {
         let mut ret = R::Repr::default();
-        let mut out =
-            StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::Repr::NATIVE_NAME))?;
+        let mut out = StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::Repr::NAME))?;
         let arr = args.to_array()?;
 
         #[cfg(not(all(debug_assertions, feature = "log")))]
@@ -972,7 +971,7 @@ impl Method {
 
         let rtti = RttiSystem::get();
         let class = rtti
-            .get_class(CName::new(C::NATIVE_NAME))
+            .get_class(CName::new(C::CLASS_NAME))
             .expect("should find the class");
 
         Self::ctor(
