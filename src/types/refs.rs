@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
-use std::ptr;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::{iter, mem, ptr};
 
 use sealed::sealed;
 
-use super::{CName, IScriptable, Type};
+use super::{CName, IScriptable, ISerializable, Type};
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
@@ -126,6 +126,18 @@ impl<T: ScriptClass> Ref<T> {
     pub fn downgrade(self) -> WeakRef<T> {
         self.0.inc_weak();
         WeakRef(self.0.clone())
+    }
+
+    pub fn cast<U>(self) -> Option<Ref<U>>
+    where
+        U: ScriptClass,
+    {
+        let inst = unsafe { &*(self.0 .0.instance as *const ISerializable) };
+        let class = inst.class();
+        iter::once(class)
+            .chain(class.base_iter())
+            .any(|class| class.name() == CName::new(U::CLASS_NAME))
+            .then(|| unsafe { mem::transmute(self) })
     }
 }
 

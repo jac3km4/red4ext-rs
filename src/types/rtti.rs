@@ -1291,6 +1291,17 @@ impl Drop for Bitfield {
 #[repr(transparent)]
 pub struct ISerializable(red::ISerializable);
 
+impl ISerializable {
+    #[inline]
+    pub fn class(&self) -> &Class {
+        unsafe {
+            &*(((*self.0.vtable_).ISerializable_GetType)(
+                (&self.0) as *const _ as *mut red::ISerializable,
+            ) as *const Class)
+        }
+    }
+}
+
 unsafe impl ScriptClass for ISerializable {
     type Kind = Native;
 
@@ -1304,16 +1315,17 @@ pub struct IScriptable(red::IScriptable);
 impl IScriptable {
     #[inline]
     pub fn class(&self) -> &Class {
-        unsafe {
-            &*(((*self.0._base.vtable_).ISerializable_GetType)(
-                (&self.0._base) as *const _ as *mut red::ISerializable,
-            ) as *const Class)
-        }
+        self.as_serializable().class()
     }
 
     #[inline]
     pub fn fields(&self) -> ValueContainer {
         ValueContainer(self.0.valueHolder)
+    }
+
+    #[inline]
+    pub fn as_serializable(&self) -> &ISerializable {
+        unsafe { &*(self as *const _ as *const ISerializable) }
     }
 
     #[inline]
