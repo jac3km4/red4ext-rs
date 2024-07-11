@@ -64,9 +64,11 @@ impl<K, V> RedHashMap<K, V> {
     }
 
     fn get_by_hash(&self, hash: u32) -> Option<&V> {
-        let mut cur = self.indexes()[(hash % self.capacity()) as usize];
+        let mut cur = *self
+            .indexes()
+            .get((hash.checked_rem(self.capacity()))? as usize)?;
         while cur != INVALID_INDEX {
-            let node = &self.nodes()[cur as usize];
+            let node = self.nodes().get(cur as usize)?;
             if node.hashedKey == hash {
                 return Some(&node.value);
             }
@@ -76,11 +78,13 @@ impl<K, V> RedHashMap<K, V> {
     }
 
     fn get_by_hash_mut(&mut self, hash: u32) -> Option<&mut V> {
-        let mut cur = self.indexes()[(hash % self.capacity()) as usize];
+        let mut cur = *self
+            .indexes()
+            .get((hash.checked_rem(self.capacity()))? as usize)?;
         while cur != INVALID_INDEX {
-            let node = &self.nodes_mut()[cur as usize];
+            let node = self.nodes_mut().get(cur as usize)?;
             if node.hashedKey == hash {
-                return Some(&mut self.nodes_mut()[cur as usize].value);
+                return Some(&mut self.nodes_mut().get_mut(cur as usize)?.value);
             }
             cur = node.next;
         }
