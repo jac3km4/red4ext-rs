@@ -150,7 +150,7 @@ macro_rules! exports {
 
 #[macro_export]
 macro_rules! methods {
-    [$($name:literal => $ty:ident::$id:ident),*$(,)?] => {
-        const { &[$($crate::method!($name, $ty::$id)),*] }
+    [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
+        const { &[$($crate::method!($($mod)* $name, $ty::$id)),*] }
     };
 }

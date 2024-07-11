@@ -209,6 +209,11 @@ impl Class {
     }
 
     #[inline]
+    pub fn set_flags(&mut self, flags: ClassFlags) {
+        self.0.flags = flags.0;
+    }
+
+    #[inline]
     pub fn size(&self) -> u32 {
         self.0.size
     }
@@ -342,6 +347,7 @@ impl Drop for Class {
     }
 }
 
+#[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct ClassFlags(red::CClass_Flags);
 
@@ -768,6 +774,16 @@ impl Function {
     }
 
     #[inline]
+    pub fn flags(&self) -> FunctionFlags {
+        FunctionFlags(self.0.flags)
+    }
+
+    #[inline]
+    pub fn set_flags(&mut self, flags: FunctionFlags) {
+        self.0.flags = flags.0;
+    }
+
+    #[inline]
     pub fn parent(&self) -> Option<&Class> {
         unsafe { (self.vft().get_parent)(self).as_ref() }
     }
@@ -788,11 +804,6 @@ impl Function {
     }
 
     #[inline]
-    pub fn is_static(&self) -> bool {
-        self.0.flags.isStatic() != 0
-    }
-
-    #[inline]
     pub fn add_param(&mut self, typ: CName, name: &CStr, is_out: bool, is_optional: bool) -> bool {
         unsafe {
             self.0
@@ -803,21 +814,6 @@ impl Function {
     #[inline]
     pub fn set_return_type(&mut self, typ: CName) {
         unsafe { self.0.SetReturnType(typ.to_raw()) };
-    }
-
-    #[inline]
-    pub fn set_is_native(&mut self, is_native: bool) {
-        self.0.flags.set_isNative(is_native as u32)
-    }
-
-    #[inline]
-    pub fn set_is_final(&mut self, is_final: bool) {
-        self.0.flags.set_isFinal(is_final as u32)
-    }
-
-    #[inline]
-    pub fn set_is_static(&mut self, is_static: bool) {
-        self.0.flags.set_isStatic(is_static as u32)
     }
 
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
@@ -914,13 +910,16 @@ impl GlobalFunction {
         full_name: &CStr,
         short_name: &CStr,
         handler: FunctionHandler<IScriptable, R>,
+        flags: FunctionFlags,
     ) -> PoolRef<Self> {
         let mut func = GlobalFunction::alloc().expect("should allocate a GlobalFunction");
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
 
         Self::ctor(func.as_mut_ptr(), full_name, short_name, handler as _);
-        unsafe { func.assume_init() }
+        let mut func = unsafe { func.assume_init() };
+        func.as_function_mut().set_flags(flags);
+        func
     }
 
     fn ctor(ptr: *mut Self, full_name: CName, short_name: CName, handler: VoidPtr) {
@@ -961,6 +960,7 @@ impl Method {
         full_name: &CStr,
         short_name: &CStr,
         handler: FunctionHandler<C, R>,
+        flags: FunctionFlags,
     ) -> PoolRef<Self>
     where
         C: ScriptClass,
@@ -980,6 +980,7 @@ impl Method {
             full_name,
             short_name,
             handler as _,
+            flags,
         );
         unsafe { func.assume_init() }
     }
@@ -990,6 +991,7 @@ impl Method {
         full_name: CName,
         short_name: CName,
         handler: VoidPtr,
+        flags: FunctionFlags,
     ) {
         unsafe {
             let ctor = crate::fn_from_hash!(
@@ -1003,14 +1005,7 @@ impl Method {
                     red::CBaseFunction_Flags,
                 )
             );
-            ctor(
-                ptr,
-                class,
-                full_name,
-                short_name,
-                handler,
-                Default::default(),
-            );
+            ctor(ptr, class, full_name, short_name, handler, flags.0);
         };
     }
 
@@ -1107,6 +1102,44 @@ impl Drop for StaticMethod {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
+pub struct FunctionFlags(red::CBaseFunction_Flags);
+
+impl FunctionFlags {
+    pub fn is_native(&self) -> bool {
+        self.0.isNative() != 0
+    }
+
+    pub fn set_is_native(&mut self, is_native: bool) {
+        self.0.set_isNative(is_native as u32)
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.0.isStatic() != 0
+    }
+
+    pub fn set_is_static(&mut self, is_static: bool) {
+        self.0.set_isStatic(is_static as u32)
+    }
+
+    pub fn is_final(&self) -> bool {
+        self.0.isFinal() != 0
+    }
+
+    pub fn set_is_final(&mut self, is_final: bool) {
+        self.0.set_isFinal(is_final as u32)
+    }
+
+    pub fn is_event(&self) -> bool {
+        self.0.isEvent() != 0
+    }
+
+    pub fn set_is_event(&mut self, is_event: bool) {
+        self.0.set_isEvent(is_event as u32)
+    }
+}
+
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Property(red::CProperty);
@@ -1140,6 +1173,16 @@ impl Property {
     }
 
     #[inline]
+    pub fn flags(&self) -> PropertyFlags {
+        PropertyFlags(self.0.flags)
+    }
+
+    #[inline]
+    pub fn set_flags(&mut self, flags: PropertyFlags) {
+        self.0.flags = flags.0;
+    }
+
+    #[inline]
     pub fn type_(&self) -> &Type {
         unsafe { &*(self.0.type_ as *const Type) }
     }
@@ -1153,15 +1196,27 @@ impl Property {
     pub unsafe fn value(&self, container: ValueContainer) -> ValuePtr {
         unsafe { ValuePtr(container.0.byte_add(self.0.valueOffset as usize)) }
     }
+}
 
-    #[inline]
-    pub fn is_in_value_holder(&self) -> bool {
-        self.0.flags.inValueHolder() != 0
+#[derive(Debug, Default, Clone, Copy)]
+#[repr(transparent)]
+pub struct PropertyFlags(red::CProperty_Flags);
+
+impl PropertyFlags {
+    pub fn is_scripted(&self) -> bool {
+        self.0.isScripted() != 0
     }
 
-    #[inline]
-    pub fn is_scripted(&self) -> bool {
-        self.0.flags.isScripted() != 0
+    pub fn set_is_scripted(&mut self, is_scripted: bool) {
+        self.0.set_isScripted(is_scripted as u64)
+    }
+
+    pub fn in_value_holder(&self) -> bool {
+        self.0.inValueHolder() != 0
+    }
+
+    pub fn set_in_value_holder(&mut self, in_value_holder: bool) {
+        self.0.set_inValueHolder(in_value_holder as u64)
     }
 }
 

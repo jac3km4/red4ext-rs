@@ -123,6 +123,7 @@ fn exports() -> impl Exportable {
         .methods(methods![
             c"GetValue" => MyClass::value,
             c"SetValue" => MyClass::set_value,
+            event c"OnInitialize" => MyClass::on_initialize
         ])
         .build(),]
 }
@@ -142,6 +143,8 @@ impl MyClass {
     fn set_value(&self, value: i32) {
         self.value.set(value);
     }
+
+    fn on_initialize(&self) {}
 }
 
 unsafe impl ScriptClass for MyClass {
@@ -154,5 +157,6 @@ unsafe impl ScriptClass for MyClass {
 native class MyClass {
     native func GetValue() -> Int32;
     native func SetValue(a: Int32);
+    native cb func OnInitialize();
 }
 ```

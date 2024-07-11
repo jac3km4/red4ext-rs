@@ -132,7 +132,7 @@ impl<T: ScriptClass> Ref<T> {
     where
         U: ScriptClass,
     {
-        let inst = unsafe { &*(self.0 .0.instance as *const ISerializable) };
+        let inst = unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }?;
         let class = inst.class();
         iter::once(class)
             .chain(class.base_iter())

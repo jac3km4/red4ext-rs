@@ -22,10 +22,11 @@ mod cname;
 pub use cname::{CName, CNamePool};
 mod rtti;
 pub use rtti::{
-    ArrayType, Bitfield, Class, ClassFlags, ClassHandle, CurveType, Enum, Function,
+    ArrayType, Bitfield, Class, ClassFlags, ClassHandle, CurveType, Enum, Function, FunctionFlags,
     FunctionHandler, GlobalFunction, IScriptable, ISerializable, Kind, Method, NativeArrayType,
-    NativeClass, PointerType, Property, RaRefType, RefType, ResourceRefType, ScriptRefType,
-    StaticArrayType, StaticMethod, TaggedType, Type, ValueContainer, ValuePtr, WeakRefType,
+    NativeClass, PointerType, Property, PropertyFlags, RaRefType, RefType, ResourceRefType,
+    ScriptRefType, StaticArrayType, StaticMethod, TaggedType, Type, ValueContainer, ValuePtr,
+    WeakRefType,
 };
 mod bytecode;
 pub use bytecode::{
