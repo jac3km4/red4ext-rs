@@ -146,8 +146,8 @@ impl<K, V> RedHashMap<K, V> {
         let next = &mut index_table[hash as usize % index_table.len()];
         unsafe {
             (*node).hashedKey = hash;
-            ptr::write(&mut (*node).key, ptr::read(&key));
-            ptr::write(&mut (*node).value, ptr::read(&value));
+            ptr::write(&mut (*node).key, key);
+            ptr::write(&mut (*node).value, value);
             (*node).next = *next;
             *next = node.offset_from(node_list.nodes) as _;
         }
@@ -170,7 +170,7 @@ impl<K, V> RedHashMap<K, V> {
             return Some(node);
         }
         let node = unsafe { nl.nodes.add(nl.nextIdx as _) };
-        nl.nextIdx = unsafe { node.read().next };
+        nl.nextIdx = unsafe { (*node).next };
         Some(node)
     }
 
