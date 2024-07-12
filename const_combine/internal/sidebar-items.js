@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["combine","copy_slice","take_n"]};

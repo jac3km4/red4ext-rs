@@ -1,0 +1,1 @@
+searchState.loadedDescShard("const_crc32", 0, "A <code>const fn</code> crc32 checksum implementation.\nA <code>const fn</code> crc32 checksum implementation.\nCalculate crc32 checksum, using provided <code>seed</code> as the …")

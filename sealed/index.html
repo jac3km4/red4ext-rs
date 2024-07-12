@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="`#[sealed]`"><title>sealed - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="sealed" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-e32f0c247825364d.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../sealed/index.html">sealed</a><span class="version">0.5.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#attributes">Attribute Macros</a></li></ul></section></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../sealed/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">sealed</a><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><span class="out-of-band"><a class="src" href="../src/sealed/lib.rs.html#1-294">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="sealed"><a class="doc-anchor" href="#sealed">§</a><code>#[sealed]</code></h2>
+<p><a href="https://docs.rs/sealed"><img alt="" src="https://img.shields.io/badge/docs.rs-sealed-success?style=flat-square"></a>
+<a href="https://crates.io/crates/sealed"><img alt="" src="https://img.shields.io/crates/v/sealed?style=flat-square"></a>
+<img alt="MSRV 1.51.0" src="https://img.shields.io/badge/msrv-1.51.0-blue?style=flat-square"></p>
+<p>This crate provides a convenient and simple way to implement the sealed trait pattern,
+as described in the Rust API Guidelines [<a href="https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed">1</a>].</p>
+<div class="example-wrap"><pre class="language-toml"><code>[dependencies]
+sealed = &quot;0.5&quot;
+</code></pre></div><h3 id="example"><a class="doc-anchor" href="#example">§</a>Example</h3>
+<p>In the following code structs <code>A</code> and <code>B</code> implement the sealed trait <code>T</code>,
+the <code>C</code> struct, which is not sealed, will error during compilation.</p>
+<p>You can see a demo in <a href="demo/"><code>demo/</code></a>.</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[sealed]
+</span><span class="kw">trait </span>T {}
+
+<span class="kw">pub struct </span>A;
+<span class="attr">#[sealed]
+</span><span class="kw">impl </span>T <span class="kw">for </span>A {}
+
+<span class="kw">pub struct </span>B;
+<span class="attr">#[sealed]
+</span><span class="kw">impl </span>T <span class="kw">for </span>B {}
+
+<span class="kw">pub struct </span>C;
+<span class="kw">impl </span>T <span class="kw">for </span>C {} <span class="comment">// compile error</span></code></pre></div>
+<h3 id="details"><a class="doc-anchor" href="#details">§</a>Details</h3>
+<p>The attribute generates a private uniquely named module when attached to a
+trait definition, when attached to an <code>impl</code> block the generated code simply
+implements the sealed trait for the respective type.</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="comment">// #[sealed]
+// trait T {}
+</span><span class="kw">trait </span>T: __seal_t::Sealed {}
+<span class="kw">mod </span>__seal_t {
+    <span class="kw">pub trait </span>Sealed {}
+}
+
+<span class="kw">pub struct </span>A;
+
+<span class="comment">// #[sealed]
+// impl T for A {}
+</span><span class="kw">impl </span>T <span class="kw">for </span>A {}
+<span class="kw">impl </span>__seal_t::Sealed <span class="kw">for </span>A {}</code></pre></div>
+<h3 id="arguments"><a class="doc-anchor" href="#arguments">§</a>Arguments</h3>
+<p>The expanded code may be customized with the following attribute arguments.</p>
+<h4 id="erase"><a class="doc-anchor" href="#erase">§</a><code>erase</code></h4>
+<p>Turns on trait bounds erasure. This is useful when using the <code>#[sealed]</code>
+attribute inside a function. By default, all the bounds are propagated to
+the generated <code>Sealed</code> trait.</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="comment">// #[sealed(erase)]
+// trait Trait&lt;T: ?Sized + Default&gt; {}
+</span><span class="kw">trait </span>Trait&lt;T: <span class="question-mark">?</span>Sized + Default&gt;: __seal_trait::Sealed&lt;T&gt; {}
+<span class="kw">mod </span>__seal_trait {
+    <span class="kw">pub trait </span>Sealed&lt;T&gt; {}
+}</code></pre></div>
+<h4 id="pubcrate-or-pubin-somepath"><a class="doc-anchor" href="#pubcrate-or-pubin-somepath">§</a><code>pub(crate)</code> or <code>pub(in some::path)</code></h4>
+<p>Allows to tune visibility of the generated sealing module (the default one
+is private). This useful when the trait and its impls are defined in
+different modules.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">mod </span>lets {
+    <span class="kw">pub mod </span>attempt {
+        <span class="kw">pub mod </span>some {
+            <span class="kw">pub mod </span>nesting {
+                <span class="attr">#[sealed(<span class="kw">pub</span>(<span class="kw">in </span><span class="kw">super</span>::<span class="kw">super</span>::<span class="kw">super</span>::<span class="kw">super</span>))]
+                </span><span class="kw">pub trait </span>T {}
+            }
+        }
+    }
+}
+
+<span class="kw">pub struct </span>A;
+<span class="attr">#[sealed]
+</span><span class="kw">impl </span>lets::attempt::some::nesting::T <span class="kw">for </span>A {}</code></pre></div>
+<p>Notice, that just <code>pub</code> is disallowed as breaks the whole idea of sealing.</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="attr">#[sealed(<span class="kw">pub</span>)] </span><span class="comment">// compile error
+</span><span class="kw">trait </span>T {}
+
+<span class="kw">pub struct </span>A;
+<span class="attr">#[sealed]
+</span><span class="kw">impl </span>T <span class="kw">for </span>A {}</code></pre></div>
+</div></details><h2 id="attributes" class="section-header">Attribute Macros<a href="#attributes" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="attr" href="attr.sealed.html" title="attr sealed::sealed">sealed</a></div></li></ul></section></div></main></body></html>

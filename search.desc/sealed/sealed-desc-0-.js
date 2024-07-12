@@ -1,0 +1,1 @@
+searchState.loadedDescShard("sealed", 0, "<code>#[sealed]</code>")
