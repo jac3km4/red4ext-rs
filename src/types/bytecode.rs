@@ -8,8 +8,10 @@ use crate::VoidPtr;
 pub const OPCODE_SIZE: isize = 1;
 pub const CALL_INSTR_SIZE: isize = mem::size_of::<InvokeStatic>() as isize;
 
+/// A function pointer type for bytecode opcode handlers.
 pub type OpcodeHandler = unsafe extern "C" fn(Option<&IScriptable>, &StackFrame, VoidPtr, VoidPtr);
 
+/// A trait for types that correspond to bytecode instructions.
 #[sealed]
 pub trait Instr {
     const OPCODE: u8;

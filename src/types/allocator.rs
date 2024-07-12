@@ -9,11 +9,13 @@ use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{fnv1a32, VoidPtr};
 
+/// An interface for allocating and freeing memory.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IAllocator(red::Memory::IAllocator);
 
 impl IAllocator {
+    /// Frees the memory pointed by `memory`.
     #[inline]
     pub unsafe fn free<T>(&self, memory: *mut T) {
         let mut alloc = AllocationResult {
@@ -28,6 +30,7 @@ impl IAllocator {
         }
     }
 
+    /// Allocates `size` bytes of memory with `alignment` bytes alignment.
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         let result = unsafe {
@@ -41,12 +44,13 @@ impl IAllocator {
     }
 }
 
+/// A reference to a value stored in a pool.
 #[derive(Debug)]
 pub struct PoolRef<T: Poolable>(*mut T);
 
 impl<T: Poolable> PoolRef<mem::MaybeUninit<T>> {
     #[inline]
-    pub unsafe fn assume_init(self) -> PoolRef<T> {
+    pub(super) unsafe fn assume_init(self) -> PoolRef<T> {
         let res = PoolRef(self.0 as *mut T);
         mem::forget(self);
         res
@@ -77,30 +81,38 @@ impl<T: Poolable> Drop for PoolRef<T> {
     }
 }
 
+/// A trait for types that can be stored in a pool.
+#[sealed]
 pub trait Poolable {
     type Pool: Pool;
 }
 
+#[sealed]
 impl Poolable for GlobalFunction {
     type Pool = FunctionPool;
 }
 
+#[sealed]
 impl Poolable for Method {
     type Pool = FunctionPool;
 }
 
+#[sealed]
 impl Poolable for StaticMethod {
     type Pool = FunctionPool;
 }
 
+#[sealed]
 impl Poolable for Property {
     type Pool = PropertyPool;
 }
 
+#[sealed]
 impl Poolable for IScriptable {
     type Pool = ScriptPool;
 }
 
+#[sealed]
 impl<T> Poolable for mem::MaybeUninit<T>
 where
     T: Poolable,
@@ -108,9 +120,12 @@ where
     type Pool = T::Pool;
 }
 
+/// A trait with operations for types that can be stored in a pool.
 #[sealed]
 pub trait PoolableOps: Poolable + Sized {
+    /// Allocates memory for `Self`. The resulting value must be initialized before use.
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
+    /// Frees memory pointed by `ptr`.
     fn free(ptr: &mut PoolRef<Self>);
 }
 
@@ -144,6 +159,7 @@ impl<T: Poolable> PoolableOps for T {
     }
 }
 
+/// A trait for different types of pools.
 #[sealed]
 pub trait Pool {
     const NAME: &'static str;
@@ -157,6 +173,7 @@ pub trait Pool {
     }
 }
 
+/// A pool for functions.
 #[derive(Debug)]
 pub struct FunctionPool;
 
@@ -165,6 +182,7 @@ impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
 }
 
+/// A pool for properties.
 #[derive(Debug)]
 pub struct PropertyPool;
 
@@ -173,6 +191,7 @@ impl Pool for PropertyPool {
     const NAME: &'static str = "PoolRTTIProperty";
 }
 
+/// A pool for RTTI.
 #[derive(Debug)]
 pub struct RttiPool;
 
@@ -181,6 +200,7 @@ impl Pool for RttiPool {
     const NAME: &'static str = "PoolRTTI";
 }
 
+/// A pool for scripts values.
 #[derive(Debug)]
 pub struct ScriptPool;
 

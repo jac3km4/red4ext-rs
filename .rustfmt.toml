@@ -6,4 +6,5 @@ reorder_imports = true
 group_imports = "StdExternalCrate"
 reorder_impl_items = true
 reorder_modules = true
+format_code_in_doc_comments = true
 edition = "2021"

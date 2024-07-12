@@ -3,10 +3,12 @@ use std::{fmt, ops, ptr};
 
 use crate::raw::root::RED4ext as red;
 
+/// A dynamically allocated string.
 #[repr(transparent)]
 pub struct RedString(red::CString);
 
 impl RedString {
+    /// Creates a new empty string.
     #[inline]
     pub fn new() -> Self {
         Self(unsafe { red::CString::new(ptr::null_mut()) })

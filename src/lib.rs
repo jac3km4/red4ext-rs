@@ -10,15 +10,34 @@ use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod export;
-pub mod invocable;
+mod invocable;
 mod raw;
-pub mod repr;
-pub mod systems;
+mod repr;
+mod systems;
+
+/// A module encapsulating various types defined in the RED4ext SDK.
 pub mod types;
 
+pub use invocable::{
+    FnType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable, MethodMetadata, Receiver,
+};
+pub use repr::{FromRepr, IntoRepr, NativeRepr};
+pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
+
+/// Hashes of known function addresses.
+///
+/// # Example
+/// Resolve a hash to an address:
+/// ```rust
+/// use red4rs::hashes;
+///
+/// fn exec_hash() -> usize {
+///   hashes::resolve(hashes::CBaseFunction_ExecuteNative)
+/// }
 pub mod hashes {
     pub use super::red::Detail::AddressHashes::*;
 
+    /// Resolves a hash to an address.
     #[inline]
     pub fn resolve(hash: u32) -> usize {
         unsafe { super::red::UniversalRelocBase::Resolve(hash) }
@@ -30,24 +49,40 @@ pub mod internal {
     pub use crate::red::{EMainReason, PluginHandle, PluginInfo, Sdk};
 }
 
+#[doc(hidden)]
 pub type VoidPtr = *mut std::os::raw::c_void;
 
+/// A definition of a RED4ext plugin.
 pub trait Plugin {
+    /// The name of the plugin.
     const NAME: &'static U16CStr;
+    /// The author of the plugin.
     const AUTHOR: &'static U16CStr;
+    /// The version of the plugin.
     const VERSION: SemVer;
+    /// The RED4ext SDK version the plugin was built with.
     const SDK: SdkVersion = SdkVersion::LATEST;
+    /// The version of the game the plugin is compatible with.
     const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
+    /// The RED4ext API version.
     const API_VERSION: ApiVersion = ApiVersion::LATEST;
 
+    /// A list of definitions to be exported automatically when the plugin is loaded.
+    /// This can be used to define classes and functions that will available to use in the game.
+    /// See the [`exports!`] macro for more information.
     fn exports() -> impl Exportable {
         ExportNil
     }
+
+    /// A function that is called when the plugin is initialized.
     fn on_init(_env: &SdkEnv) {}
 }
 
+/// A set of useful operations that can be performed on a plugin.
 #[sealed]
 pub trait PluginOps: Plugin {
+    /// Retrieves a statically initialized reference to the plugin environment.
+    /// It can be used to log messages, add state listeners, and attach hooks.
     fn env() -> &'static SdkEnv;
 
     #[doc(hidden)]
@@ -99,6 +134,8 @@ where
     }
 }
 
+/// Exports a set of necessary DLL entry points for RED4ext to load the plugin. Your plugin will
+/// not be loaded unless you call this macro.
 #[macro_export]
 macro_rules! export_plugin {
     ($trait:ty) => {
@@ -141,10 +178,15 @@ macro_rules! export_plugin {
     };
 }
 
+/// Convenience logging macros. By default all macros require a [`SdkEnv`] instance to be passed as
+/// the first argument. If the `log` feature is enabled, this module becomes an alias to the
+/// `log` crate.
 #[cfg(not(feature = "log"))]
 pub mod log {
     pub use crate::{debug, error, info, trace, warn};
 
+    /// Logs a message at the info level.
+    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
     #[macro_export]
     macro_rules! info {
         ($env:expr, $($arg:tt)*) => {
@@ -152,6 +194,8 @@ pub mod log {
         };
     }
 
+    /// Logs a message at the warn level.
+    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
     #[macro_export]
     macro_rules! warn {
         ($env:expr, $($arg:tt)*) => {
@@ -159,6 +203,8 @@ pub mod log {
         };
     }
 
+    /// Logs a message at the error level.
+    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
     #[macro_export]
     macro_rules! error {
         ($env:expr, $($arg:tt)*) => {
@@ -166,6 +212,8 @@ pub mod log {
         };
     }
 
+    /// Logs a message at the debug level.
+    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
     #[macro_export]
     macro_rules! debug {
         ($env:expr, $($arg:tt)*) => {
@@ -173,6 +221,8 @@ pub mod log {
         };
     }
 
+    /// Logs a message at the trace level.
+    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
     #[macro_export]
     macro_rules! trace {
         ($env:expr, $($arg:tt)*) => {
@@ -193,6 +243,10 @@ macro_rules! log_internal {
     };
 }
 
+/// A handle to the RED4ext SDK environment.
+/// This struct enables access to the SDK's functions and logging facilities.
+/// It can be obtained statically using the [`PluginOps::env`] method from any plugin
+/// implementation.
 #[derive(Debug)]
 pub struct SdkEnv {
     handle: red::PluginHandle,
@@ -200,40 +254,98 @@ pub struct SdkEnv {
 }
 
 impl SdkEnv {
+    #[doc(hidden)]
     pub fn new(handle: red::PluginHandle, sdk: red::Sdk) -> Self {
         Self { handle, sdk }
     }
 
+    /// Logs a message at the info level.
+    /// You should generally use the [`info!`] macro instead of calling this method directly.
     #[inline]
     pub fn info(&self, txt: impl fmt::Display) {
         log_internal!(self, Info, txt);
     }
 
+    /// Logs a message at the warn level.
+    /// You should generally use the [`warn!`] macro instead of calling this method directly.
     #[inline]
     pub fn warn(&self, txt: impl fmt::Display) {
         log_internal!(self, Warn, txt);
     }
 
+    /// Logs a message at the error level.
+    /// You should generally use the [`error!`] macro instead of calling this method directly.
     #[inline]
     pub fn error(&self, txt: impl fmt::Display) {
         log_internal!(self, Error, txt);
     }
 
+    /// Logs a message at the debug level.
+    /// You should generally use the [`debug!`] macro instead of calling this method directly.
     #[inline]
     pub fn debug(&self, txt: impl fmt::Display) {
         log_internal!(self, Debug, txt);
     }
 
+    /// Logs a message at the trace level.
+    /// You should generally use the [`trace!`] macro instead of calling this method directly.
     #[inline]
     pub fn trace(&self, txt: impl fmt::Display) {
         log_internal!(self, Trace, txt);
     }
 
+    /// Adds a listener to a specific state type.
+    /// The listener will be called when the state is entered, updated, or exited.
+    /// See [`StateType`] for the available state types.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4rs::{GameApp, SdkEnv, StateListener, StateType};
+    ///
+    /// fn add_state_listener(env: &SdkEnv) {
+    ///     let listener = StateListener::default()
+    ///         .with_on_enter(on_enter)
+    ///         .with_on_exit(on_exit);
+    ///     env.add_listener(StateType::Running, listener);
+    /// }
+    ///
+    /// unsafe extern "C" fn on_enter(app: &GameApp) {
+    ///     // do something here...
+    /// }
+    ///
+    /// unsafe extern "C" fn on_exit(app: &GameApp) {
+    ///     // do something here...
+    /// }
+    /// ```
     #[inline]
     pub fn add_listener(&self, typ: StateType, mut listener: StateListener) -> bool {
         unsafe { ((*self.sdk.gameStates).Add.unwrap())(self.handle, typ as u32, &mut listener.0) }
     }
 
+    /// Attaches a hook to a target function.
+    /// The hook will be called instead of the target function. The hook must accept a callback
+    /// function as its last argument, which should be called to execute the original function.
+    ///
+    /// # Safety
+    /// The target and detour functions must both be valid and compatible function pointers.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4rs::{hooks, SdkEnv};
+    ///
+    /// hooks! {
+    ///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
+    /// }
+    ///
+    /// fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(u32, u32) -> u32) {
+    ///     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
+    /// }
+    ///
+    /// unsafe extern "C" fn detour(a: u32, b: u32, cb: unsafe extern "C" fn(u32, u32) -> u32) -> u32 {
+    ///     // do something here...
+    ///     cb(a, b)
+    /// }
+    /// ```
     pub unsafe fn attach_hook<F1, A1, R1, F2, A2, R2>(
         &self,
         hook: *mut Hook<F1, F2>,
@@ -257,6 +369,7 @@ impl SdkEnv {
         }
     }
 
+    /// Detaches a hook from a target function.
     #[inline]
     pub unsafe fn detach_hook<F, A, R>(&self, target: F) -> bool
     where
@@ -288,10 +401,12 @@ impl log::Log for SdkEnv {
     fn flush(&self) {}
 }
 
+/// A version number in the semantic versioning format.
 #[derive(Debug)]
 pub struct SemVer(red::SemVer);
 
 impl SemVer {
+    /// Creates a new semantic version.
     #[inline]
     pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
         Self(red::SemVer {
@@ -306,10 +421,12 @@ impl SemVer {
     }
 }
 
+/// A version number representing the game's version.
 #[derive(Debug)]
 pub struct RuntimeVersion(red::FileVer);
 
 impl RuntimeVersion {
+    /// A special version number that indicates the plugin is compatible with any game version.
     pub const RUNTIME_INDEPENDENT: Self = Self(red::FileVer {
         major: versioning::RUNTIME_INDEPENDENT,
         minor: versioning::RUNTIME_INDEPENDENT,
@@ -318,10 +435,12 @@ impl RuntimeVersion {
     });
 }
 
+/// A version number representing the RED4ext SDK version.
 #[derive(Debug)]
 pub struct SdkVersion(SemVer);
 
 impl SdkVersion {
+    /// The latest version of the RED4ext SDK compatible with this version of the library.
     pub const LATEST: Self = Self(SemVer::new(
         versioning::SDK_MAJOR,
         versioning::SDK_MINOR,
@@ -329,10 +448,12 @@ impl SdkVersion {
     ));
 }
 
+/// A version number representing the RED4ext API version.
 #[derive(Debug)]
 pub struct ApiVersion(u32);
 
 impl ApiVersion {
+    /// The latest version of the RED4ext API compatible with this version of the library.
     pub const LATEST: Self = Self(versioning::API_VERSION_LATEST);
 }
 
@@ -343,6 +464,18 @@ impl From<ApiVersion> for u32 {
     }
 }
 
+/// Defines a set of hooks that can be attached to target functions.
+/// The hooks are defined as static variables and must be initialized with a call to
+/// [`SdkEnv::attach_hook`].
+///
+/// # Example
+/// ```rust
+/// use red4rs::hooks;
+///
+/// hooks! {
+///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
+/// }
+/// ```
 #[macro_export]
 macro_rules! hooks {
     ($(static $name:ident: fn($($arg:ident: $ty:ty),*) -> $ret:ty;)*) => {$(
@@ -370,9 +503,12 @@ macro_rules! hooks {
     )*};
 }
 
+/// A wrapper around function pointers that can be passed to [`SdkEnv::attach_hook`] to install
+/// detours.
 #[derive(Debug)]
 pub struct Hook<O, R>(O, *mut Option<O>, *mut Option<R>);
 
+#[doc(hidden)]
 impl<O, R> Hook<O, R> {
     #[inline]
     pub const fn new(original: O, cb_ref: *mut Option<O>, detour_ref: *mut Option<R>) -> Self {
@@ -380,6 +516,8 @@ impl<O, R> Hook<O, R> {
     }
 }
 
+/// A trait for functions that are convertible to pointers. Only non-closure functions can
+/// satisfy this requirement.
 #[sealed]
 pub trait FnPtr<Args, Ret> {
     fn to_ptr(&self) -> VoidPtr;
@@ -407,17 +545,23 @@ impl_fn_ptr!(A, B, C, D, E, F);
 impl_fn_ptr!(A, B, C, D, E, F, G);
 impl_fn_ptr!(A, B, C, D, E, F, G, H);
 
+/// A callback function to be called when a state is entered, updated, or exited.
 pub type StateHandler = unsafe extern "C" fn(app: &GameApp);
 
+/// A wrapper around the game application instance.
 #[repr(transparent)]
 pub struct GameApp(red::CGameApplication);
 
+/// A listener for state changes in the game application.
+/// The listener can be attached to a specific state type using the [`SdkEnv::add_listener`]
+/// method.
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct StateListener(red::GameState);
 
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
+    /// Sets a callback to be called when the state is entered.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -426,6 +570,7 @@ impl StateListener {
         })
     }
 
+    /// Sets a callback to be called when the state is updated.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -434,6 +579,7 @@ impl StateListener {
         })
     }
 
+    /// Sets a callback to be called when the state is exited.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -443,6 +589,7 @@ impl StateListener {
     }
 }
 
+/// An enum representing different types of game states.
 #[derive(Debug)]
 #[repr(u32)]
 pub enum StateType {
@@ -452,11 +599,13 @@ pub enum StateType {
     Shutdown = red::EGameStateType::Shutdown,
 }
 
+/// Information about a plugin.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct PluginInfo(red::PluginInfo);
 
 impl PluginInfo {
+    #[doc(hidden)]
     #[inline]
     pub const fn new(
         name: &'static U16CStr,
@@ -474,6 +623,7 @@ impl PluginInfo {
         })
     }
 
+    #[doc(hidden)]
     #[inline]
     pub fn into_raw(self) -> red::PluginInfo {
         self.0

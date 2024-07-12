@@ -10,12 +10,18 @@ use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
 use crate::VoidPtr;
 
+/// A trait for types that represent script classes.
+///
+/// # Safety
+/// Implementors must ensure that the type's layout is compatible with the layout of the native
+/// type that has the specified name.
 pub unsafe trait ScriptClass: Sized {
     type Kind: ClassKind<Self>;
 
     const CLASS_NAME: &'static str;
 }
 
+/// A trait for distinguishing between native and scripted classes.
 #[sealed]
 pub trait ClassKind<T> {
     type NativeType;
@@ -24,6 +30,8 @@ pub trait ClassKind<T> {
     fn get_mut(inst: &mut Self::NativeType) -> &mut T;
 }
 
+/// A marker type for scripted classes. Scripted classes are stored with an additional level of
+/// indirection inside of [`IScriptable`].
 #[derive(Debug)]
 pub struct Scripted;
 
@@ -42,6 +50,7 @@ impl<T> ClassKind<T> for Scripted {
     }
 }
 
+/// A marker type for native classes. Native classes are represented directly by their native type.
 #[derive(Debug)]
 pub struct Native;
 
@@ -60,9 +69,12 @@ impl<T> ClassKind<T> for Native {
     }
 }
 
+/// A trait for operations on script classes.
 #[sealed]
 pub trait ScriptClassOps: ScriptClass {
+    /// Creates a new reference to the class.
     fn new_ref() -> Option<Ref<Self>>;
+    /// Creates a new reference to the class and initializes it with the provided function.
     fn new_ref_with(init: impl FnOnce(&mut Self)) -> Option<Ref<Self>>;
 }
 
@@ -81,15 +93,20 @@ impl<T: ScriptClass> ScriptClassOps for T {
 
 type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeType;
 
+/// A strong reference to a script class. A live instance of the reference guarantees that the
+/// instance is still alive. When the reference is dropped, the strong reference count is
+/// decremented. If the strong reference count reaches zero, the underlying value is destroyed.
 #[repr(transparent)]
 pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
 
 impl<T: ScriptClass> Ref<T> {
+    /// Creates a new reference to the class.
     #[inline]
     pub fn new() -> Option<Self> {
         Self::new_with(|_| {})
     }
 
+    /// Creates a new reference to the class and initializes it with the provided function.
     pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
         let system = RttiSystem::get();
         let class = system.get_class(CName::new(T::CLASS_NAME))?;
@@ -107,27 +124,46 @@ impl<T: ScriptClass> Ref<T> {
         }
     }
 
+    /// Returns a reference to the fields of the class.
+    ///
+    /// # Safety
+    /// The underlying value can be accessed mutably at any point through another copy of the
+    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
     #[inline]
     pub unsafe fn fields(&self) -> Option<&T> {
         Some(T::Kind::get(self.0.instance()?))
     }
 
+    /// Returns a mutable reference to the fields of the class.
+    ///
+    /// # Safety
+    /// The underlying value can be accessed mutably at any point through another copy of the
+    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
     #[inline]
     pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
         Some(T::Kind::get_mut(self.0.instance_mut()?))
     }
 
+    /// Returns a reference to the instance of the class.
+    ///
+    /// # Safety
+    /// The underlying value can be accessed mutably at any point through another copy of the
+    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
     #[inline]
-    pub fn instance(&self) -> Option<&NativeType<T>> {
+    pub unsafe fn instance(&self) -> Option<&NativeType<T>> {
         self.0.instance()
     }
 
+    /// Converts the reference to a [`WeakRef`]. This will decrement the strong reference count
+    /// and increment the weak reference count.
     #[inline]
     pub fn downgrade(self) -> WeakRef<T> {
         self.0.inc_weak();
         WeakRef(self.0.clone())
     }
 
+    /// Attempts to cast the reference to a reference of another class.
+    /// Returns [`None`] if the target class is not compatible.
     pub fn cast<U>(self) -> Option<Ref<U>>
     where
         U: ScriptClass,
@@ -169,10 +205,14 @@ impl<T: ScriptClass> Drop for Ref<T> {
 unsafe impl<T: ScriptClass> Send for Ref<T> {}
 unsafe impl<T: ScriptClass> Sync for Ref<T> {}
 
+/// A weak reference to a script class.
+/// Before use, it must be upgraded to a strong reference using [`WeakRef::upgrade`].
 #[repr(transparent)]
 pub struct WeakRef<T: ScriptClass>(BaseRef<NativeType<T>>);
 
 impl<T: ScriptClass> WeakRef<T> {
+    /// Attempts to upgrade the weak reference to a strong reference.
+    /// Returns [`None`] if the strong reference count is zero.
     #[inline]
     pub fn upgrade(self) -> Option<Ref<T>> {
         self.0.inc_strong_if_non_zero().then(|| Ref(self.0.clone()))
@@ -294,7 +334,7 @@ impl<T> Clone for BaseRef<T> {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct RefCount(red::RefCnt);
+struct RefCount(red::RefCnt);
 
 impl RefCount {
     #[inline]
@@ -308,11 +348,13 @@ impl RefCount {
     }
 }
 
+/// A reference to local script data.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ScriptRef<'a, T>(red::ScriptRef<T>, PhantomData<&'a mut T>);
 
 impl<'a, T: NativeRepr> ScriptRef<'a, T> {
+    /// Creates a new reference pointing to the provided value.
     pub fn new(val: &'a mut T) -> Option<Self> {
         let rtti = RttiSystem::get();
         let inner = rtti.get_type(CName::new(T::NAME))?;
@@ -324,16 +366,19 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
         Some(Self(ref_, PhantomData))
     }
 
+    /// Returns the value being referenced.
     #[inline]
     pub fn value(&self) -> Option<&T> {
         unsafe { self.0.ref_.as_ref() }
     }
 
+    /// Returns the type of the value being referenced.
     #[inline]
     pub fn inner_type(&self) -> &Type {
         unsafe { &*(self.0.innerType.cast::<Type>()) }
     }
 
+    /// Returns whether the reference is defined.
     #[inline]
     pub fn is_defined(&self) -> bool {
         !self.0.ref_.is_null()

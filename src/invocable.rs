@@ -12,6 +12,7 @@ use crate::types::{
 };
 use crate::VoidPtr;
 
+/// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
 pub enum InvokeError {
     #[error("function '{0}' not found")]
@@ -40,6 +41,7 @@ pub enum InvokeError {
     NullReceiver(&'static str),
 }
 
+/// A trait for functions that can be exported as global functions.
 #[sealed]
 pub trait GlobalInvocable<A, R> {
     const FN_TYPE: FnType;
@@ -84,6 +86,7 @@ impl_global_invocable!(
     (A, B, C, D, E, F)
 );
 
+/// A trait for functions that can be exported as class methods.
 #[sealed]
 pub trait MethodInvocable<Ctx, A, R> {
     const FN_TYPE: FnType;
@@ -128,6 +131,7 @@ impl_method_invocable!(
     (A, B, C, D, E, F)
 );
 
+/// A representation of a function type, including its arguments and return type.
 #[derive(Debug)]
 pub struct FnType {
     args: &'static [CName],
@@ -143,6 +147,7 @@ impl FnType {
     }
 }
 
+/// A representation of a global function, including its name, a function handler, and its type.
 #[derive(Debug)]
 pub struct GlobalMetadata {
     name: &'static CStr,
@@ -151,6 +156,7 @@ pub struct GlobalMetadata {
 }
 
 impl GlobalMetadata {
+    #[doc(hidden)]
     #[inline]
     pub const fn new<F: GlobalInvocable<A, R>, A, R>(
         name: &'static CStr,
@@ -164,6 +170,8 @@ impl GlobalMetadata {
         }
     }
 
+    /// Converts this metadata into a [`GlobalFunction`] instance, which can be registered with
+    /// the [RttiSystem](crate::RttiSystem).
     pub fn to_rtti(&self) -> PoolRef<GlobalFunction> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
@@ -175,6 +183,7 @@ impl GlobalMetadata {
     }
 }
 
+/// A representation of a class method, including its name, a function handler, and its type.
 #[derive(Debug)]
 pub struct MethodMetadata<Ctx> {
     name: &'static CStr,
@@ -186,6 +195,7 @@ pub struct MethodMetadata<Ctx> {
 }
 
 impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
+    #[doc(hidden)]
     #[inline]
     pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
         name: &'static CStr,
@@ -202,16 +212,20 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
         }
     }
 
+    /// Configures this method as an event handler (called `cb` in REDscript).
     pub const fn with_is_event(mut self) -> Self {
         self.is_event = true;
         self
     }
 
+    /// Configures this method as final (cannot be overridden).
     pub const fn with_is_final(mut self) -> Self {
         self.is_final = true;
         self
     }
 
+    /// Converts this metadata into a [`Method`] instance, which can be registered with
+    /// the [RttiSystem](crate::RttiSystem).
     pub fn to_rtti(&self) -> PoolRef<Method> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
@@ -224,6 +238,21 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
     }
 }
 
+/// A macro for defining global functions. Usually used in conjunction with the
+/// [`exports!`](crate::exports) macro.
+///
+/// # Example
+/// ```rust
+/// use red4rs::{global, GlobalInvocable, GlobalMetadata};
+///
+/// fn my_global() -> GlobalMetadata {
+///     global!(c"Adder", adder)
+/// }
+///
+/// fn adder(a: i32, b: i32) -> i32 {
+///     a + b
+/// }
+/// ```
 #[macro_export]
 macro_rules! global {
     ($name:literal, $fun:expr) => {{
@@ -234,14 +263,16 @@ macro_rules! global {
             _unk: i64,
         ) {
             let out = unsafe { std::mem::transmute(ret) };
-            $crate::invocable::GlobalInvocable::invoke($fun, ctx, frame, out);
+            $crate::GlobalInvocable::invoke($fun, ctx, frame, out);
             unsafe { frame.step() };
         }
 
-        $crate::invocable::GlobalMetadata::new($name, native_impl, &$fun)
+        $crate::GlobalMetadata::new($name, native_impl, &$fun)
     }};
 }
 
+/// A macro for defining class methods. Usually used in conjunction with the
+/// [`methods!`](crate::methods) macro.
 #[macro_export]
 macro_rules! method {
     ($name:literal, $ty:ident::$id:ident $($mods:ident)*) => {{
@@ -251,12 +282,12 @@ macro_rules! method {
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
-            let out = unsafe { std::mem::transmute(ret) };
-            $crate::invocable::MethodInvocable::invoke($ty::$id, ctx, frame, out);
+            let out = unsafe { ::std::mem::transmute(ret) };
+            $crate::MethodInvocable::invoke($ty::$id, ctx, frame, out);
             unsafe { frame.step() };
         }
 
-        $crate::invocable::MethodMetadata::new($name, native_impl, &$ty::$id)
+        $crate::MethodMetadata::new($name, native_impl, &$ty::$id)
             $(.$mods())?
     }};
     (event $name:literal, $ty:ident::$id:ident $($mods:ident)*) => {
@@ -267,33 +298,52 @@ macro_rules! method {
     }
 }
 
+/// A macro for conveniently calling functions and methods.
+/// If you're calling a method, the first argument should be the instance of the class.
+/// The next argument should be a full function name, which might have to include mangled names of
+/// the parameter types.
+///
+/// # Example
+/// ```rust
+/// use red4rs::{call, types::{IScriptable, Ref, CName}};
+///
+/// fn method_example(inst: Ref<IScriptable>) -> CName {
+///    call!(inst, "GetClassName" () -> CName).unwrap()
+/// }
+///
+/// fn global_example() -> i32 {
+///   call!("OperatorAdd;Int32Int32;Int32" (1i32, 2i32) -> i32).unwrap()
+/// }
+/// ```
 #[macro_export]
 macro_rules! call {
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            $crate::systems::RttiSystem::get()
+            $crate::RttiSystem::get()
                 .get_function($crate::types::CName::new($fn_name))
-                .ok_or($crate::invocable::InvokeError::FunctionNotFound($fn_name))?
-                .execute::<_, $rett>(None, ($( $crate::repr::IntoRepr::into_repr($args), )*))
+                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
+                .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
         })()
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            let receiver = $crate::invocable::Receiver::as_receiver(&$this)?;
+            let receiver = $crate::Receiver::as_receiver(&$this)?;
             $crate::types::IScriptable::class(receiver)
                 .get_method($crate::types::CName::new($fn_name))
-                .ok_or($crate::invocable::InvokeError::FunctionNotFound($fn_name))?
+                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
                 .as_function()
                 .execute::<_, $rett>(
                     Some(receiver),
-                    ($( $crate::repr::IntoRepr::into_repr($args), )*)
+                    ($( $crate::IntoRepr::into_repr($args), )*)
                 )
         })()
     };
 }
 
+/// A trait for types that can be used as the receiver of a method call.
 #[sealed]
 pub trait Receiver {
+    #[doc(hidden)]
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError>;
 }
 
@@ -312,13 +362,14 @@ where
 {
     #[inline]
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
-        self.instance()
+        unsafe { self.instance() }
             .map(AsRef::as_ref)
             .ok_or(InvokeError::NullReceiver(T::CLASS_NAME))
     }
 }
 
 #[sealed]
+#[doc(hidden)]
 pub trait Args {
     type Array<'a>: AsRef<[StackArg<'a>]>
     where

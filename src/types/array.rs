@@ -6,10 +6,12 @@ use super::IAllocator;
 use crate::raw::root::RED4ext as red;
 use crate::VoidPtr;
 
+/// A dynamically sized array.
 #[repr(transparent)]
 pub struct RedArray<T>(red::DynArray<T>);
 
 impl<T> RedArray<T> {
+    /// Creates a new empty [`RedArray`].
     #[inline]
     pub const fn new() -> Self {
         Self(red::DynArray {
@@ -20,6 +22,7 @@ impl<T> RedArray<T> {
         })
     }
 
+    /// Creates a new empty [`RedArray`] with the specified capacity.
     #[inline]
     pub fn with_capacity(capacity: u32) -> Self {
         let mut this = Self::new();
@@ -27,21 +30,25 @@ impl<T> RedArray<T> {
         this
     }
 
+    /// Returns the number of elements in the array.
     #[inline]
     pub fn len(&self) -> u32 {
         self.0.size
     }
 
+    /// Returns `true` if the array contains no elements.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns the number of elements the array can hold without reallocating.
     #[inline]
     pub fn capacity(&self) -> u32 {
         self.0.capacity
     }
 
+    /// Clears the array, removing all values.
     #[inline]
     pub fn clear(&mut self) {
         let elems: *mut [T] = &mut **self;
@@ -49,6 +56,7 @@ impl<T> RedArray<T> {
         self.0.size = 0;
     }
 
+    /// Adds an element to the end of the array.
     #[inline]
     pub fn push(&mut self, value: T) {
         let len = self.len();
@@ -59,6 +67,7 @@ impl<T> RedArray<T> {
         self.0.size = len + 1;
     }
 
+    /// Reserve capacity for at least `additional` more elements to be inserted.
     pub fn reserve(&mut self, additional: u32) {
         let expected = self.len() + additional;
         if expected <= self.capacity() {

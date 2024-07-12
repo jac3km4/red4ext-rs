@@ -5,11 +5,15 @@ use std::hash::Hash;
 use crate::fnv1a64;
 use crate::raw::root::RED4ext as red;
 
+/// A hash representing an immutable string stored in a global name pool.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct CName(red::CName);
 
 impl CName {
+    /// Creates a new `CName` from the given string.
+    /// This function just calculates the hash of the string using the FNV-1a algorithm.
+    /// If you want it to be added to the global name pool, use [`CNamePool::add_cstr`].
     #[inline]
     pub const fn new(name: &str) -> Self {
         #[allow(clippy::equatable_if_let)]
@@ -21,6 +25,7 @@ impl CName {
         })
     }
 
+    /// Returns a [`CName`] representing an undefined name.
     #[inline]
     pub const fn undefined() -> Self {
         Self(red::CName { hash: 0 })
@@ -34,6 +39,7 @@ impl CName {
         self.0
     }
 
+    /// Returns the string representation of the [`CName`].
     pub fn as_str(&self) -> &'static str {
         unsafe { ffi::CStr::from_ptr(self.0.ToString()) }
             .to_str()

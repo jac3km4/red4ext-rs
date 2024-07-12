@@ -5,6 +5,9 @@ use crate::types::{
     Variant, WeakRef,
 };
 
+/// A trait for types that can be passed across the FFI boundary to the game engine without
+/// any conversion.
+///
 /// # Safety
 ///
 /// Implementations of this trait are only valid if the memory representation of Self
@@ -68,6 +71,8 @@ impl_native_repr!(EntityId, "EntityID", "entEntityID");
 impl_native_repr!(GameTime, "GameTime", "GameTime");
 impl_native_repr!(Variant, "Variant", "Variant");
 
+/// A trait for types that can be converted into a representation that can be passed across
+/// the FFI boundary to the game.
 pub trait IntoRepr: Sized {
     type Repr: NativeRepr;
 
@@ -103,6 +108,7 @@ where
     }
 }
 
+/// A trait for types that can be created from a representation passed across the FFI boundary.
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
 

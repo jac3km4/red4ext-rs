@@ -6,6 +6,21 @@ use crate::types::{
     RedArray, RedHashMap, RwSpinLockReadGuard, RwSpinLockWriteGuard, Type,
 };
 
+/// The RTTI system containing information about all types in the game.
+///
+/// # Example
+/// ```rust
+/// use red4rs::types::CName;
+/// use red4rs::RttiSystem;
+///
+/// fn rtti_example() {
+///     let rtti = RttiSystem::get();
+///     let class = rtti.get_class(CName::new("IScriptable")).unwrap();
+///     for method in class.methods() {
+///         // do something with the method
+///     }
+/// }
+/// ```
 #[repr(transparent)]
 pub struct RttiSystem(red::CRTTISystem);
 
@@ -20,36 +35,42 @@ impl RttiSystem {
         }
     }
 
+    /// Retrieve a class by its name.
     #[inline]
     pub fn get_class(&self, name: CName) -> Option<&Class> {
         let ty = unsafe { (self.vft().get_class)(self, name) };
         unsafe { ty.cast::<Class>().as_ref() }
     }
 
+    /// Retrieve a type by its name.
     #[inline]
     pub fn get_type(&self, name: CName) -> Option<&Type> {
         let ty = unsafe { (self.vft().get_type)(self, name) };
         unsafe { ty.cast::<Type>().as_ref() }
     }
 
+    /// Retrieve an enum by its name.
     #[inline]
     pub fn get_enum(&self, name: CName) -> Option<&Enum> {
         let ty = unsafe { (self.vft().get_enum)(self, name) };
         unsafe { ty.cast::<Enum>().as_ref() }
     }
 
+    /// Retrieve a bitfield by its name.
     #[inline]
     pub fn get_bitfield(&self, name: CName) -> Option<&Bitfield> {
         let ty = unsafe { (self.vft().get_bitfield)(self, name) };
         unsafe { ty.cast::<Bitfield>().as_ref() }
     }
 
+    /// Retrieve a function by its name.
     #[inline]
     pub fn get_function(&self, name: CName) -> Option<&Function> {
         let ty = unsafe { (self.vft().get_function)(self, name) };
         unsafe { ty.cast::<Function>().as_ref() }
     }
 
+    /// Retrieve all native types and collect them into a [`RedArray`]`.
     #[inline]
     pub fn get_native_types(&self) -> RedArray<&Type> {
         let mut out = RedArray::default();
@@ -59,6 +80,7 @@ impl RttiSystem {
         out
     }
 
+    /// Retrieve all enums and collect them into a [`RedArray`]`.
     #[inline]
     pub fn get_enums(&self) -> RedArray<&Enum> {
         let mut out = RedArray::default();
@@ -66,6 +88,7 @@ impl RttiSystem {
         out
     }
 
+    /// Retrieve all bitfields and collect them into a [`RedArray`]`.
     #[inline]
     pub fn get_bitfields(&self, scripted_only: bool) -> RedArray<&Bitfield> {
         let mut out = RedArray::default();
@@ -79,6 +102,7 @@ impl RttiSystem {
         out
     }
 
+    /// Retrieve all global functions and collect them into a [`RedArray`]`.
     #[inline]
     pub fn get_global_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -91,6 +115,7 @@ impl RttiSystem {
         out
     }
 
+    /// Retrieve all instance methods and collect them into a [`RedArray`]`.
     #[inline]
     pub fn get_class_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -103,7 +128,7 @@ impl RttiSystem {
         out
     }
 
-    /// retrieve base class and its inheritors, optionally including abstract classes.
+    /// Retrieve base class and its inheritors, optionally including abstract classes.
     #[inline]
     pub fn get_classes(&self, base: &Class, include_abstract: bool) -> RedArray<&Class> {
         let mut out = RedArray::default();
@@ -119,7 +144,7 @@ impl RttiSystem {
         out
     }
 
-    /// retrieve derived classes, omitting base in the output.
+    /// Retrieve derived classes, omitting base in the output.
     #[inline]
     pub fn get_derived_classes(&self, base: &Class) -> RedArray<&Class> {
         let mut out = RedArray::default();
@@ -133,28 +158,33 @@ impl RttiSystem {
         out
     }
 
+    /// Retrieve a class by its script name.
     #[inline]
     pub fn get_class_by_script_name(&self, name: CName) -> Option<&Class> {
         let ty = unsafe { (self.vft().get_class_by_script_name)(self, name) };
         unsafe { ty.cast::<Class>().as_ref() }
     }
 
+    /// Retrieve an enum by its script name.
     #[inline]
     pub fn get_enum_by_script_name(&self, name: CName) -> Option<&Enum> {
         let ty = unsafe { (self.vft().get_enum_by_script_name)(self, name) };
         unsafe { ty.cast::<Enum>().as_ref() }
     }
 
+    /// Retrieve a reference to a map of all types by name.
     #[inline]
     pub fn types(&self) -> &RedHashMap<CName, &Type> {
         unsafe { &*(&self.0.types as *const _ as *const RedHashMap<CName, &Type>) }
     }
 
+    /// Retrieve a reference to a map of all script to native name aliases.
     #[inline]
     pub fn script_to_native_map(&self) -> &RedHashMap<CName, CName> {
         unsafe { &*(&self.0.scriptToNative as *const _ as *const RedHashMap<CName, CName>) }
     }
 
+    /// Retrieve a reference to a map of all native to script name aliases.
     #[inline]
     pub fn native_to_script_map(&self) -> &RedHashMap<CName, CName> {
         unsafe { &*(&self.0.nativeToScript as *const _ as *const RedHashMap<CName, CName>) }
@@ -166,11 +196,14 @@ impl RttiSystem {
     }
 }
 
+/// The RTTI system containing information about all types in the game.
+/// This variant allows for modifying the RTTI system and locks it for exclusive access.
 #[repr(transparent)]
 pub struct RttiSystemMut(red::CRTTISystem);
 
 impl RttiSystemMut {
-    /// Acquire a write lock on the RTTI system.
+    /// Acquire a write lock on the RTTI system. You should be careful not to hold the lock for
+    /// too long, because interleaving reads and write operations can lead to deadlocks.
     #[inline]
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
@@ -180,6 +213,7 @@ impl RttiSystemMut {
         }
     }
 
+    /// Retrieve a mutable reference to a class by its name
     pub fn get_class(&mut self, name: CName) -> Option<&mut Class> {
         // implemented manually to avoid the game trying to obtain the type lock
         let (types, types_by_id, type_ids) = self.split_types();
@@ -190,6 +224,9 @@ impl RttiSystemMut {
         types_by_id.get_mut(&id)?.as_class_mut()
     }
 
+    /// Register a new [`ClassHandle`] with the RTTI system.
+    /// The handle can be obtained from
+    /// [`NativeClass::new_handle`](crate::types::NativeClass::new_handle).
     pub fn register_class(&mut self, mut class: ClassHandle) {
         // implemented manually to avoid the game trying to obtain the type lock
         let id = unsafe { red::RTTIRegistrator::GetNextId() };
@@ -199,6 +236,8 @@ impl RttiSystemMut {
         self.type_ids().insert(class.as_ref().name(), id);
     }
 
+    /// Register a new [`GlobalFunction`] with the RTTI system.
+    /// The function can be obtained from [`GlobalFunction::new`].
     #[inline]
     pub fn register_function(&mut self, function: PoolRef<GlobalFunction>) {
         unsafe { (self.vft().register_function)(self, &*function) }
@@ -341,10 +380,12 @@ struct RttiSystemVft {
         unsafe extern "fastcall" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
+/// A helper struct to set up RTTI registration callbacks.
 #[derive(Debug)]
 pub struct RttiRegistrator;
 
 impl RttiRegistrator {
+    /// Add a new RTTI registration callback.
     pub fn add(
         register: Option<unsafe extern "C" fn()>,
         post_register: Option<unsafe extern "C" fn()>,
