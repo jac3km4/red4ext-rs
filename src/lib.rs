@@ -29,7 +29,7 @@ pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
 /// # Example
 /// Resolve a hash to an address:
 /// ```rust
-/// use red4rs::hashes;
+/// use red4ext_rs::hashes;
 ///
 /// fn exec_hash() -> usize {
 ///   hashes::resolve(hashes::CBaseFunction_ExecuteNative)
@@ -300,7 +300,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4rs::{GameApp, SdkEnv, StateListener, StateType};
+    /// use red4ext_rs::{GameApp, SdkEnv, StateListener, StateType};
     ///
     /// fn add_state_listener(env: &SdkEnv) {
     ///     let listener = StateListener::default()
@@ -331,7 +331,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4rs::{hooks, SdkEnv};
+    /// use red4ext_rs::{hooks, SdkEnv};
     ///
     /// hooks! {
     ///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
@@ -470,7 +470,7 @@ impl From<ApiVersion> for u32 {
 ///
 /// # Example
 /// ```rust
-/// use red4rs::hooks;
+/// use red4ext_rs::hooks;
 ///
 /// hooks! {
 ///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;

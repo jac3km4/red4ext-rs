@@ -10,8 +10,8 @@ use crate::types::{
 ///
 /// # Example
 /// ```rust
-/// use red4rs::types::CName;
-/// use red4rs::RttiSystem;
+/// use red4ext_rs::types::CName;
+/// use red4ext_rs::RttiSystem;
 ///
 /// fn rtti_example() {
 ///     let rtti = RttiSystem::get();

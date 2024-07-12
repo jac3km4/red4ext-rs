@@ -157,8 +157,8 @@ impl Exportable for GlobalExport {
 /// ```rust
 /// use std::cell::Cell;
 ///
-/// use red4rs::{ClassExport, Exportable, GlobalExport, exports, methods, global};
-/// use red4rs::types::{IScriptable, ScriptClass, Native};
+/// use red4ext_rs::{ClassExport, Exportable, GlobalExport, exports, methods, global};
+/// use red4ext_rs::types::{IScriptable, ScriptClass, Native};
 ///
 /// fn exports() -> impl Exportable {
 ///     exports![

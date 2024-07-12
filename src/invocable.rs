@@ -243,7 +243,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 ///
 /// # Example
 /// ```rust
-/// use red4rs::{global, GlobalInvocable, GlobalMetadata};
+/// use red4ext_rs::{global, GlobalInvocable, GlobalMetadata};
 ///
 /// fn my_global() -> GlobalMetadata {
 ///     global!(c"Adder", adder)
@@ -305,7 +305,7 @@ macro_rules! method {
 ///
 /// # Example
 /// ```rust
-/// use red4rs::{call, types::{IScriptable, Ref, CName}};
+/// use red4ext_rs::{call, types::{IScriptable, Ref, CName}};
 ///
 /// fn method_example(inst: Ref<IScriptable>) -> CName {
 ///    call!(inst, "GetClassName" () -> CName).unwrap()

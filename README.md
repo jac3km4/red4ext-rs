@@ -1,4 +1,4 @@
-# red4rs
+# red4ext-rs
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
 ## usage
@@ -16,14 +16,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-red4rs = { git = "https://github.com/jac3km4/red4rs", features = ["log"], rev = "v0.1.7" }
+red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"], rev = "v0.1.7" }
 # you can also add the bindings crate which exposes all in-game types for convenience
-red4rs-bindings = { git = "https://github.com/jac3km4/red4rs-bindings", rev = "v0.1.8" }
+red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.1.8" }
 ```
 
 ### set up a basic plugin
 ```rs
-use red4rs::{
+use red4ext_rs::{
     export_plugin, exports, global, wcstr, Exportable, GlobalExport, Plugin, SemVer, U16CStr,
 };
 
@@ -61,7 +61,7 @@ You can now build your project with `cargo build` and copy the compiled DLL from
 
 ### call global and instance functions
 ```rust
-use red4rs::{
+use red4ext_rs::{
     call,
     types::{IScriptable, Ref},
 };
@@ -75,13 +75,13 @@ fn example(player: Ref<IScriptable>) -> i32 {
 
 ### interact with built-in scripted and native types using auto-generated bindings
 
-See [red4rs-bindings](https://github.com/jac3km4/red4rs-bindings).
+See [red4ext-rs-bindings](https://github.com/jac3km4/red4ext-rs-bindings).
 
 ### define and export your own class type
 ```rust
 use std::cell::Cell;
 
-use red4rs::{
+use red4ext_rs::{
     exports, methods,
     types::{IScriptable, Native, ScriptClass},
     ClassExport, Exportable,
@@ -134,7 +134,7 @@ native class MyClass {
 
 ### interact with scripted classes using hand-written bindings
 ```rust
-use red4rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
+use red4ext_rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
 
 #[repr(C)]
 struct AddInvestigatorEvent {
@@ -163,7 +163,7 @@ fn example() -> Ref<AddInvestigatorEvent> {
 
 ### interact with native classes using hand-written bindings
 ```rust
-use red4rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
+use red4ext_rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
 
 #[repr(C)]
 struct ScanningEvent {
