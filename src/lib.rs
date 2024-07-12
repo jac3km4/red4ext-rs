@@ -156,7 +156,7 @@ macro_rules! export_plugin {
                 sdk: $crate::internal::Sdk,
             ) {
                 <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
-                $crate::systems::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+                $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
             }
 
             #[no_mangle]
