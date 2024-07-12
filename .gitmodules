@@ -1,4 +1,0 @@
-[submodule "red4ext-sys/cpp/RED4ext.SDK"]
-	path = red4ext-sys/cpp/RED4ext.SDK
-	url = https://github.com/WopsS/RED4ext.SDK.git
-	branch = master
