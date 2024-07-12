@@ -1,6 +1,9 @@
 # red4ext-rs
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
+## documentation
+Read the [documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)!
+
 ## usage
 
 ### quickstart
