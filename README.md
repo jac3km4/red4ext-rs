@@ -53,60 +53,11 @@ fn example(player: Ref<IScriptable>) -> i32 {
 }
 ```
 
-### instantiate and interact with scripted classes
-```rust
-use red4rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
+### interact with built-in scripted and native types using auto-generated bindings
 
-#[repr(C)]
-struct AddInvestigatorEvent {
-    investigator: EntityId,
-}
+See [red4rs-bindings](https://github.com/jac3km4/red4rs-bindings).
 
-unsafe impl ScriptClass for AddInvestigatorEvent {
-    const CLASS_NAME: &'static str = "AddInvestigatorEvent";
-    type Kind = Scripted;
-}
-
-fn example() -> Ref<AddInvestigatorEvent> {
-    // we can create new refs of script classes
-    let instance = AddInvestigatorEvent::new_ref_with(|inst| {
-        inst.investigator = EntityId::from(0xdeadbeef);
-    })
-    .unwrap();
-
-    // we can obtain a reference to the fields of the ref
-    let fields = unsafe { instance.fields() }.unwrap();
-    let _investigator = fields.investigator;
-    
-    instance
-}
-```
-
-### instantiate and interact with native classes
-```rust
-use red4rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
-
-#[repr(C)]
-struct ScanningEvent {
-    base: IScriptable,
-    state: u8,
-}
-
-unsafe impl ScriptClass for ScanningEvent {
-    const CLASS_NAME: &'static str = "gameScanningEvent";
-    type Kind = Native;
-}
-
-fn example() -> Ref<ScanningEvent> {
-    ScanningEvent::new_ref_with(|inst| {
-        inst.state = 1;
-    })
-    .unwrap()
-}
-```
-
-
-### define a custom class type
+### define and export your own class type
 ```rust
 use std::cell::Cell;
 
@@ -158,5 +109,57 @@ native class MyClass {
     native func GetValue() -> Int32;
     native func SetValue(a: Int32);
     native cb func OnInitialize();
+}
+```
+
+### interact with scripted classes using hand-written bindings
+```rust
+use red4rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
+
+#[repr(C)]
+struct AddInvestigatorEvent {
+    investigator: EntityId,
+}
+
+unsafe impl ScriptClass for AddInvestigatorEvent {
+    const CLASS_NAME: &'static str = "AddInvestigatorEvent";
+    type Kind = Scripted;
+}
+
+fn example() -> Ref<AddInvestigatorEvent> {
+    // we can create new refs of script classes
+    let instance = AddInvestigatorEvent::new_ref_with(|inst| {
+        inst.investigator = EntityId::from(0xdeadbeef);
+    })
+    .unwrap();
+
+    // we can obtain a reference to the fields of the ref
+    let fields = unsafe { instance.fields() }.unwrap();
+    let _investigator = fields.investigator;
+    
+    instance
+}
+```
+
+### interact with native classes using hand-written bindings
+```rust
+use red4rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
+
+#[repr(C)]
+struct ScanningEvent {
+    base: IScriptable,
+    state: u8,
+}
+
+unsafe impl ScriptClass for ScanningEvent {
+    const CLASS_NAME: &'static str = "gameScanningEvent";
+    type Kind = Native;
+}
+
+fn example() -> Ref<ScanningEvent> {
+    ScanningEvent::new_ref_with(|inst| {
+        inst.state = 1;
+    })
+    .unwrap()
 }
 ```
