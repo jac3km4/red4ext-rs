@@ -12,6 +12,10 @@ pub struct CName(red::CName);
 impl CName {
     #[inline]
     pub const fn new(name: &str) -> Self {
+        #[allow(clippy::equatable_if_let)]
+        if let b"None" = name.as_bytes() {
+            return Self::undefined();
+        }
         Self(red::CName {
             hash: fnv1a64(name),
         })
@@ -108,5 +112,22 @@ impl CNamePool {
             add_cstr(&mut cname, str.as_ptr());
             cname
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn calculate_hashes() {
+        assert_eq!(
+            u64::from(CName::new("IScriptable")),
+            3_191_163_302_135_919_211
+        );
+        assert_eq!(u64::from(CName::new("Vector2")), 7_466_804_955_052_523_504);
+        assert_eq!(u64::from(CName::new("Color")), 3_769_135_706_557_701_272);
+        assert_eq!(u64::from(CName::new("None")), 0);
+        assert_eq!(u64::from(CName::new("")), 0xCBF2_9CE4_8422_2325);
     }
 }
