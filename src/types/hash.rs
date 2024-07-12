@@ -34,8 +34,8 @@ impl<K, V> RedHashMap<K, V> {
         let hash = key.hash();
 
         if self.size() > 0 {
-            if let Some(val) = self.get_by_hash_mut(hash) {
-                return Some(mem::replace(val, value));
+            if let Some(slot) = self.get_by_hash_mut(hash) {
+                return Some(mem::replace(slot, value));
             }
         }
         if self.size() + 1 > self.capacity() {
