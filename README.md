@@ -1,7 +1,25 @@
 # red4rs
-Convenience Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
+Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
 ## usage
+
+### quickstart
+Define your `Cargo.toml`:
+```toml
+[package]
+name = "my-project"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# we want to compile to a DLL
+crate-type = ["cdylib"]
+
+[dependencies]
+red4rs = { git = "https://github.com/jac3km4/red4rs", features = ["log"], rev = "v0.1.7" }
+# you can also add the bindings crate which exposes all in-game types for convenience
+red4rs-bindings = { git = "https://github.com/jac3km4/red4rs-bindings", rev = "v0.1.8" }
+```
 
 ### set up a basic plugin
 ```rs
@@ -13,7 +31,7 @@ pub struct Example;
 
 impl Plugin for Example {
     const NAME: &'static U16CStr = wcstr!("example");
-    const AUTHOR: &'static U16CStr = wcstr!("jekky");
+    const AUTHOR: &'static U16CStr = wcstr!("me");
     const VERSION: SemVer = SemVer::new(0, 1, 0);
 
     // exports a named global function
@@ -38,6 +56,8 @@ fn add2(a: i32) -> i32 {
     a + 2
 }
 ```
+
+You can now build your project with `cargo build` and copy the compiled DLL from `{project}\target\debug\{project}.dll` to `{game}\red4ext\plugins\`. It should then be loaded by RED4ext and your function should be callable from REDscript and CET.
 
 ### call global and instance functions
 ```rust
