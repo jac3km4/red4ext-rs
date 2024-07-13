@@ -76,6 +76,11 @@ impl<T> RedArray<T> {
         self.realloc(expected.max(self.capacity() + self.capacity() / 2));
     }
 
+    /// Returns an iterator over the elements of the array.
+    pub fn iter(&self) -> slice::Iter<'_, T> {
+        self.into_iter()
+    }
+
     fn realloc(&mut self, cap: u32) {
         let size = mem::size_of::<T>();
         let align = mem::align_of::<T>().max(8);

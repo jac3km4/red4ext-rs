@@ -171,7 +171,7 @@ impl GlobalMetadata {
     }
 
     /// Converts this metadata into a [`GlobalFunction`] instance, which can be registered with
-    /// the [RttiSystem](crate::RttiSystem).
+    /// [RttiSystemMut](crate::RttiSystemMut).
     pub fn to_rtti(&self) -> PoolRef<GlobalFunction> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
@@ -225,7 +225,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
     }
 
     /// Converts this metadata into a [`Method`] instance, which can be registered with
-    /// the [RttiSystem](crate::RttiSystem).
+    /// the [RttiSystemMut](crate::RttiSystemMut).
     pub fn to_rtti(&self) -> PoolRef<Method> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);

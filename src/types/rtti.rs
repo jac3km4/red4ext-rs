@@ -473,8 +473,9 @@ pub struct NativeClass<T>(Class, PhantomData<*mut T>);
 
 impl<T> NativeClass<T> {
     /// Creates a new native class with the given base type.
-    /// Returns a handle to the class, it can only be used to register the class. Any further
-    /// use should be done through the RTTI system.
+    /// Returns a handle to the class, this handle should be used to register the class with
+    /// [`RttiSystemMut`](crate::RttiSystemMut). Any further interaction with the class should be
+    /// done through RTTI.
     pub fn new_handle(base: Option<&Class>) -> ClassHandle
     where
         T: Default + Clone + ScriptClass,
@@ -507,16 +508,6 @@ impl<T> NativeClass<T> {
         // we leak the class and wrap it as pointer, because RTTI expects all references to it
         // to live forever - this prevents accidental misuse
         ClassHandle(NonNull::from(Box::leak(Box::new(class))))
-    }
-
-    #[inline]
-    pub fn as_class(&self) -> &Class {
-        &self.0
-    }
-
-    #[inline]
-    pub fn as_class_mut(&mut self) -> &mut Class {
-        &mut self.0
     }
 
     fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
@@ -558,6 +549,7 @@ impl<T> NativeClass<T> {
     }
 }
 
+/// Class handle to be used to register a class with [`RttiSystemMut`](crate::RttiSystemMut).
 #[derive(Debug, Clone, Copy)]
 pub struct ClassHandle(NonNull<Class>);
 
