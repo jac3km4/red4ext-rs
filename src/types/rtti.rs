@@ -257,10 +257,19 @@ impl Class {
         unsafe { mem::transmute(&self.0.funcsByName) }
     }
 
-    pub fn get_method(&self, name: CName) -> Option<&Method> {
-        iter::once(self)
-            .chain(self.base_iter())
+    /// Resolves a method by name.
+    /// Returns the method wrapped in [`Ok`] if it exists in this class or any of its base classes.
+    /// If the method is not found, returns an iterator over all methods with a matching short
+    /// name wrapped in `Err`.
+    pub fn get_method(&self, name: CName) -> Result<&Method, impl Iterator<Item = &Method>> {
+        self.base_iter_with_self()
             .find_map(|class| class.method_map().get(&name).copied())
+            .ok_or_else(|| {
+                self.base_iter_with_self()
+                    .flat_map(Class::methods)
+                    .filter(move |m| m.as_function().short_name() == name)
+                    .copied()
+            })
     }
 
     #[inline]
@@ -274,16 +283,14 @@ impl Class {
     }
 
     pub fn all_properties(&self) -> impl Iterator<Item = &Property> {
-        iter::once(self)
-            .chain(self.base_iter())
+        self.base_iter_with_self()
             .flat_map(Class::properties)
             .copied()
     }
 
     pub fn is_class(&self) -> bool {
         // there might be a better way to check this
-        iter::once(self)
-            .chain(self.base_iter())
+        self.base_iter_with_self()
             .any(|c| c.name() == CName::new("ISerializable"))
     }
 
@@ -321,6 +328,10 @@ impl Class {
     #[inline]
     pub fn as_type_mut(&mut self) -> &mut Type {
         unsafe { &mut *(self as *mut _ as *mut Type) }
+    }
+
+    fn base_iter_with_self(&self) -> impl Iterator<Item = &Class> {
+        iter::once(self).chain(self.base_iter())
     }
 
     #[inline]
@@ -763,6 +774,11 @@ impl Function {
     #[inline]
     pub fn name(&self) -> CName {
         CName::from_raw(self.0.fullName)
+    }
+
+    #[inline]
+    pub fn short_name(&self) -> CName {
+        CName::from_raw(self.0.shortName)
     }
 
     #[inline]

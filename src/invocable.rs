@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
@@ -15,8 +16,16 @@ use crate::VoidPtr;
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
 pub enum InvokeError {
-    #[error("function '{0}' not found")]
+    #[error("function could not be found by full name '{0}'")]
     FunctionNotFound(&'static str),
+    #[error(
+        "method could not be found by full name '{0}', available options: {}",
+        .1.into_iter()
+            .map(|name| Cow::Borrowed(name.as_str()))
+            .reduce(|acc, el| format!("{}, '{}'", acc, el).into())
+            .unwrap_or_default()
+    )]
+    MethodNotFound(&'static str, Box<[CName]>),
     #[error("invalid number of arguments, expected {expected} for {function}")]
     InvalidArgCount {
         function: &'static str,
@@ -39,6 +48,20 @@ pub enum InvokeError {
     ExecutionFailed(&'static str),
     #[error("the 'this' pointer for class '{0}' was null")]
     NullReceiver(&'static str),
+}
+
+impl InvokeError {
+    #[doc(hidden)]
+    pub fn new_method_not_found<'a>(
+        name: &'static str,
+        options: impl IntoIterator<Item = &'a Method>,
+    ) -> InvokeError {
+        let options = options
+            .into_iter()
+            .map(|m| m.as_function().name())
+            .collect();
+        InvokeError::MethodNotFound(name, options)
+    }
 }
 
 /// A trait for functions that can be exported as global functions.
@@ -330,7 +353,7 @@ macro_rules! call {
             let receiver = $crate::Receiver::as_receiver(&$this)?;
             $crate::types::IScriptable::class(receiver)
                 .get_method($crate::types::CName::new($fn_name))
-                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
+                .map_err(|err| $crate::InvokeError::new_method_not_found($fn_name, err))?
                 .as_function()
                 .execute::<_, $rett>(
                     Some(receiver),
