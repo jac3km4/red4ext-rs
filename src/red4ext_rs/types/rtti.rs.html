@@ -1474,6 +1474,23 @@
 <a href="#1474" id="1474">1474</a>
 <a href="#1475" id="1475">1475</a>
 <a href="#1476" id="1476">1476</a>
+<a href="#1477" id="1477">1477</a>
+<a href="#1478" id="1478">1478</a>
+<a href="#1479" id="1479">1479</a>
+<a href="#1480" id="1480">1480</a>
+<a href="#1481" id="1481">1481</a>
+<a href="#1482" id="1482">1482</a>
+<a href="#1483" id="1483">1483</a>
+<a href="#1484" id="1484">1484</a>
+<a href="#1485" id="1485">1485</a>
+<a href="#1486" id="1486">1486</a>
+<a href="#1487" id="1487">1487</a>
+<a href="#1488" id="1488">1488</a>
+<a href="#1489" id="1489">1489</a>
+<a href="#1490" id="1490">1490</a>
+<a href="#1491" id="1491">1491</a>
+<a href="#1492" id="1492">1492</a>
+<a href="#1493" id="1493">1493</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::{CStr, CString};
 <span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::ptr::NonNull;
@@ -1733,10 +1750,19 @@
         <span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>.funcsByName) }
     }
 
-    <span class="kw">pub fn </span>get_method(<span class="kw-2">&amp;</span><span class="self">self</span>, name: CName) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Method&gt; {
-        iter::once(<span class="self">self</span>)
-            .chain(<span class="self">self</span>.base_iter())
+    <span class="doccomment">/// Resolves a method by name.
+    /// Returns the method wrapped in [`Ok`] if it exists in this class or any of its base classes.
+    /// If the method is not found, this function returns an iterator over all methods with a
+    /// matching short name wrapped in [`Err`].
+    </span><span class="kw">pub fn </span>get_method(<span class="kw-2">&amp;</span><span class="self">self</span>, name: CName) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Method, <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>Method&gt;&gt; {
+        <span class="self">self</span>.base_iter_with_self()
             .find_map(|class| class.method_map().get(<span class="kw-2">&amp;</span>name).copied())
+            .ok_or_else(|| {
+                <span class="self">self</span>.base_iter_with_self()
+                    .flat_map(Class::methods)
+                    .filter(<span class="kw">move </span>|m| m.as_function().short_name() == name)
+                    .copied()
+            })
     }
 
     <span class="attr">#[inline]
@@ -1750,16 +1776,14 @@
     }
 
     <span class="kw">pub fn </span>all_properties(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>Property&gt; {
-        iter::once(<span class="self">self</span>)
-            .chain(<span class="self">self</span>.base_iter())
+        <span class="self">self</span>.base_iter_with_self()
             .flat_map(Class::properties)
             .copied()
     }
 
     <span class="kw">pub fn </span>is_class(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="comment">// there might be a better way to check this
-        </span>iter::once(<span class="self">self</span>)
-            .chain(<span class="self">self</span>.base_iter())
+        </span><span class="self">self</span>.base_iter_with_self()
             .any(|c| c.name() == CName::new(<span class="string">"ISerializable"</span>))
     }
 
@@ -1797,6 +1821,11 @@
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>as_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Type {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>(<span class="self">self </span><span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_ as </span><span class="kw-2">*mut </span>Type) }
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">fn </span>base_iter_with_self(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>Class&gt; {
+        iter::once(<span class="self">self</span>).chain(<span class="self">self</span>.base_iter())
     }
 
     <span class="attr">#[inline]
@@ -2239,6 +2268,11 @@
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CName {
         CName::from_raw(<span class="self">self</span>.<span class="number">0</span>.fullName)
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>short_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; CName {
+        CName::from_raw(<span class="self">self</span>.<span class="number">0</span>.shortName)
     }
 
     <span class="attr">#[inline]
