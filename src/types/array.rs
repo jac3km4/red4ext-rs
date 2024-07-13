@@ -146,7 +146,7 @@ impl<'a, T> IntoIterator for &'a RedArray<T> {
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        self.iter()
+        <[T]>::iter(self)
     }
 }
 
