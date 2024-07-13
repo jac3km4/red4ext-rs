@@ -116,7 +116,7 @@ impl<'a> StackArg<'a> {
 
     /// Returns the type of the stack argument.
     #[inline]
-    pub fn type_(&self) -> Option<&'static Type> {
+    pub fn type_(&self) -> Option<&Type> {
         unsafe { self.0.type_.cast::<Type>().as_ref() }
     }
 

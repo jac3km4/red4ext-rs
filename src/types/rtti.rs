@@ -858,25 +858,30 @@ impl Function {
         }
 
         for (index, (param, arg)) in self.params().iter().zip(args.iter()).enumerate() {
-            if !arg.type_().is_some_and(|ty| ptr::eq(ty, param.type_())) {
-                let expected = param.type_().name().as_str();
-                return Err(InvokeError::ArgMismatch {
-                    function: self.name().as_str(),
-                    expected,
-                    index,
-                });
+            match (arg.type_(), param.type_()) {
+                (Some(arg), Some(param)) if ptr::eq(arg, param) => {}
+                _ => {
+                    return Err(InvokeError::ArgMismatch {
+                        function: self.name().as_str(),
+                        expected: param.type_().map_or("Void", |ty| ty.name().as_str()),
+                        index,
+                    });
+                }
             }
         }
 
-        if !ret
-            .type_()
-            .is_some_and(|ty| ptr::eq(ty, self.return_value().type_()))
-        {
-            let expected = self.return_value().type_().name().as_str();
-            return Err(InvokeError::ReturnMismatch {
-                function: self.name().as_str(),
-                expected,
-            });
+        match (ret.type_(), self.return_value().type_()) {
+            (None, None) => {}
+            (Some(given), Some(expected)) if ptr::eq(given, expected) => {}
+            _ => {
+                return Err(InvokeError::ReturnMismatch {
+                    function: self.name().as_str(),
+                    expected: self
+                        .return_value()
+                        .type_()
+                        .map_or("Void", |ty| ty.name().as_str()),
+                });
+            }
         }
 
         Ok(())
@@ -1192,8 +1197,8 @@ impl Property {
     }
 
     #[inline]
-    pub fn type_(&self) -> &Type {
-        unsafe { &*(self.0.type_ as *const Type) }
+    pub fn type_(&self) -> Option<&Type> {
+        unsafe { (self.0.type_ as *const Type).as_ref() }
     }
 
     #[inline]
