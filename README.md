@@ -69,16 +69,21 @@ use red4ext_rs::{
     types::{IScriptable, Ref},
 };
 
+// you can expose Rust functions to the game as long as their signatures consist of supported
+// types, you'll see a compiler error when you try to use an unsupported type like i128
 fn example(player: Ref<IScriptable>) -> i32 {
+    // the line below will attempt to look up a matching method in the instance and call it
     let size = call!(player, "GetDeviceActionMaxQueueSize;" () -> i32).unwrap();
+    // the line below invokes a global native function (the operator for adding two Int32)
     let added1 = call!("OperatorAdd;Int32Int32;Int32" (size, 4i32) -> i32).unwrap();
     added1
 }
 ```
 
-### interact with built-in scripted and native types using auto-generated bindings
+### interact with in-game scripted and native types using auto-generated bindings
 
-See [red4ext-rs-bindings](https://github.com/jac3km4/red4ext-rs-bindings).
+See [red4ext-rs-bindings](https://github.com/jac3km4/red4ext-rs-bindings) for bindings for all
+types defined in RTTI in the game.
 
 ### define and export your own class type
 ```rust
