@@ -96,15 +96,19 @@ impl StackFrame {
 /// A stack argument to be passed to a function.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct StackArg<'a>(red::CStackType, PhantomData<&'a ()>);
+pub struct StackArg<'a>(red::CStackType, PhantomData<&'a mut ()>);
 
 impl<'a> StackArg<'a> {
     /// Creates a new stack argument from a reference to a value.
     pub fn new<A: NativeRepr>(val: &'a mut A) -> Option<Self> {
-        let rtti = RttiSystem::get();
-        let type_ = rtti.get_type(CName::new(A::NAME))?;
+        let type_ = if A::NAME == "Void" {
+            ptr::null_mut()
+        } else {
+            let rtti = RttiSystem::get();
+            rtti.get_type(CName::new(A::NAME))?.as_raw() as *const _ as *mut red::CBaseRTTIType
+        };
         let inner = red::CStackType {
-            type_: type_.as_raw() as *const _ as *mut red::CBaseRTTIType,
+            type_,
             value: val as *const A as VoidPtr,
         };
         Some(Self(inner, PhantomData))
