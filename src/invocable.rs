@@ -20,7 +20,7 @@ pub enum InvokeError {
     FunctionNotFound(&'static str),
     #[error(
         "method could not be found by full name '{0}', available options: {}",
-        .1.into_iter()
+        .1.iter()
             .map(|name| Cow::Borrowed(name.as_str()))
             .reduce(|acc, el| format!("{}, '{}'", acc, el).into())
             .unwrap_or_default()
