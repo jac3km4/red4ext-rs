@@ -369,6 +369,17 @@ where
 }
 
 #[sealed]
+impl<T: ScriptClass> Receiver for &Ref<T>
+where
+    <T::Kind as ClassKind<T>>::NativeType: AsRef<IScriptable>,
+{
+    #[inline]
+    fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
+        <Ref<T> as Receiver>::as_receiver(*self)
+    }
+}
+
+#[sealed]
 #[doc(hidden)]
 pub trait Args {
     type Array<'a>: AsRef<[StackArg<'a>]>
