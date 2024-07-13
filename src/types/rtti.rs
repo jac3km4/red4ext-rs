@@ -259,8 +259,8 @@ impl Class {
 
     /// Resolves a method by name.
     /// Returns the method wrapped in [`Ok`] if it exists in this class or any of its base classes.
-    /// If the method is not found, returns an iterator over all methods with a matching short
-    /// name wrapped in `Err`.
+    /// If the method is not found, this function returns an iterator over all methods with a
+    /// matching short name wrapped in [`Err`].
     pub fn get_method(&self, name: CName) -> Result<&Method, impl Iterator<Item = &Method>> {
         self.base_iter_with_self()
             .find_map(|class| class.method_map().get(&name).copied())
@@ -330,6 +330,7 @@ impl Class {
         unsafe { &mut *(self as *mut _ as *mut Type) }
     }
 
+    #[inline]
     fn base_iter_with_self(&self) -> impl Iterator<Item = &Class> {
         iter::once(self).chain(self.base_iter())
     }
