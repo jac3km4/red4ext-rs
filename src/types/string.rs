@@ -45,6 +45,19 @@ impl From<&CStr> for RedString {
     }
 }
 
+impl From<&str> for RedString {
+    #[inline]
+    fn from(value: &str) -> Self {
+        Self(unsafe {
+            red::CString::new2(
+                value.as_ptr() as *const i8,
+                value.len() as u32,
+                ptr::null_mut(),
+            )
+        })
+    }
+}
+
 impl From<CString> for RedString {
     #[inline]
     fn from(value: CString) -> Self {

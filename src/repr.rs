@@ -97,6 +97,15 @@ impl IntoRepr for String {
     }
 }
 
+impl IntoRepr for &str {
+    type Repr = RedString;
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        RedString::from(self)
+    }
+}
+
 impl<A> IntoRepr for Vec<A>
 where
     A: IntoRepr,
