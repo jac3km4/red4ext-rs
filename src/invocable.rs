@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
@@ -21,9 +20,15 @@ pub enum InvokeError {
     #[error(
         "method could not be found by full name '{0}', available options: {}",
         .1.iter()
-            .map(|name| Cow::Borrowed(name.as_str()))
-            .reduce(|acc, el| format!("{}, '{}'", acc, el).into())
-            .unwrap_or_default()
+            .fold(String::new() ,|mut acc, el| {
+                if !acc.is_empty() {
+                    acc.push_str(", ");
+                }
+                acc.push('\'');
+                acc.push_str(el.as_str());
+                acc.push('\'');
+                acc
+            })
     )]
     MethodNotFound(&'static str, Box<[CName]>),
     #[error("invalid number of arguments, expected {expected} for {function}")]
