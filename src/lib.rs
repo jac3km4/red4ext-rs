@@ -186,7 +186,16 @@ pub mod log {
     pub use crate::{debug, error, info, trace, warn};
 
     /// Logs a message at the info level.
-    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4ext_rs::{log, SdkEnv};
+    ///
+    /// fn log_info(env: &SdkEnv) {
+    ///     log::info!(env, "Hello, world!");
+    ///     // log::info!("Hello, world!"); // if the `log` feature is enabled
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! info {
         ($env:expr, $($arg:tt)*) => {
@@ -195,7 +204,16 @@ pub mod log {
     }
 
     /// Logs a message at the warn level.
-    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4ext_rs::{log, SdkEnv};
+    ///
+    /// fn log_warn(env: &SdkEnv) {
+    ///     log::warn!(env, "Hello, world!");
+    ///     // log::warn!("Hello, world!"); // if the `log` feature is enabled
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! warn {
         ($env:expr, $($arg:tt)*) => {
@@ -204,7 +222,16 @@ pub mod log {
     }
 
     /// Logs a message at the error level.
-    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4ext_rs::{log, SdkEnv};
+    ///
+    /// fn log_error(env: &SdkEnv) {
+    ///     log::error!(env, "Hello, world!");
+    ///     // log::error!("Hello, world!"); // if the `log` feature is enabled
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! error {
         ($env:expr, $($arg:tt)*) => {
@@ -213,7 +240,16 @@ pub mod log {
     }
 
     /// Logs a message at the debug level.
-    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4ext_rs::{log, SdkEnv};
+    ///
+    /// fn log_debug(env: &SdkEnv) {
+    ///     log::debug!(env, "Hello, world!");
+    ///     // log::debug!("Hello, world!"); // if the `log` feature is enabled
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! debug {
         ($env:expr, $($arg:tt)*) => {
@@ -222,7 +258,16 @@ pub mod log {
     }
 
     /// Logs a message at the trace level.
-    /// The first argument must be a [`SdkEnv`](crate::SdkEnv) instance.
+    ///
+    /// # Example
+    /// ```rust
+    /// use red4ext_rs::{log, SdkEnv};
+    ///
+    /// fn log_trace(env: &SdkEnv) {
+    ///     log::trace!(env, "Hello, world!");
+    ///     // log::trace!("Hello, world!"); // if the `log` feature is enabled
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! trace {
         ($env:expr, $($arg:tt)*) => {
