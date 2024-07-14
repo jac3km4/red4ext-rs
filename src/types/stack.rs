@@ -91,6 +91,66 @@ impl StackFrame {
             red::OpcodeHandlers::Run(opcode, self.0.context, &mut self.0, ptr, ptr::null_mut());
         }
     }
+
+    pub fn state(&self) -> StackState {
+        StackState {
+            code: self.0.code,
+            data: self.0.data,
+            data_type: self.0.dataType,
+        }
+    }
+
+    /// Allows to rewind the stack after having read function arguments,
+    /// when detoured function need to be called.
+    ///
+    /// # Safety
+    /// The state must be saved **before** reading arguments.
+    /// The state must be restored **after** having read arguments, before calling callback.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, StackFrame, IScriptable}, VoidPtr};
+    /// # hooks! {
+    /// #    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
+    /// # }
+    /// # fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr)) {
+    /// #     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
+    /// # }
+    /// # fn should_detour(event_name: CName) -> bool = false;
+    ///
+    /// unsafe extern "C" fn detour(
+    ///     i: *mut IScriptable,
+    ///     f: *mut StackFrame,
+    ///     a3: VoidPtr,
+    ///     a4: VoidPtr,
+    ///     cb: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr),
+    /// ) {
+    ///     let frame = &mut *f;
+    ///
+    ///     // stack must be saved before reading stack function parameters
+    ///     let state = frame.state();
+    ///     
+    ///     // assuming our function accepts these 3 parameters
+    ///     let event_name: CName = StackFrame::get_arg(frame);
+    ///     let entity_id: EntityId = StackFrame::get_arg(frame);
+    ///     let emitter_name: CName = StackFrame::get_arg(frame);
+    ///
+    ///     if should_detour(event_name) {
+    ///         // do something else...
+    ///     } else {
+    ///         // since we've read stack function arguments,
+    ///         // stack must be rewinded before callback.
+    ///         frame.rewind(state);
+    ///         cb(a, b)
+    ///     }
+    /// }
+    /// ```
+    pub unsafe fn rewind(mut self, state: StackState) {
+        self.0.code = state.code;
+        self.0.data = state.data;
+        self.0.dataType = state.data_type;
+        self.0.currentParam = 0;
+    }
 }
 
 /// A stack argument to be passed to a function.
@@ -124,4 +184,10 @@ impl<'a> StackArg<'a> {
     pub(super) fn as_raw_mut(&mut self) -> &mut red::CStackType {
         &mut self.0
     }
+}
+
+pub struct StackState {
+    code: *mut i8,
+    data: VoidPtr,
+    data_type: *mut red::CBaseRTTIType,
 }
