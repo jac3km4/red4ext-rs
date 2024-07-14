@@ -40,6 +40,18 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
 }
 
+impl<A: NativeRepr + Default + PartialEq> FromRepr for Option<A> {
+    type Repr = A;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        let repr = A::from_repr(repr);
+        if repr == A::default() {
+            return None;
+        }
+        Some(repr)
+    }
+}
+
 macro_rules! impl_native_repr {
     ($ty:ty, $name:literal) => {
         unsafe impl NativeRepr for $ty {
