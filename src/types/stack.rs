@@ -109,14 +109,14 @@ impl StackFrame {
     ///
     /// # Example
     /// ```rust
-    /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, StackFrame, IScriptable}, VoidPtr};
+    /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, EntityId, StackFrame, IScriptable}, VoidPtr};
     /// # hooks! {
-    /// #    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
+    /// #    static ADD_HOOK: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr);
     /// # }
     /// # fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr)) {
     /// #     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
     /// # }
-    /// # fn should_detour(event_name: CName) -> bool = false;
+    /// # fn should_detour(event_name: CName) -> bool { false }
     ///
     /// unsafe extern "C" fn detour(
     ///     i: *mut IScriptable,
@@ -141,7 +141,7 @@ impl StackFrame {
     ///         // since we've read stack function arguments,
     ///         // stack must be rewinded before callback.
     ///         frame.rewind(state);
-    ///         cb(a, b)
+    ///         cb(i, f, a3, a4);
     ///     }
     /// }
     /// ```
