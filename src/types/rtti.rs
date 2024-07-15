@@ -257,6 +257,11 @@ impl Class {
         unsafe { mem::transmute(&self.0.funcsByName) }
     }
 
+    #[inline]
+    pub fn static_methods(&self) -> &RedArray<&StaticMethod> {
+        unsafe { mem::transmute(&self.0.staticFuncs) }
+    }
+
     /// Resolves a method by name.
     /// Returns the method wrapped in [`Ok`] if it exists in this class or any of its base classes.
     /// If the method is not found, this function returns an iterator over all methods with a
