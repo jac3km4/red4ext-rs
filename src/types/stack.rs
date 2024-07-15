@@ -111,7 +111,7 @@ impl StackFrame {
     /// ```rust
     /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, EntityId, StackFrame, IScriptable}, VoidPtr};
     /// # hooks! {
-    /// #    static ADD_HOOK: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr);
+    /// #    static ADD_HOOK: fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr) -> ();
     /// # }
     /// # fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr)) {
     /// #     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
