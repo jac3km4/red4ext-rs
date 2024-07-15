@@ -93,7 +93,7 @@ impl StackFrame {
     }
 
     /// Captures stack frame state.
-    /// 
+    ///
     /// Use its returned value
     /// with [rewind](Self::rewind) to restore stack.
     pub fn state(&self) -> StackState {
@@ -109,10 +109,10 @@ impl StackFrame {
     ///
     /// # Safety
     /// The state must be saved **before** reading arguments.
-    /// 
+    ///
     /// The state must be restored **before** calling callback,
     /// once arguments have been read.
-    /// 
+    ///
     /// Stack arguments should **neither** be _partially_ read,
     /// **nor** _partially_ restored.
     ///
