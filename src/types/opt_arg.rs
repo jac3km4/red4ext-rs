@@ -7,8 +7,8 @@ use crate::NativeRepr;
 ///
 /// > When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
-#[derive(Default)]
-pub enum OptArg<T: NativeRepr + Default + PartialEq> {
+#[derive(Default, Debug, Clone, PartialEq)]
+pub enum OptArg<T: NativeRepr> {
     /// type is specified and guarantee to be non-`Default` value.
     NonDefault(T),
     /// type is guaranteed to be `Default` value.
@@ -16,21 +16,9 @@ pub enum OptArg<T: NativeRepr + Default + PartialEq> {
     Default,
 }
 
-impl<T> fmt::Debug for OptArg<T>
-where
-    T: fmt::Debug + NativeRepr + Default + PartialEq,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NonDefault(arg0) => f.debug_tuple("NonDefault").field(arg0).finish(),
-            Self::Default => write!(f, "Default"),
-        }
-    }
-}
-
 impl<T> fmt::Display for OptArg<T>
 where
-    T: fmt::Display + NativeRepr + Default + PartialEq,
+    T: fmt::Display + NativeRepr,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -40,16 +28,31 @@ where
     }
 }
 
-impl<T> Clone for OptArg<T>
+impl<T> Copy for OptArg<T> where T: NativeRepr + Copy + Clone {}
+
+impl<T> PartialEq<T> for OptArg<T>
 where
-    T: Clone + NativeRepr + Default + PartialEq,
+    T: NativeRepr + Default + PartialEq,
 {
-    fn clone(&self) -> Self {
+    fn eq(&self, other: &T) -> bool {
         match self {
-            Self::NonDefault(arg0) => Self::NonDefault(arg0.clone()),
-            Self::Default => Self::Default,
+            OptArg::NonDefault(x) if x == other => true,
+            OptArg::Default if *other == T::default() => true,
+            _ => false,
         }
     }
 }
 
-impl<T> Copy for OptArg<T> where T: Copy + Clone + NativeRepr + Default + PartialEq {}
+impl<T> PartialOrd for OptArg<T>
+where
+    T: PartialOrd + NativeRepr + Default + PartialEq,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (OptArg::NonDefault(x), OptArg::NonDefault(y)) => x.partial_cmp(y),
+            (OptArg::NonDefault(x), OptArg::Default) => x.partial_cmp(&T::default()),
+            (OptArg::Default, OptArg::NonDefault(y)) => T::default().partial_cmp(y),
+            (OptArg::Default, OptArg::Default) => Some(std::cmp::Ordering::Equal),
+        }
+    }
+}
