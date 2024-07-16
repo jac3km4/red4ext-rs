@@ -109,8 +109,7 @@ impl StackFrame {
     /// # Safety
     /// The state must be saved **before** reading arguments.
     ///
-    /// The state must be restored **before** calling callback,
-    /// once arguments have been read.
+    /// The state must be restored **before** passing it back to game code.
     ///
     /// Stack arguments should **neither** be _partially_ read,
     /// **nor** _partially_ restored.
