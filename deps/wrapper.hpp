@@ -1,6 +1,11 @@
 #include <RED4ext/RED4ext.hpp>
+#include <RED4ext/JobQueue.hpp>
 #include <RED4ext/Scripting/Natives/entEntityID.hpp>
 #include <RED4ext/Scripting/Natives/GameTime.hpp>
+#include <RED4ext/Scripting/Natives/IUpdatableSystem.hpp>
+#include <RED4ext/Scripting/Natives/gameIGameSystem.hpp>
+#include <RED4ext/Scripting/Natives/Generated/game/IScriptableSystem.hpp>
+#include <RED4ext/Scripting/Natives/Generated/game/ScriptableSystem.hpp>
 #include <RED4ext/Scripting/Natives/Generated/EngineTime.hpp>
 #include <RED4ext/Scripting/Natives/Generated/red/ResourceReferenceScriptToken.hpp>
 
