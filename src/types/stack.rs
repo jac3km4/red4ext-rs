@@ -104,8 +104,7 @@ impl StackFrame {
         }
     }
 
-    /// Allows to rewind the stack after having read function arguments,
-    /// when detoured function need to be called.
+    /// Allows to reset the state of function arguments.
     ///
     /// # Safety
     /// The state must be saved **before** reading arguments.
