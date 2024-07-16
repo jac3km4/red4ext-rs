@@ -5,13 +5,13 @@ use crate::NativeRepr;
 /// A convenience type to explicitly mark
 /// a function argument as `opt T`.
 ///
-/// > When left unspecified on Redscript side,
+/// When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum OptArg<T: NativeRepr> {
-    /// type is specified and guarantee to be non-`Default` value.
+    /// Value is specified and guaranteed to be non-`Default` value.
     NonDefault(T),
-    /// type is guaranteed to be `Default` value.
+    /// `Default` value.
     #[default]
     Default,
 }
