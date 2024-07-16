@@ -60,7 +60,7 @@ macro_rules! impl_native_repr {
     };
     ($ty:ty, $name:literal, $native_name:literal) => {
         unsafe impl NativeRepr for $ty {
-            const NAME: &'static str = $name;
+            const NAME: &'static str = $native_name;
         }
     };
 }
