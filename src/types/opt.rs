@@ -7,7 +7,7 @@ use crate::NativeRepr;
 ///
 /// When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, PartialOrd)]
 pub enum Opt<T: NativeRepr> {
     /// Value is specified and guaranteed to be non-`Default` value.
     NonDefault(T),
@@ -53,6 +53,7 @@ where
 }
 
 impl<T> Copy for Opt<T> where T: NativeRepr + Copy + Clone {}
+impl<T> Eq for Opt<T> where T: NativeRepr + PartialEq + Eq {}
 
 impl<T> PartialEq<T> for Opt<T>
 where
@@ -61,22 +62,34 @@ where
     fn eq(&self, other: &T) -> bool {
         match self {
             Self::NonDefault(x) if x == other => true,
-            Self::Default if *other == T::default() => true,
+            Self::Default if other == &T::default() => true,
             _ => false,
         }
     }
 }
 
-impl<T> PartialOrd for Opt<T>
+impl<T> Ord for Opt<T>
 where
-    T: PartialOrd + NativeRepr + Default + PartialEq,
+    T: NativeRepr + Default + Ord,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
-            (Self::NonDefault(x), Self::NonDefault(y)) => x.partial_cmp(y),
-            (Self::NonDefault(x), Self::Default) => x.partial_cmp(&T::default()),
-            (Self::Default, Self::NonDefault(y)) => T::default().partial_cmp(y),
-            (Self::Default, Self::Default) => Some(std::cmp::Ordering::Equal),
+            (Self::NonDefault(lhs), Self::NonDefault(rhs)) => lhs.cmp(rhs),
+            (Self::NonDefault(lhs), Self::Default) => lhs.cmp(&T::default()),
+            (Self::Default, Self::NonDefault(rhs)) => T::default().cmp(rhs),
+            (Self::Default, Self::Default) => std::cmp::Ordering::Equal,
+        }
+    }
+}
+
+impl<T> PartialOrd<T> for Opt<T>
+where
+    T: NativeRepr + Default + PartialOrd,
+{
+    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::NonDefault(lhs), rhs) => Some(lhs.cmp(rhs)),
+            (Self::Default, rhs) => Some(T::default().cmp(rhs)),
         }
     }
 }
