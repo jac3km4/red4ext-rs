@@ -193,7 +193,7 @@ impl<'a> StackArg<'a> {
     }
 }
 
-/// Snapshot of a stack frame state.
+/// Snapshot of the state of stack arguments.
 pub struct StackState {
     code: *mut i8,
     data: VoidPtr,
