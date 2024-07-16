@@ -1,7 +1,7 @@
 use const_combine::bounded::const_combine as combine;
 
 use crate::types::{
-    CName, EntityId, GameTime, ItemId, OptArg, RedArray, RedString, Ref, ScriptClass, ScriptRef,
+    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptClass, ScriptRef,
     TweakDbId, Variant, WeakRef,
 };
 
@@ -40,7 +40,7 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
 }
 
-impl<A: NativeRepr + Default + PartialEq> FromRepr for OptArg<A> {
+impl<A: NativeRepr + Default + PartialEq> FromRepr for Opt<A> {
     type Repr = A;
 
     fn from_repr(repr: Self::Repr) -> Self {
