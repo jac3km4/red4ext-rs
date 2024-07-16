@@ -46,8 +46,8 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Opt::NonDefault(x) => write!(f, "{}", x),
-            Opt::Default => write!(f, "{}", <Self as Default>::default()),
+            Self::NonDefault(x) => write!(f, "{}", x),
+            Self::Default => write!(f, "{}", <Self as Default>::default()),
         }
     }
 }
@@ -60,8 +60,8 @@ where
 {
     fn eq(&self, other: &T) -> bool {
         match self {
-            Opt::NonDefault(x) if x == other => true,
-            Opt::Default if *other == T::default() => true,
+            Self::NonDefault(x) if x == other => true,
+            Self::Default if *other == T::default() => true,
             _ => false,
         }
     }
@@ -73,10 +73,10 @@ where
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
-            (Opt::NonDefault(x), Opt::NonDefault(y)) => x.partial_cmp(y),
-            (Opt::NonDefault(x), Opt::Default) => x.partial_cmp(&T::default()),
-            (Opt::Default, Opt::NonDefault(y)) => T::default().partial_cmp(y),
-            (Opt::Default, Opt::Default) => Some(std::cmp::Ordering::Equal),
+            (Self::NonDefault(x), Opt::NonDefault(y)) => x.partial_cmp(y),
+            (Self::NonDefault(x), Opt::Default) => x.partial_cmp(&T::default()),
+            (Self::Default, Self::NonDefault(y)) => T::default().partial_cmp(y),
+            (Self::Default, Self::Default) => Some(std::cmp::Ordering::Equal),
         }
     }
 }
