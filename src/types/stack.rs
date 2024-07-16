@@ -96,7 +96,7 @@ impl StackFrame {
     ///
     /// Use its returned value
     /// with [rewind](Self::rewind) to restore stack.
-    pub fn state(&self) -> StackState {
+    pub fn arg_state(&self) -> StackState {
         StackState {
             code: self.0.code,
             data: self.0.data,
