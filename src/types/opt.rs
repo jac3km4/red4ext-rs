@@ -52,8 +52,8 @@ where
     }
 }
 
-impl<T> Copy for Opt<T> where T: NativeRepr + Copy + Clone {}
-impl<T> Eq for Opt<T> where T: NativeRepr + PartialEq + Eq {}
+impl<T> Copy for Opt<T> where T: NativeRepr + Copy {}
+impl<T> Eq for Opt<T> where T: NativeRepr + Eq {}
 
 impl<T> PartialEq<T> for Opt<T>
 where
@@ -84,7 +84,7 @@ where
 
 impl<T> PartialOrd<T> for Opt<T>
 where
-    T: NativeRepr + Default + PartialOrd,
+    T: NativeRepr + Default + PartialOrd + Ord,
 {
     fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
         match (self, other) {
