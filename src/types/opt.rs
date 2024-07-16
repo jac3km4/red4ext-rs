@@ -73,8 +73,8 @@ where
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
-            (Self::NonDefault(x), Opt::NonDefault(y)) => x.partial_cmp(y),
-            (Self::NonDefault(x), Opt::Default) => x.partial_cmp(&T::default()),
+            (Self::NonDefault(x), Self::NonDefault(y)) => x.partial_cmp(y),
+            (Self::NonDefault(x), Self::Default) => x.partial_cmp(&T::default()),
             (Self::Default, Self::NonDefault(y)) => T::default().partial_cmp(y),
             (Self::Default, Self::Default) => Some(std::cmp::Ordering::Equal),
         }
