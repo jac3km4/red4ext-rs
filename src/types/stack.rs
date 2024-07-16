@@ -92,7 +92,7 @@ impl StackFrame {
         }
     }
 
-    /// Captures stack frame state.
+    /// Captures the state of stack arguments.
     ///
     /// Use its returned value
     /// with [rewind](Self::rewind) to restore stack.
