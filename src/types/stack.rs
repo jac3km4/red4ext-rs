@@ -96,7 +96,7 @@ impl StackFrame {
     ///
     /// Use its returned value
     /// with [restore_args](Self::restore_args) to restore the state of arguments.
-    pub fn arg_state(&self) -> StackArgsState {
+    pub fn args_state(&self) -> StackArgsState {
         StackArgsState {
             code: self.0.code,
             data: self.0.data,
@@ -135,7 +135,7 @@ impl StackFrame {
     ///     let frame = &mut *f;
     ///
     ///     // stack must be saved before reading stack function parameters
-    ///     let state = frame.arg_state();
+    ///     let state = frame.args_state();
     ///     
     ///     // assuming our function accepts these 3 parameters
     ///     let event_name: CName = StackFrame::get_arg(frame);
