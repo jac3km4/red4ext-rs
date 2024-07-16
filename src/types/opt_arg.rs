@@ -16,6 +16,30 @@ pub enum OptArg<T: NativeRepr> {
     Default,
 }
 
+impl<T> OptArg<T>
+where
+    T: NativeRepr,
+{
+    pub fn into_option(self) -> Option<T> {
+        match self {
+            Self::NonDefault(x) => Some(x),
+            Self::Default => None,
+        }
+    }
+}
+
+impl<T> OptArg<T>
+where
+    T: NativeRepr + Default,
+{
+    pub fn unwrap_or_default(self) -> T {
+        match self {
+            Self::NonDefault(x) => x,
+            Self::Default => T::default(),
+        }
+    }
+}
+
 impl<T> fmt::Display for OptArg<T>
 where
     T: fmt::Display + NativeRepr,
