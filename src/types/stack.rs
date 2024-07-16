@@ -91,6 +91,73 @@ impl StackFrame {
             red::OpcodeHandlers::Run(opcode, self.0.context, &mut self.0, ptr, ptr::null_mut());
         }
     }
+
+    /// Captures the state of stack arguments.
+    ///
+    /// Use its returned value
+    /// with [restore_args](Self::restore_args) to restore the state of arguments.
+    pub fn args_state(&self) -> StackArgsState {
+        StackArgsState {
+            code: self.0.code,
+            data: self.0.data,
+            data_type: self.0.dataType,
+        }
+    }
+
+    /// Allows to reset the state of function arguments.
+    ///
+    /// # Safety
+    /// The state must be saved **before** reading arguments.
+    ///
+    /// The state must be restored **before** passing it back to game code.
+    ///
+    /// Stack arguments should **neither** be _partially_ read,
+    /// **nor** _partially_ restored.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, EntityId, StackFrame, IScriptable}, VoidPtr};
+    /// # hooks! {
+    /// #    static ADD_HOOK: fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr) -> ();
+    /// # }
+    /// # fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr)) {
+    /// #     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
+    /// # }
+    /// # fn should_detour(event_name: CName) -> bool { false }
+    ///
+    /// unsafe extern "C" fn detour(
+    ///     i: *mut IScriptable,
+    ///     f: *mut StackFrame,
+    ///     a3: VoidPtr,
+    ///     a4: VoidPtr,
+    ///     cb: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr),
+    /// ) {
+    ///     let frame = &mut *f;
+    ///
+    ///     // stack must be saved before reading stack function parameters
+    ///     let state = frame.args_state();
+    ///     
+    ///     // assuming our function accepts these 3 parameters
+    ///     let event_name: CName = StackFrame::get_arg(frame);
+    ///     let entity_id: EntityId = StackFrame::get_arg(frame);
+    ///     let emitter_name: CName = StackFrame::get_arg(frame);
+    ///
+    ///     if should_detour(event_name) {
+    ///         // do something else...
+    ///     } else {
+    ///         // since we've read stack function arguments,
+    ///         // stack arguments must be restored before callback.
+    ///         frame.restore_args(state);
+    ///         cb(i, f, a3, a4);
+    ///     }
+    /// }
+    /// ```
+    pub unsafe fn restore_args(&mut self, state: StackArgsState) {
+        self.0.code = state.code;
+        self.0.data = state.data;
+        self.0.dataType = state.data_type;
+        self.0.currentParam = 0;
+    }
 }
 
 /// A stack argument to be passed to a function.
@@ -124,4 +191,11 @@ impl<'a> StackArg<'a> {
     pub(super) fn as_raw_mut(&mut self) -> &mut red::CStackType {
         &mut self.0
     }
+}
+
+/// Snapshot of the state of stack arguments.
+pub struct StackArgsState {
+    code: *mut i8,
+    data: VoidPtr,
+    data_type: *mut red::CBaseRTTIType,
 }
