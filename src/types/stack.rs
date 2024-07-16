@@ -194,7 +194,7 @@ impl<'a> StackArg<'a> {
 }
 
 /// Snapshot of the state of stack arguments.
-pub struct StackState {
+pub struct StackArgsState {
     code: *mut i8,
     data: VoidPtr,
     data_type: *mut red::CBaseRTTIType,
