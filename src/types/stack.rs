@@ -96,8 +96,8 @@ impl StackFrame {
     ///
     /// Use its returned value
     /// with [restore_args](Self::restore_args) to restore the state of arguments.
-    pub fn arg_state(&self) -> StackState {
-        StackState {
+    pub fn arg_state(&self) -> StackArgsState {
+        StackArgsState {
             code: self.0.code,
             data: self.0.data,
             data_type: self.0.dataType,
@@ -135,7 +135,7 @@ impl StackFrame {
     ///     let frame = &mut *f;
     ///
     ///     // stack must be saved before reading stack function parameters
-    ///     let state = frame.state();
+    ///     let state = frame.arg_state();
     ///     
     ///     // assuming our function accepts these 3 parameters
     ///     let event_name: CName = StackFrame::get_arg(frame);
@@ -146,13 +146,13 @@ impl StackFrame {
     ///         // do something else...
     ///     } else {
     ///         // since we've read stack function arguments,
-    ///         // stack must be rewinded before callback.
-    ///         frame.rewind(state);
+    ///         // stack arguments must be restored before callback.
+    ///         frame.restore_args(state);
     ///         cb(i, f, a3, a4);
     ///     }
     /// }
     /// ```
-    pub unsafe fn restore_args(&mut self, state: StackState) {
+    pub unsafe fn restore_args(&mut self, state: StackArgsState) {
         self.0.code = state.code;
         self.0.data = state.data;
         self.0.dataType = state.data_type;
