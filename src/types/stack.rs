@@ -154,7 +154,7 @@ impl StackFrame {
     ///     }
     /// }
     /// ```
-    pub unsafe fn rewind(&mut self, state: StackState) {
+    pub unsafe fn restore_args(&mut self, state: StackState) {
         self.0.code = state.code;
         self.0.data = state.data;
         self.0.dataType = state.data_type;
