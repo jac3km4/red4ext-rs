@@ -95,7 +95,7 @@ impl StackFrame {
     /// Captures the state of stack arguments.
     ///
     /// Use its returned value
-    /// with [rewind](Self::rewind) to restore stack.
+    /// with [restore_args](Self::restore_args) to restore the state of arguments.
     pub fn arg_state(&self) -> StackState {
         StackState {
             code: self.0.code,
