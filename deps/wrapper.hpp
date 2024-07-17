@@ -1,5 +1,7 @@
 #include <RED4ext/RED4ext.hpp>
+#include <RED4ext/Common.hpp>
 #include <RED4ext/JobQueue.hpp>
+#include <RED4ext/Scripting/Natives/ScriptGameInstance.hpp>
 #include <RED4ext/Scripting/Natives/entEntityID.hpp>
 #include <RED4ext/Scripting/Natives/GameTime.hpp>
 #include <RED4ext/Scripting/Natives/IUpdatableSystem.hpp>

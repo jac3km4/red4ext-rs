@@ -1,22 +1,29 @@
 use std::mem;
 
-use super::{Class, IScriptable, Native, Ref, ScriptClass, Type};
+use super::{IScriptable, Native, Ref, ScriptClass, Type};
 use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};
 
+#[derive(Default)]
 #[repr(transparent)]
-pub struct GameInstance(red::GameInstance);
+pub struct GameInstance(red::ScriptGameInstance);
 
 impl GameInstance {
     #[inline]
-    pub fn get_system(&self, class: &Class) -> Ref<ScriptableSystem> {
-        let ty = class.as_type();
+    pub fn new() -> Self {
+        Self(unsafe {
+            red::ScriptGameInstance::new(GameEngine::get().game_instance() as *const _ as *mut _)
+        })
+    }
+
+    #[inline]
+    pub fn get_system(&self, ty: &Type) -> Ref<ScriptableSystem> {
         let instance = unsafe { (self.vft().get_system)(ty) };
         if instance.is_null() {
             return Ref::default();
         }
-        let instance: &red::IScriptable = unsafe { mem::transmute(instance) };
+        let instance: &red::IScriptable = unsafe { mem::transmute(&*instance) };
         let instance: &WeakRef<IScriptable> = unsafe { mem::transmute(&instance._base.ref_) };
         if let Some(instance) = instance.clone().upgrade() {
             return instance.cast().unwrap();
@@ -25,15 +32,8 @@ impl GameInstance {
     }
 
     #[inline]
-    fn vft(&self) -> &GameInstanceVft {
-        unsafe { mem::transmute(&*self.0.vtable_) }
-    }
-}
-
-impl Drop for GameInstance {
-    #[inline]
-    fn drop(&mut self) {
-        unsafe{ (self.vft().destroy)(self) };
+    fn vft(&self) -> &RedGameInstanceVft {
+        unsafe { &*self.0.instance.cast::<RedGameInstance>() }.vft()
     }
 }
 
@@ -41,9 +41,27 @@ unsafe impl NativeRepr for GameInstance {
     const NAME: &'static str = "ScriptGameInstance";
 }
 
+#[derive(Default)]
+#[repr(transparent)]
+struct RedGameInstance(red::GameInstance);
+
+impl RedGameInstance {
+    #[inline]
+    fn vft(&self) -> &RedGameInstanceVft {
+        unsafe { mem::transmute(&*self.0.vtable_) }
+    }
+}
+
+impl Drop for RedGameInstance {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe { (self.vft().destroy)(self) };
+    }
+}
+
 #[repr(C)]
-pub struct GameInstanceVft {
-    destroy: unsafe fn(*mut GameInstance),
+pub struct RedGameInstanceVft {
+    destroy: unsafe fn(*mut RedGameInstance),
     get_system: unsafe extern "fastcall" fn(ty: &Type) -> *mut IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
@@ -67,9 +85,9 @@ impl GameEngine {
         unsafe { mem::transmute(&*red::CGameEngine::Get()) }
     }
 
-    pub fn game_instance(&self) -> &GameInstance {
+    fn game_instance(&self) -> &RedGameInstance {
         let s = unsafe { &*self.0.framework }.gameInstance;
-        let s: &self::GameInstance = unsafe { mem::transmute(&*s) };
+        let s: &self::RedGameInstance = unsafe { mem::transmute(&*s) };
         s
     }
 }
@@ -79,6 +97,7 @@ pub struct ScriptableSystem(red::ScriptableSystem);
 
 unsafe impl ScriptClass for ScriptableSystem {
     type Kind = Native;
+
     const CLASS_NAME: &'static str = "gameScriptableSystem";
 }
 
