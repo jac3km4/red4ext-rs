@@ -5,11 +5,15 @@ use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};
 
+/// Scripted game instance.
+/// 
+/// Please note that `ScriptGameInstance` is called `GameInstance` in Redscript and Lua,
+/// but here it follows [RED4ext naming convention](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp).
 #[derive(Default)]
 #[repr(transparent)]
-pub struct GameInstance(red::ScriptGameInstance);
+pub struct ScriptGameInstance(red::ScriptGameInstance);
 
-impl GameInstance {
+impl ScriptGameInstance {
     #[inline]
     pub fn new() -> Self {
         Self(unsafe {
@@ -18,15 +22,19 @@ impl GameInstance {
     }
 }
 
-unsafe impl NativeRepr for GameInstance {
+unsafe impl NativeRepr for ScriptGameInstance {
     const NAME: &'static str = "ScriptGameInstance";
 }
 
+/// Native game instance.
+/// 
+/// Please note that it differs from Redscript and Lua's `GameInstance`,
+/// see [`ScriptGameInstance`].
 #[derive(Default)]
 #[repr(transparent)]
-pub struct RedGameInstance(red::GameInstance);
+pub struct GameInstance(red::GameInstance);
 
-impl RedGameInstance {
+impl GameInstance {
     #[inline]
     pub fn get_system(&self, ty: &Type) -> Ref<ScriptableSystem> {
         let instance = unsafe { (self.vft().get_system)(self, ty) };
@@ -39,12 +47,12 @@ impl RedGameInstance {
     }
 
     #[inline]
-    fn vft(&self) -> &RedGameInstanceVft {
-        unsafe { &*(self.0.vtable_ as *const RedGameInstanceVft) }
+    fn vft(&self) -> &GameInstanceVft {
+        unsafe { &*(self.0.vtable_ as *const GameInstanceVft) }
     }
 }
 
-impl Drop for RedGameInstance {
+impl Drop for GameInstance {
     #[inline]
     fn drop(&mut self) {
         unsafe { (self.vft().destroy)(self) };
@@ -52,10 +60,10 @@ impl Drop for RedGameInstance {
 }
 
 #[repr(C)]
-pub struct RedGameInstanceVft {
-    destroy: unsafe extern "fastcall" fn(this: *mut RedGameInstance),
+pub struct GameInstanceVft {
+    destroy: unsafe extern "fastcall" fn(this: *mut GameInstance),
     get_system: unsafe extern "fastcall" fn(
-        this: *const RedGameInstance,
+        this: *const GameInstance,
         ty: &Type,
     ) -> *mut red::IScriptable,
     _unk10: VoidPtr,
@@ -72,6 +80,7 @@ pub struct RedGameInstanceVft {
     _unk68: VoidPtr,
 }
 
+/// game engine.
 #[repr(transparent)]
 pub struct GameEngine(red::CGameEngine);
 
@@ -80,7 +89,7 @@ impl GameEngine {
         unsafe { mem::transmute(&*red::CGameEngine::Get()) }
     }
 
-    pub fn game_instance(&self) -> &RedGameInstance {
+    pub fn game_instance(&self) -> &GameInstance {
         unsafe { mem::transmute(&*(*self.0.framework).gameInstance) }
     }
 }

@@ -43,7 +43,7 @@ pub use hash::{Hash, RedHashMap};
 mod sync;
 pub use sync::{RwSpinLockReadGuard, RwSpinLockWriteGuard};
 mod game_engine;
-pub use game_engine::{GameEngine, GameInstance, RedGameInstance, ScriptableSystem};
+pub use game_engine::{GameEngine, ScriptGameInstance, GameInstance, ScriptableSystem};
 mod misc;
 pub use misc::{
     Curve, DataBuffer, DateTime, DeferredDataBuffer, EditorObjectId, Guid, LocalizationString,
