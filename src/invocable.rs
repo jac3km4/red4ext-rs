@@ -343,7 +343,7 @@ macro_rules! method {
 ///    call!("OperatorAdd;Int32Int32;Int32" (1i32, 2i32) -> i32).unwrap()
 /// }
 ///
-/// fn static_example() -> i32 {
+/// fn static_example() -> f32 {
 ///    call!("PlayerPuppet"::"GetCriticalHealthThreshold" () -> f32).unwrap()
 /// }
 /// ```
