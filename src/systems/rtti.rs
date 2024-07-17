@@ -190,6 +190,19 @@ impl RttiSystem {
         unsafe { &*(&self.0.nativeToScript as *const _ as *const RedHashMap<CName, CName>) }
     }
 
+    /// Resolves a static method by its full name, which should be in the format `Class::Method`.
+    pub fn resolve_static_by_full_name(&self, full_name: &str) -> Option<&Function> {
+        self.get_function(CName::new(full_name)).or_else(|| {
+            let (class, method) = full_name.split_once("::")?;
+            let method = CName::new(method);
+            self.get_class(CName::new(class))?
+                .static_methods()
+                .iter()
+                .find(|m| m.as_function().name() == method)
+                .map(|m| m.as_function())
+        })
+    }
+
     #[inline]
     fn vft(&self) -> &RttiSystemVft {
         unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
