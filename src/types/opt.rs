@@ -8,7 +8,7 @@ use crate::NativeRepr;
 /// When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
-pub enum Opt<T: NativeRepr> {
+pub enum Opt<T> {
     /// Value is specified and guaranteed to be non-`Default` value.
     NonDefault(T),
     /// `Default` value.
@@ -16,10 +16,7 @@ pub enum Opt<T: NativeRepr> {
     Default,
 }
 
-impl<T> Opt<T>
-where
-    T: NativeRepr,
-{
+impl<T> Opt<T> {
     pub fn into_option(self) -> Option<T> {
         match self {
             Self::NonDefault(x) => Some(x),
@@ -30,7 +27,7 @@ where
 
 impl<T> Opt<T>
 where
-    T: NativeRepr + Default,
+    T: Default,
 {
     pub fn unwrap_or_default(self) -> T {
         match self {
@@ -42,7 +39,7 @@ where
 
 impl<T> fmt::Display for Opt<T>
 where
-    T: fmt::Display + NativeRepr,
+    T: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
