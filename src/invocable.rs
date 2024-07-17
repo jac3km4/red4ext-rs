@@ -15,6 +15,8 @@ use crate::VoidPtr;
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
 pub enum InvokeError {
+    #[error("class could not be found by native name '{0}'")]
+    ClassNotFound(&'static str),
     #[error("function could not be found by full name '{0}'")]
     FunctionNotFound(&'static str),
     #[error(
@@ -345,6 +347,19 @@ macro_rules! method {
 /// ```
 #[macro_export]
 macro_rules! call {
+    ($cls_name:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+        (|| {
+            $crate::RttiSystem::get()
+                .get_class($crate::types::CName::new($cls_name))
+                .ok_or($crate::InvokeError::ClassNotFound($cls_name))?
+                .static_methods()
+                .iter()
+                .find(|x| x.as_function().name() == $crate::types::CName::new($fn_name)
+                || x.as_function().short_name() == $crate::types::CName::new($fn_name))
+                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
+                .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
+        })()
+    };
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
             $crate::RttiSystem::get()
