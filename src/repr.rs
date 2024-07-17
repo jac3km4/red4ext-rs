@@ -129,6 +129,18 @@ where
     }
 }
 
+impl<A: NativeRepr + Default + PartialEq> IntoRepr for Opt<A> {
+    type Repr = A;
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        match self {
+            Self::Default => A::default(),
+            Self::NonDefault(x) => x,
+        }
+    }
+}
+
 /// A trait for types that can be created from a representation passed across the FFI boundary.
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
