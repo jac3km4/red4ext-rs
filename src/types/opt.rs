@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::NativeRepr;
-
 /// A convenience type to explicitly mark
 /// a function argument as `opt T`.
 ///
@@ -51,7 +49,7 @@ where
 
 impl<T> PartialEq<T> for Opt<T>
 where
-    T: NativeRepr + Default + PartialEq,
+    T: Default + PartialEq,
 {
     fn eq(&self, other: &T) -> bool {
         match self {
@@ -64,7 +62,7 @@ where
 
 impl<T> Ord for Opt<T>
 where
-    T: NativeRepr + Default + Ord,
+    T: Default + Ord,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
@@ -78,7 +76,7 @@ where
 
 impl<T> PartialOrd<T> for Opt<T>
 where
-    T: NativeRepr + Default + PartialOrd + Ord,
+    T: Default + PartialOrd + Ord,
 {
     fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
         match (self, other) {
