@@ -125,7 +125,7 @@ mod tests {
         );
         assert_eq!(
             std::cmp::Ordering::Equal,
-            Opt::NonDefault(0).cmp(&Opt::Default)
+            Opt::<i32>::Default.cmp(&Opt::NonDefault(0))
         );
     }
 }
