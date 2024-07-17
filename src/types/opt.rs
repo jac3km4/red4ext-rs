@@ -14,6 +14,18 @@ pub enum Opt<T> {
     Default,
 }
 
+impl<T> From<T> for Opt<T>
+where
+    T: Default + PartialEq,
+{
+    fn from(value: T) -> Self {
+        if value == T::default() {
+            return Opt::Default;
+        }
+        Opt::NonDefault(value)
+    }
+}
+
 impl<T> Opt<T> {
     pub fn into_option(self) -> Option<T> {
         match self {
