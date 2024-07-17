@@ -1,8 +1,8 @@
 use const_combine::bounded::const_combine as combine;
 
 use crate::types::{
-    CName, EntityId, GameTime, ItemId, RedArray, RedString, Ref, ScriptClass, ScriptRef, TweakDbId,
-    Variant, WeakRef,
+    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptClass, ScriptRef,
+    TweakDbId, Variant, WeakRef,
 };
 
 /// A trait for types that can be passed across the FFI boundary to the game engine without
@@ -38,6 +38,18 @@ unsafe impl<A: ScriptClass> NativeRepr for WeakRef<A> {
 
 unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
+}
+
+impl<A: NativeRepr + Default + PartialEq> FromRepr for Opt<A> {
+    type Repr = A;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        let repr = A::from_repr(repr);
+        if repr == A::default() {
+            return Self::Default;
+        }
+        Self::NonDefault(repr)
+    }
 }
 
 macro_rules! impl_native_repr {
