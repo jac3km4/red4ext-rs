@@ -348,9 +348,8 @@ macro_rules! call {
     ($cls_name:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
             $crate::RttiSystem::get()
-                .resolve_static_by_full_name($crate::types::CName::new(::std::concat!($cls_name, "::", $fn_name)))
+                .resolve_static_by_full_name(::std::concat!($cls_name, "::", $fn_name))
                 .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
-                .as_function()
                 .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
         })()
     };
