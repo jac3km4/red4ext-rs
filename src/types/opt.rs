@@ -5,7 +5,7 @@ use std::fmt;
 ///
 /// When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy)]
 pub enum Opt<T> {
     /// Value is specified and guaranteed to be non-`Default` value.
     NonDefault(T),
@@ -47,6 +47,20 @@ where
     }
 }
 
+impl<T> PartialEq for Opt<T>
+where
+    T: Default + PartialEq,
+{
+    fn eq(&self, other: &Opt<T>) -> bool {
+        match (self, other) {
+            (Opt::NonDefault(lhs), Opt::NonDefault(rhs)) => lhs.eq(rhs),
+            (Opt::NonDefault(lhs), Opt::Default) => lhs.eq(&T::default()),
+            (Opt::Default, Opt::NonDefault(rhs)) => T::default().eq(rhs),
+            (Opt::Default, Opt::Default) => true,
+        }
+    }
+}
+
 impl<T> PartialEq<T> for Opt<T>
 where
     T: Default + PartialEq,
@@ -59,6 +73,8 @@ where
         }
     }
 }
+
+impl<T> Eq for Opt<T> where T: Eq + Default {}
 
 impl<T> PartialOrd for Opt<T>
 where
