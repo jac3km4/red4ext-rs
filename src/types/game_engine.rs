@@ -86,7 +86,7 @@ pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
     pub fn get<'a>() -> &'a Self {
-        unsafe { mem::transmute(&*red::CGameEngine::Get()) }
+        unsafe { mem::transmute(red::CGameEngine::Get()) }
     }
 
     pub fn game_instance(&self) -> &GameInstance {
