@@ -69,6 +69,18 @@ where
     }
 }
 
+impl<T> PartialOrd<T> for Opt<T>
+where
+    T: Default + PartialOrd + Ord,
+{
+    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::NonDefault(lhs), rhs) => Some(lhs.cmp(rhs)),
+            (Self::Default, rhs) => Some(T::default().cmp(rhs)),
+        }
+    }
+}
+
 impl<T> Ord for Opt<T>
 where
     T: Default + Ord,
@@ -79,18 +91,6 @@ where
             (Self::NonDefault(lhs), Self::Default) => lhs.cmp(&T::default()),
             (Self::Default, Self::NonDefault(rhs)) => T::default().cmp(rhs),
             (Self::Default, Self::Default) => std::cmp::Ordering::Equal,
-        }
-    }
-}
-
-impl<T> PartialOrd<T> for Opt<T>
-where
-    T: Default + PartialOrd + Ord,
-{
-    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
-        match (self, other) {
-            (Self::NonDefault(lhs), rhs) => Some(lhs.cmp(rhs)),
-            (Self::Default, rhs) => Some(T::default().cmp(rhs)),
         }
     }
 }
