@@ -345,6 +345,14 @@ macro_rules! method {
 /// ```
 #[macro_export]
 macro_rules! call {
+    ($cls_name:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
+        (|| {
+            $crate::RttiSystem::get()
+                .resolve_static_by_full_name(::std::concat!($cls_name, "::", $fn_name))
+                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
+                .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
+        })()
+    };
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
             $crate::RttiSystem::get()
