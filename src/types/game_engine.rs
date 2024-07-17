@@ -90,7 +90,7 @@ impl GameEngine {
     }
 
     pub fn game_instance(&self) -> &GameInstance {
-        unsafe { mem::transmute(&*(*self.0.framework).gameInstance) }
+        unsafe { mem::transmute((*self.0.framework).gameInstance) }
     }
 }
 
