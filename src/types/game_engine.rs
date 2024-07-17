@@ -16,10 +16,20 @@ impl GameInstance {
             red::ScriptGameInstance::new(GameEngine::get().game_instance() as *const _ as *mut _)
         })
     }
+}
 
+unsafe impl NativeRepr for GameInstance {
+    const NAME: &'static str = "ScriptGameInstance";
+}
+
+#[derive(Default)]
+#[repr(transparent)]
+pub struct RedGameInstance(red::GameInstance);
+
+impl RedGameInstance {
     #[inline]
     pub fn get_system(&self, ty: &Type) -> Ref<ScriptableSystem> {
-        let instance = unsafe { (self.vft().get_system)(ty) };
+        let instance = unsafe { (self.vft().get_system)(self, ty) };
         if instance.is_null() {
             return Ref::default();
         }
@@ -33,22 +43,7 @@ impl GameInstance {
 
     #[inline]
     fn vft(&self) -> &RedGameInstanceVft {
-        unsafe { &*self.0.instance.cast::<RedGameInstance>() }.vft()
-    }
-}
-
-unsafe impl NativeRepr for GameInstance {
-    const NAME: &'static str = "ScriptGameInstance";
-}
-
-#[derive(Default)]
-#[repr(transparent)]
-struct RedGameInstance(red::GameInstance);
-
-impl RedGameInstance {
-    #[inline]
-    fn vft(&self) -> &RedGameInstanceVft {
-        unsafe { mem::transmute(&*self.0.vtable_) }
+        unsafe { &*(self.0.vtable_ as *const RedGameInstanceVft) }
     }
 }
 
@@ -61,8 +56,9 @@ impl Drop for RedGameInstance {
 
 #[repr(C)]
 pub struct RedGameInstanceVft {
-    destroy: unsafe fn(*mut RedGameInstance),
-    get_system: unsafe extern "fastcall" fn(ty: &Type) -> *mut IScriptable,
+    destroy: unsafe extern "fastcall" fn(this: *mut RedGameInstance),
+    get_system:
+        unsafe extern "fastcall" fn(this: *const RedGameInstance, ty: &Type) -> *mut IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
     _unk20: VoidPtr,
@@ -85,10 +81,8 @@ impl GameEngine {
         unsafe { mem::transmute(&*red::CGameEngine::Get()) }
     }
 
-    fn game_instance(&self) -> &RedGameInstance {
-        let s = unsafe { &*self.0.framework }.gameInstance;
-        let s: &self::RedGameInstance = unsafe { mem::transmute(&*s) };
-        s
+    pub fn game_instance(&self) -> &RedGameInstance {
+        unsafe { mem::transmute(&*{ &*self.0.framework }.gameInstance) }
     }
 }
 
