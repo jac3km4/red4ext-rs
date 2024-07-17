@@ -33,8 +33,7 @@ impl RedGameInstance {
         if instance.is_null() {
             return Ref::default();
         }
-        let instance: &red::IScriptable = unsafe { mem::transmute(&*instance) };
-        let instance: &WeakRef<IScriptable> = unsafe { mem::transmute(&instance._base.ref_) };
+        let instance: &WeakRef<IScriptable> = unsafe { mem::transmute(&(*instance)._base.ref_) };
         if let Some(instance) = instance.clone().upgrade() {
             return instance.cast().unwrap();
         }
@@ -58,7 +57,7 @@ impl Drop for RedGameInstance {
 pub struct RedGameInstanceVft {
     destroy: unsafe extern "fastcall" fn(this: *mut RedGameInstance),
     get_system:
-        unsafe extern "fastcall" fn(this: *const RedGameInstance, ty: &Type) -> *mut IScriptable,
+        unsafe extern "fastcall" fn(this: *const RedGameInstance, ty: &Type) -> *mut red::IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
     _unk20: VoidPtr,
@@ -82,7 +81,7 @@ impl GameEngine {
     }
 
     pub fn game_instance(&self) -> &RedGameInstance {
-        unsafe { mem::transmute(&*{ &*self.0.framework }.gameInstance) }
+        unsafe { mem::transmute(&*(*self.0.framework).gameInstance) }
     }
 }
 
