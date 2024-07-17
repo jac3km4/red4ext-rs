@@ -195,7 +195,7 @@ fn example() -> Ref<ScanningEvent> {
 }
 ```
 
-### interact with native game systems using hand-written or auto-generated bindings
+### interact with native game systems
 ```rust
 use red4ext_rs::{
     call,
@@ -203,49 +203,12 @@ use red4ext_rs::{
     RttiSystem,
 };
 
-// work for both hand-written or auto-generated bindings
-pub trait GameAudioSystem {
-    /// see NativeDB: https://nativedb.red4ext.com/gameGameAudioSystem#Play
-    /// 
-    /// and you can even use Opt<T> for Redscript equivalent opt T !
-    fn play(&self, event_name: CName, entity_id: Opt<EntityId>, emitter_name: Opt<CName>);
-}
-
-impl GameAudioSystem for Ref<AudioSystem> {
-    fn play(&self, event_name: CName, entity_id: Opt<EntityId>, emitter_name: Opt<CName>) {
-        call!(self, "Play" (event_name, entity_id, emitter_name) -> ()).unwrap()
-    }
-}
-
 fn example() {
     let rtti = RttiSystem::get();
-    let class = rtti.get_class(CName::new(AudioSystem::CLASS_NAME)).unwrap();
+    let class = rtti.get_class(CName::new("gameGameAudioSystem")).unwrap();
     let engine = GameEngine::get();
     let game = engine.game_instance();
-    let system = game
-        .get_system(class.as_type())
-        .cast::<AudioSystem>()
-        .unwrap();
-    system.play(CName::new("ono_v_pain_long"), Opt::Default, Opt::Default);
-}
-
-// write your own bindings, or import them from red4ext-rs-bindings
-
-#[repr(C)]
-pub struct AudioSystem {
-    pub base: IScriptable,
-    pub _padding0: [u8; 0x3E0],
-}
-
-unsafe impl ScriptClass for AudioSystem {
-    const CLASS_NAME: &'static str = "gameGameAudioSystem";
-    type Kind = Native;
-}
-
-impl AsRef<IScriptable> for AudioSystem {
-    #[inline]
-    fn as_ref(&self) -> &IScriptable {
-        &self.base
-    }
+    let system = game.get_system(class.as_type());
+    call!(system, "Play" (CName::new("ono_v_pain_long"), Opt::<EntityId>::Default, Opt::<CName>::Default) -> ()).unwrap()
 }
 ```
