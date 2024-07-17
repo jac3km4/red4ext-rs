@@ -54,8 +54,10 @@ impl Drop for RedGameInstance {
 #[repr(C)]
 pub struct RedGameInstanceVft {
     destroy: unsafe extern "fastcall" fn(this: *mut RedGameInstance),
-    get_system:
-        unsafe extern "fastcall" fn(this: *const RedGameInstance, ty: &Type) -> *mut red::IScriptable,
+    get_system: unsafe extern "fastcall" fn(
+        this: *const RedGameInstance,
+        ty: &Type,
+    ) -> *mut red::IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
     _unk20: VoidPtr,
