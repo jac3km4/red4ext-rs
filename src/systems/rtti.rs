@@ -191,15 +191,19 @@ impl RttiSystem {
     }
 
     /// Resolves a static method by its full name, which should be in the format `Class::Method`.
+    #[inline]
     pub fn resolve_static_by_full_name(&self, full_name: &str) -> Option<&Function> {
-        self.get_function(CName::new(full_name)).or_else(|| {
-            let (class, method) = full_name.split_once("::")?;
-            let method = CName::new(method);
-            self.get_class(CName::new(class))?
+        fn resolve_native(rtti: &RttiSystem, class: CName, method: CName) -> Option<&Function> {
+            rtti.get_class(class)?
                 .static_methods()
                 .iter()
                 .find(|m| m.as_function().name() == method)
                 .map(|m| m.as_function())
+        }
+
+        self.get_function(CName::new(full_name)).or_else(|| {
+            let (class, method) = full_name.split_once("::")?;
+            resolve_native(self, CName::new(class), CName::new(method))
         })
     }
 
