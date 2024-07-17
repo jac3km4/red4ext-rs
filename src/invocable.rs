@@ -357,6 +357,7 @@ macro_rules! call {
                 .find(|x| x.as_function().name() == $crate::types::CName::new($fn_name)
                 || x.as_function().short_name() == $crate::types::CName::new($fn_name))
                 .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
+                .as_function()
                 .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
         })()
     };
