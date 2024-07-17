@@ -33,9 +33,9 @@ impl RedGameInstance {
         if instance.is_null() {
             return Ref::default();
         }
-        let instance: &WeakRef<IScriptable> = unsafe { mem::transmute(&(*instance)._base.ref_) };
+        let instance: &WeakRef<ScriptableSystem> = unsafe { mem::transmute(&(*instance)._base.ref_) };
         if let Some(instance) = instance.clone().upgrade() {
-            return instance.cast().unwrap();
+            return instance
         }
         Ref::default()
     }
