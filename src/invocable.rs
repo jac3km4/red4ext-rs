@@ -15,8 +15,6 @@ use crate::VoidPtr;
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
 pub enum InvokeError {
-    #[error("class could not be found by native name '{0}'")]
-    ClassNotFound(&'static str),
     #[error("function could not be found by full name '{0}'")]
     FunctionNotFound(&'static str),
     #[error(
