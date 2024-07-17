@@ -6,7 +6,7 @@ use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};
 
 /// Scripted game instance.
-/// 
+///
 /// Please note that `ScriptGameInstance` is called `GameInstance` in Redscript and Lua,
 /// but here it follows [RED4ext naming convention](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp).
 #[derive(Default)]
@@ -27,7 +27,7 @@ unsafe impl NativeRepr for ScriptGameInstance {
 }
 
 /// Native game instance.
-/// 
+///
 /// Please note that it differs from Redscript and Lua's `GameInstance`,
 /// see [`ScriptGameInstance`].
 #[derive(Default)]
@@ -62,10 +62,8 @@ impl Drop for GameInstance {
 #[repr(C)]
 pub struct GameInstanceVft {
     destroy: unsafe extern "fastcall" fn(this: *mut GameInstance),
-    get_system: unsafe extern "fastcall" fn(
-        this: *const GameInstance,
-        ty: &Type,
-    ) -> *mut red::IScriptable,
+    get_system:
+        unsafe extern "fastcall" fn(this: *const GameInstance, ty: &Type) -> *mut red::IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
     _unk20: VoidPtr,
@@ -86,11 +84,11 @@ pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
     pub fn get<'a>() -> &'a Self {
-        unsafe { mem::transmute(red::CGameEngine::Get()) }
+        unsafe { &*(red::CGameEngine::Get() as *const GameEngine) }
     }
 
     pub fn game_instance(&self) -> &GameInstance {
-        unsafe { mem::transmute((*self.0.framework).gameInstance) }
+        unsafe { &*((*self.0.framework).gameInstance as *const GameInstance) }
     }
 }
 
