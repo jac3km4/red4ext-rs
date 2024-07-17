@@ -110,3 +110,22 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Opt;
+
+    #[test]
+    fn transitivity() {
+        assert!(Opt::NonDefault(0).eq(&Opt::Default));
+        assert!(Opt::<i32>::Default.eq(&Opt::NonDefault(0)));
+        assert_eq!(
+            Opt::NonDefault(0).cmp(&Opt::Default),
+            std::cmp::Ordering::Equal
+        );
+        assert_eq!(
+            std::cmp::Ordering::Equal,
+            Opt::NonDefault(0).cmp(&Opt::Default)
+        );
+    }
+}
