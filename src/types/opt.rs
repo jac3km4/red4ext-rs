@@ -7,7 +7,7 @@ use crate::NativeRepr;
 ///
 /// When left unspecified on Redscript side,
 /// it translates to its `Default` representation.
-#[derive(Default, Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub enum Opt<T: NativeRepr> {
     /// Value is specified and guaranteed to be non-`Default` value.
     NonDefault(T),
@@ -51,9 +51,6 @@ where
         }
     }
 }
-
-impl<T> Copy for Opt<T> where T: NativeRepr + Copy {}
-impl<T> Eq for Opt<T> where T: NativeRepr + Eq {}
 
 impl<T> PartialEq<T> for Opt<T>
 where
