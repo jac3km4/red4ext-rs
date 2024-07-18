@@ -384,9 +384,14 @@
 <a href="#384" id="384">384</a>
 <a href="#385" id="385">385</a>
 <a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::sync::atomic::{AtomicU32, Ordering};
-<span class="kw">use </span>std::{iter, mem, ptr};
+<span class="kw">use </span>std::{mem, ptr};
 
 <span class="kw">use </span>sealed::sealed;
 
@@ -555,11 +560,16 @@
         </span>U: ScriptClass,
     {
         <span class="kw">let </span>inst = <span class="kw">unsafe </span>{ (<span class="self">self</span>.<span class="number">0 </span>.<span class="number">0</span>.instance <span class="kw">as </span><span class="kw-2">*const </span>ISerializable).as_ref() }<span class="question-mark">?</span>;
-        <span class="kw">let </span>class = inst.class();
-        iter::once(class)
-            .chain(class.base_iter())
+        inst.class()
+            .base_iter_with_self()
             .any(|class| class.name() == CName::new(U::CLASS_NAME))
             .then(|| <span class="kw">unsafe </span>{ mem::transmute(<span class="self">self</span>) })
+    }
+
+    <span class="doccomment">/// Returns whether the reference is null.
+    </span><span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>is_null(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.<span class="number">0 </span>.<span class="number">0</span>.instance.is_null()
     }
 }
 

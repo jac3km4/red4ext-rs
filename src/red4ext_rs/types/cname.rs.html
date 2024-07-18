@@ -137,6 +137,10 @@
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::{<span class="self">self</span>, CStr};
 <span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::hash::Hash;
@@ -155,8 +159,12 @@
     /// If you want it to be added to the global name pool, use [`CNamePool::add_cstr`].
     </span><span class="attr">#[inline]
     </span><span class="kw">pub const fn </span>new(name: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::from_bytes(name.as_bytes())
+    }
+
+    <span class="kw">pub const fn </span>from_bytes(name: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="self">Self </span>{
         <span class="attr">#[allow(clippy::equatable_if_let)]
-        </span><span class="kw">if let </span><span class="string">b"None" </span>= name.as_bytes() {
+        </span><span class="kw">if let </span><span class="string">b"None" </span>= name {
             <span class="kw">return </span><span class="self">Self</span>::undefined();
         }
         <span class="self">Self</span>(red::CName {

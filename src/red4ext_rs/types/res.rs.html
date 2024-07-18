@@ -343,7 +343,7 @@
     {
         <span class="kw">return </span><span class="prelude-val">Err</span>(ResourcePathError::NotCanonical);
     }
-    <span class="prelude-val">Ok</span>(fnv1a64(<span class="kw-2">&amp;</span>sanitized))
+    <span class="prelude-val">Ok</span>(fnv1a64(sanitized.as_bytes()))
 }
 
 <span class="attr">#[derive(Debug, Error)]
@@ -387,11 +387,11 @@
 
         <span class="macro">assert_eq!</span>(
             encode_path(<span class="string">"\'base/somewhere/in/archive/\'"</span>).unwrap(),
-            fnv1a64(<span class="string">"base\\somewhere\\in\\archive"</span>)
+            fnv1a64(<span class="string">b"base\\somewhere\\in\\archive"</span>)
         );
         <span class="macro">assert_eq!</span>(
             encode_path(<span class="string">"\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\""</span>).unwrap(),
-            fnv1a64(<span class="string">"multi\\somewhere\\in\\archive"</span>)
+            fnv1a64(<span class="string">b"multi\\somewhere\\in\\archive"</span>)
         );
         <span class="macro">assert!</span>(encode_path(<span class="string">"..\\somewhere\\in\\archive\\custom.ent"</span>).is_err());
         <span class="macro">assert!</span>(encode_path(<span class="string">"base\\somewhere\\in\\archive\\custom.ent"</span>).is_ok());

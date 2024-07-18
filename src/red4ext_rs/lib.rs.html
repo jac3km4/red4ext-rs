@@ -1414,11 +1414,11 @@
     </span>}
 }
 
-<span class="kw">const fn </span>fnv1a64(str: <span class="kw-2">&amp;</span>str) -&gt; u64 {
+<span class="kw">const fn </span>fnv1a64(str: <span class="kw-2">&amp;</span>[u8]) -&gt; u64 {
     <span class="kw">const </span>PRIME: u64 = <span class="number">0x0100_0000_01b3</span>;
     <span class="kw">const </span>SEED: u64 = <span class="number">0xCBF2_9CE4_8422_2325</span>;
 
-    <span class="kw">let </span><span class="kw-2">mut </span>tail = str.as_bytes();
+    <span class="kw">let </span><span class="kw-2">mut </span>tail = str;
     <span class="kw">let </span><span class="kw-2">mut </span>hash = SEED;
     <span class="kw">loop </span>{
         <span class="kw">match </span>tail.split_first() {

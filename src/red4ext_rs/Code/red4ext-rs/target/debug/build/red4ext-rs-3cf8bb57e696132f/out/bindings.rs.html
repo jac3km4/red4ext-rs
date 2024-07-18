@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `E:\Code\red4ext-rs\target\debug\build\red4ext-rs-6f02087e8561ea96\out/bindings.rs`."><title>bindings.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../..\..\..\..\..\..\../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../..\..\..\..\..\..\../" data-static-root-path="../../..\..\..\..\..\..\../static.files/" data-current-crate="red4ext_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../..\..\..\..\..\..\../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../..\..\..\..\..\..\../src-files.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../..\..\..\..\..\..\../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../..\..\..\..\..\..\../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../red4ext_rs/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../..\..\..\..\..\..\../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `E:\Code\red4ext-rs\target\debug\build\red4ext-rs-3cf8bb57e696132f\out/bindings.rs`."><title>bindings.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../..\..\..\..\..\..\../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../..\..\..\..\..\..\../" data-static-root-path="../../..\..\..\..\..\..\../static.files/" data-current-crate="red4ext_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../..\..\..\..\..\..\../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../..\..\..\..\..\..\../src-files.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../..\..\..\..\..\..\../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../..\..\..\..\..\..\../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../red4ext_rs/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../..\..\..\..\..\..\../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -21321,6 +21321,159 @@
 <a href="#21321" id="21321">21321</a>
 <a href="#21322" id="21322">21322</a>
 <a href="#21323" id="21323">21323</a>
+<a href="#21324" id="21324">21324</a>
+<a href="#21325" id="21325">21325</a>
+<a href="#21326" id="21326">21326</a>
+<a href="#21327" id="21327">21327</a>
+<a href="#21328" id="21328">21328</a>
+<a href="#21329" id="21329">21329</a>
+<a href="#21330" id="21330">21330</a>
+<a href="#21331" id="21331">21331</a>
+<a href="#21332" id="21332">21332</a>
+<a href="#21333" id="21333">21333</a>
+<a href="#21334" id="21334">21334</a>
+<a href="#21335" id="21335">21335</a>
+<a href="#21336" id="21336">21336</a>
+<a href="#21337" id="21337">21337</a>
+<a href="#21338" id="21338">21338</a>
+<a href="#21339" id="21339">21339</a>
+<a href="#21340" id="21340">21340</a>
+<a href="#21341" id="21341">21341</a>
+<a href="#21342" id="21342">21342</a>
+<a href="#21343" id="21343">21343</a>
+<a href="#21344" id="21344">21344</a>
+<a href="#21345" id="21345">21345</a>
+<a href="#21346" id="21346">21346</a>
+<a href="#21347" id="21347">21347</a>
+<a href="#21348" id="21348">21348</a>
+<a href="#21349" id="21349">21349</a>
+<a href="#21350" id="21350">21350</a>
+<a href="#21351" id="21351">21351</a>
+<a href="#21352" id="21352">21352</a>
+<a href="#21353" id="21353">21353</a>
+<a href="#21354" id="21354">21354</a>
+<a href="#21355" id="21355">21355</a>
+<a href="#21356" id="21356">21356</a>
+<a href="#21357" id="21357">21357</a>
+<a href="#21358" id="21358">21358</a>
+<a href="#21359" id="21359">21359</a>
+<a href="#21360" id="21360">21360</a>
+<a href="#21361" id="21361">21361</a>
+<a href="#21362" id="21362">21362</a>
+<a href="#21363" id="21363">21363</a>
+<a href="#21364" id="21364">21364</a>
+<a href="#21365" id="21365">21365</a>
+<a href="#21366" id="21366">21366</a>
+<a href="#21367" id="21367">21367</a>
+<a href="#21368" id="21368">21368</a>
+<a href="#21369" id="21369">21369</a>
+<a href="#21370" id="21370">21370</a>
+<a href="#21371" id="21371">21371</a>
+<a href="#21372" id="21372">21372</a>
+<a href="#21373" id="21373">21373</a>
+<a href="#21374" id="21374">21374</a>
+<a href="#21375" id="21375">21375</a>
+<a href="#21376" id="21376">21376</a>
+<a href="#21377" id="21377">21377</a>
+<a href="#21378" id="21378">21378</a>
+<a href="#21379" id="21379">21379</a>
+<a href="#21380" id="21380">21380</a>
+<a href="#21381" id="21381">21381</a>
+<a href="#21382" id="21382">21382</a>
+<a href="#21383" id="21383">21383</a>
+<a href="#21384" id="21384">21384</a>
+<a href="#21385" id="21385">21385</a>
+<a href="#21386" id="21386">21386</a>
+<a href="#21387" id="21387">21387</a>
+<a href="#21388" id="21388">21388</a>
+<a href="#21389" id="21389">21389</a>
+<a href="#21390" id="21390">21390</a>
+<a href="#21391" id="21391">21391</a>
+<a href="#21392" id="21392">21392</a>
+<a href="#21393" id="21393">21393</a>
+<a href="#21394" id="21394">21394</a>
+<a href="#21395" id="21395">21395</a>
+<a href="#21396" id="21396">21396</a>
+<a href="#21397" id="21397">21397</a>
+<a href="#21398" id="21398">21398</a>
+<a href="#21399" id="21399">21399</a>
+<a href="#21400" id="21400">21400</a>
+<a href="#21401" id="21401">21401</a>
+<a href="#21402" id="21402">21402</a>
+<a href="#21403" id="21403">21403</a>
+<a href="#21404" id="21404">21404</a>
+<a href="#21405" id="21405">21405</a>
+<a href="#21406" id="21406">21406</a>
+<a href="#21407" id="21407">21407</a>
+<a href="#21408" id="21408">21408</a>
+<a href="#21409" id="21409">21409</a>
+<a href="#21410" id="21410">21410</a>
+<a href="#21411" id="21411">21411</a>
+<a href="#21412" id="21412">21412</a>
+<a href="#21413" id="21413">21413</a>
+<a href="#21414" id="21414">21414</a>
+<a href="#21415" id="21415">21415</a>
+<a href="#21416" id="21416">21416</a>
+<a href="#21417" id="21417">21417</a>
+<a href="#21418" id="21418">21418</a>
+<a href="#21419" id="21419">21419</a>
+<a href="#21420" id="21420">21420</a>
+<a href="#21421" id="21421">21421</a>
+<a href="#21422" id="21422">21422</a>
+<a href="#21423" id="21423">21423</a>
+<a href="#21424" id="21424">21424</a>
+<a href="#21425" id="21425">21425</a>
+<a href="#21426" id="21426">21426</a>
+<a href="#21427" id="21427">21427</a>
+<a href="#21428" id="21428">21428</a>
+<a href="#21429" id="21429">21429</a>
+<a href="#21430" id="21430">21430</a>
+<a href="#21431" id="21431">21431</a>
+<a href="#21432" id="21432">21432</a>
+<a href="#21433" id="21433">21433</a>
+<a href="#21434" id="21434">21434</a>
+<a href="#21435" id="21435">21435</a>
+<a href="#21436" id="21436">21436</a>
+<a href="#21437" id="21437">21437</a>
+<a href="#21438" id="21438">21438</a>
+<a href="#21439" id="21439">21439</a>
+<a href="#21440" id="21440">21440</a>
+<a href="#21441" id="21441">21441</a>
+<a href="#21442" id="21442">21442</a>
+<a href="#21443" id="21443">21443</a>
+<a href="#21444" id="21444">21444</a>
+<a href="#21445" id="21445">21445</a>
+<a href="#21446" id="21446">21446</a>
+<a href="#21447" id="21447">21447</a>
+<a href="#21448" id="21448">21448</a>
+<a href="#21449" id="21449">21449</a>
+<a href="#21450" id="21450">21450</a>
+<a href="#21451" id="21451">21451</a>
+<a href="#21452" id="21452">21452</a>
+<a href="#21453" id="21453">21453</a>
+<a href="#21454" id="21454">21454</a>
+<a href="#21455" id="21455">21455</a>
+<a href="#21456" id="21456">21456</a>
+<a href="#21457" id="21457">21457</a>
+<a href="#21458" id="21458">21458</a>
+<a href="#21459" id="21459">21459</a>
+<a href="#21460" id="21460">21460</a>
+<a href="#21461" id="21461">21461</a>
+<a href="#21462" id="21462">21462</a>
+<a href="#21463" id="21463">21463</a>
+<a href="#21464" id="21464">21464</a>
+<a href="#21465" id="21465">21465</a>
+<a href="#21466" id="21466">21466</a>
+<a href="#21467" id="21467">21467</a>
+<a href="#21468" id="21468">21468</a>
+<a href="#21469" id="21469">21469</a>
+<a href="#21470" id="21470">21470</a>
+<a href="#21471" id="21471">21471</a>
+<a href="#21472" id="21472">21472</a>
+<a href="#21473" id="21473">21473</a>
+<a href="#21474" id="21474">21474</a>
+<a href="#21475" id="21475">21475</a>
+<a href="#21476" id="21476">21476</a>
 </pre></div><pre class="rust"><code><span class="comment">/* automatically generated by rust-bindgen 0.69.4 */
 
 </span><span class="attr">#[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
@@ -37465,6 +37618,78 @@
                     }
                 }
             }
+            <span class="attr">#[repr(C)]
+            #[derive(Debug)]
+            </span><span class="kw">pub struct </span>IScriptableSystem {
+                <span class="kw">pub </span>_base: root::RED4ext::IScriptable,
+            }
+            <span class="kw">pub const </span>IScriptableSystem_NAME: <span class="kw-2">&amp;</span>[u8; <span class="number">22</span>] = <span class="string">b"gameIScriptableSystem\0"</span>;
+            <span class="kw">pub const </span>IScriptableSystem_ALIAS: <span class="kw-2">&amp;</span>[u8; <span class="number">18</span>] = <span class="string">b"IScriptableSystem\0"</span>;
+            <span class="attr">#[test]
+            </span><span class="kw">fn </span>bindgen_test_layout_IScriptableSystem() {
+                <span class="macro">assert_eq!</span>(
+                    ::std::mem::size_of::&lt;IScriptableSystem&gt;(),
+                    <span class="number">64usize</span>,
+                    <span class="macro">concat!</span>(<span class="string">"Size of: "</span>, <span class="macro">stringify!</span>(IScriptableSystem))
+                );
+                <span class="macro">assert_eq!</span>(
+                    ::std::mem::align_of::&lt;IScriptableSystem&gt;(),
+                    <span class="number">8usize</span>,
+                    <span class="macro">concat!</span>(<span class="string">"Alignment of "</span>, <span class="macro">stringify!</span>(IScriptableSystem))
+                );
+            }
+            <span class="kw">impl </span>Default <span class="kw">for </span>IScriptableSystem {
+                <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+                    <span class="kw">let </span><span class="kw-2">mut </span>s = ::std::mem::MaybeUninit::&lt;<span class="self">Self</span>&gt;::uninit();
+                    <span class="kw">unsafe </span>{
+                        ::std::ptr::write_bytes(s.as_mut_ptr(), <span class="number">0</span>, <span class="number">1</span>);
+                        s.assume_init()
+                    }
+                }
+            }
+            <span class="attr">#[repr(C)]
+            #[derive(Debug)]
+            </span><span class="kw">pub struct </span>ScriptableSystem {
+                <span class="kw">pub </span>_base: root::RED4ext::game::IScriptableSystem,
+                <span class="kw">pub </span>unk40: [u8; <span class="number">1264usize</span>],
+            }
+            <span class="kw">pub const </span>ScriptableSystem_NAME: <span class="kw-2">&amp;</span>[u8; <span class="number">21</span>] = <span class="string">b"gameScriptableSystem\0"</span>;
+            <span class="kw">pub const </span>ScriptableSystem_ALIAS: <span class="kw-2">&amp;</span>[u8; <span class="number">17</span>] = <span class="string">b"ScriptableSystem\0"</span>;
+            <span class="attr">#[test]
+            </span><span class="kw">fn </span>bindgen_test_layout_ScriptableSystem() {
+                <span class="kw">const </span>UNINIT: ::std::mem::MaybeUninit&lt;ScriptableSystem&gt; =
+                    ::std::mem::MaybeUninit::uninit();
+                <span class="kw">let </span>ptr = UNINIT.as_ptr();
+                <span class="macro">assert_eq!</span>(
+                    ::std::mem::size_of::&lt;ScriptableSystem&gt;(),
+                    <span class="number">1328usize</span>,
+                    <span class="macro">concat!</span>(<span class="string">"Size of: "</span>, <span class="macro">stringify!</span>(ScriptableSystem))
+                );
+                <span class="macro">assert_eq!</span>(
+                    ::std::mem::align_of::&lt;ScriptableSystem&gt;(),
+                    <span class="number">8usize</span>,
+                    <span class="macro">concat!</span>(<span class="string">"Alignment of "</span>, <span class="macro">stringify!</span>(ScriptableSystem))
+                );
+                <span class="macro">assert_eq!</span>(
+                    <span class="kw">unsafe </span>{ <span class="macro">::std::ptr::addr_of!</span>((<span class="kw-2">*</span>ptr).unk40) <span class="kw">as </span>usize - ptr <span class="kw">as </span>usize },
+                    <span class="number">64usize</span>,
+                    <span class="macro">concat!</span>(
+                        <span class="string">"Offset of field: "</span>,
+                        <span class="macro">stringify!</span>(ScriptableSystem),
+                        <span class="string">"::"</span>,
+                        <span class="macro">stringify!</span>(unk40)
+                    )
+                );
+            }
+            <span class="kw">impl </span>Default <span class="kw">for </span>ScriptableSystem {
+                <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+                    <span class="kw">let </span><span class="kw-2">mut </span>s = ::std::mem::MaybeUninit::&lt;<span class="self">Self</span>&gt;::uninit();
+                    <span class="kw">unsafe </span>{
+                        ::std::ptr::write_bytes(s.as_mut_ptr(), <span class="number">0</span>, <span class="number">1</span>);
+                        s.assume_init()
+                    }
+                }
+            }
         }
         <span class="kw">pub type </span>gamedataTweakDBRecord = root::RED4ext::game::data::TweakDBRecord;
         <span class="kw">pub type </span>TweakDBRecord = root::RED4ext::game::data::TweakDBRecord;
@@ -39458,6 +39683,83 @@
             }
         }
         <span class="attr">#[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        </span><span class="kw">pub struct </span>ScriptGameInstance {
+            <span class="kw">pub </span>instance: <span class="kw-2">*mut </span>root::RED4ext::GameInstance,
+            <span class="kw">pub </span>unk8: i8,
+            <span class="kw">pub </span>unk10: i64,
+        }
+        <span class="attr">#[test]
+        </span><span class="kw">fn </span>bindgen_test_layout_ScriptGameInstance() {
+            <span class="kw">const </span>UNINIT: ::std::mem::MaybeUninit&lt;ScriptGameInstance&gt; =
+                ::std::mem::MaybeUninit::uninit();
+            <span class="kw">let </span>ptr = UNINIT.as_ptr();
+            <span class="macro">assert_eq!</span>(
+                ::std::mem::size_of::&lt;ScriptGameInstance&gt;(),
+                <span class="number">24usize</span>,
+                <span class="macro">concat!</span>(<span class="string">"Size of: "</span>, <span class="macro">stringify!</span>(ScriptGameInstance))
+            );
+            <span class="macro">assert_eq!</span>(
+                ::std::mem::align_of::&lt;ScriptGameInstance&gt;(),
+                <span class="number">8usize</span>,
+                <span class="macro">concat!</span>(<span class="string">"Alignment of "</span>, <span class="macro">stringify!</span>(ScriptGameInstance))
+            );
+            <span class="macro">assert_eq!</span>(
+                <span class="kw">unsafe </span>{ <span class="macro">::std::ptr::addr_of!</span>((<span class="kw-2">*</span>ptr).instance) <span class="kw">as </span>usize - ptr <span class="kw">as </span>usize },
+                <span class="number">0usize</span>,
+                <span class="macro">concat!</span>(
+                    <span class="string">"Offset of field: "</span>,
+                    <span class="macro">stringify!</span>(ScriptGameInstance),
+                    <span class="string">"::"</span>,
+                    <span class="macro">stringify!</span>(instance)
+                )
+            );
+            <span class="macro">assert_eq!</span>(
+                <span class="kw">unsafe </span>{ <span class="macro">::std::ptr::addr_of!</span>((<span class="kw-2">*</span>ptr).unk8) <span class="kw">as </span>usize - ptr <span class="kw">as </span>usize },
+                <span class="number">8usize</span>,
+                <span class="macro">concat!</span>(
+                    <span class="string">"Offset of field: "</span>,
+                    <span class="macro">stringify!</span>(ScriptGameInstance),
+                    <span class="string">"::"</span>,
+                    <span class="macro">stringify!</span>(unk8)
+                )
+            );
+            <span class="macro">assert_eq!</span>(
+                <span class="kw">unsafe </span>{ <span class="macro">::std::ptr::addr_of!</span>((<span class="kw-2">*</span>ptr).unk10) <span class="kw">as </span>usize - ptr <span class="kw">as </span>usize },
+                <span class="number">16usize</span>,
+                <span class="macro">concat!</span>(
+                    <span class="string">"Offset of field: "</span>,
+                    <span class="macro">stringify!</span>(ScriptGameInstance),
+                    <span class="string">"::"</span>,
+                    <span class="macro">stringify!</span>(unk10)
+                )
+            );
+        }
+        <span class="kw">extern </span><span class="string">"C" </span>{
+            <span class="attr">#[link_name = <span class="string">"\u{1}??0ScriptGameInstance@RED4ext@@QEAA@PEAUGameInstance@1@@Z"</span>]
+            </span><span class="kw">pub fn </span>ScriptGameInstance_ScriptGameInstance(
+                this: <span class="kw-2">*mut </span>root::RED4ext::ScriptGameInstance,
+                aInstance: <span class="kw-2">*mut </span>root::RED4ext::GameInstance,
+            );
+        }
+        <span class="kw">impl </span>Default <span class="kw">for </span>ScriptGameInstance {
+            <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+                <span class="kw">let </span><span class="kw-2">mut </span>s = ::std::mem::MaybeUninit::&lt;<span class="self">Self</span>&gt;::uninit();
+                <span class="kw">unsafe </span>{
+                    ::std::ptr::write_bytes(s.as_mut_ptr(), <span class="number">0</span>, <span class="number">1</span>);
+                    s.assume_init()
+                }
+            }
+        }
+        <span class="kw">impl </span>ScriptGameInstance {
+            <span class="attr">#[inline]
+            </span><span class="kw">pub unsafe fn </span>new(aInstance: <span class="kw-2">*mut </span>root::RED4ext::GameInstance) -&gt; <span class="self">Self </span>{
+                <span class="kw">let </span><span class="kw-2">mut </span>__bindgen_tmp = ::std::mem::MaybeUninit::uninit();
+                ScriptGameInstance_ScriptGameInstance(__bindgen_tmp.as_mut_ptr(), aInstance);
+                __bindgen_tmp.assume_init()
+            }
+        }
+        <span class="attr">#[repr(C)]
         #[derive(Debug, Default, Copy, Clone)]
         </span><span class="kw">pub struct </span>EngineTime {
             <span class="kw">pub </span>unk00: [u8; <span class="number">8usize</span>],
@@ -39492,6 +39794,10 @@
                 )
             );
         }
+        <span class="kw">pub type </span>gameIScriptableSystem = root::RED4ext::game::IScriptableSystem;
+        <span class="kw">pub type </span>IScriptableSystem = root::RED4ext::game::IScriptableSystem;
+        <span class="kw">pub type </span>gameScriptableSystem = root::RED4ext::game::ScriptableSystem;
+        <span class="kw">pub type </span>ScriptableSystem = root::RED4ext::game::ScriptableSystem;
         <span class="kw">pub mod </span>red {
             <span class="attr">#[allow(unused_imports)]
             </span><span class="kw">use </span><span class="self">self</span>::<span class="kw">super</span>::<span class="kw">super</span>::<span class="kw">super</span>::root;
@@ -40154,7 +40460,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_Handle_open1_IScriptable_close1__bindgen_ty_id_489331_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_Handle_open1_IScriptable_close1__bindgen_ty_id_489422_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -40259,7 +40565,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_ptr_CBaseRTTIType__bindgen_ty_id_489348_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_ptr_CBaseRTTIType__bindgen_ty_id_489439_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -40746,7 +41052,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CClassFunction__bindgen_ty_id_489741_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CClassFunction__bindgen_ty_id_489832_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -40804,7 +41110,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CProperty__bindgen_ty_id_489766_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CProperty__bindgen_ty_id_489857_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41565,7 +41871,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CBaseRTTIType__bindgen_ty_id_490515_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CBaseRTTIType__bindgen_ty_id_490606_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41610,7 +41916,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_uint32_t__bindgen_ty_id_490535_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_uint32_t__bindgen_ty_id_490626_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, u32&gt;&gt;(),
@@ -41630,7 +41936,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CGlobalFunction__bindgen_ty_id_490545_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CGlobalFunction__bindgen_ty_id_490636_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41748,7 +42054,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490590_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490681_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, root::RED4ext::CName&gt;&gt;(
@@ -41771,7 +42077,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490599_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490690_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, root::RED4ext::CName&gt;&gt;(
@@ -41966,7 +42272,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_TweakDBID_Handle_open1_IScriptable_close1__bindgen_ty_id_491204_open1_TweakDBID_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_TweakDBID_Handle_open1_IScriptable_close1__bindgen_ty_id_491295_open1_TweakDBID_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -42015,7 +42321,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_DynArray_open1_Handle_open2_IScriptable_close2_close1__bindgen_ty_id_491219_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_DynArray_open1_Handle_open2_IScriptable_close2_close1__bindgen_ty_id_491310_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -42213,7 +42519,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_FlatValue__bindgen_ty_id_491245_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_FlatValue__bindgen_ty_id_491336_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
