@@ -336,7 +336,7 @@ impl Class {
     }
 
     #[inline]
-    fn base_iter_with_self(&self) -> impl Iterator<Item = &Class> {
+    pub(crate) fn base_iter_with_self(&self) -> impl Iterator<Item = &Class> {
         iter::once(self).chain(self.base_iter())
     }
 

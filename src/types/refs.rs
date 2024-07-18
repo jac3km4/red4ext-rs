@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::{iter, mem, ptr};
+use std::{mem, ptr};
 
 use sealed::sealed;
 
@@ -169,11 +169,16 @@ impl<T: ScriptClass> Ref<T> {
         U: ScriptClass,
     {
         let inst = unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }?;
-        let class = inst.class();
-        iter::once(class)
-            .chain(class.base_iter())
+        inst.class()
+            .base_iter_with_self()
             .any(|class| class.name() == CName::new(U::CLASS_NAME))
             .then(|| unsafe { mem::transmute(self) })
+    }
+
+    /// Returns whether the reference is null.
+    #[inline]
+    pub fn is_null(&self) -> bool {
+        self.0 .0.instance.is_null()
     }
 }
 

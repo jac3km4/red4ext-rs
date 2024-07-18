@@ -17,6 +17,8 @@ use crate::VoidPtr;
 pub enum InvokeError {
     #[error("function could not be found by full name '{0}'")]
     FunctionNotFound(&'static str),
+    #[error("class could not be found by name '{0}'")]
+    ClassNotFound(&'static str),
     #[error(
         "method could not be found by full name '{0}', available options: {}",
         .1.iter()
@@ -351,10 +353,17 @@ macro_rules! method {
 macro_rules! call {
     ($cls_name:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            $crate::RttiSystem::get()
-                .resolve_static_by_full_name(::std::concat!($cls_name, "::", $fn_name))
+            let rtti = $crate::RttiSystem::get();
+            let ctx = rtti
+                .resolve_static_context($crate::types::CName::new($cls_name))
+                .ok_or($crate::InvokeError::ClassNotFound($cls_name))?;
+            rtti
+                .resolve_static_method_by_full_name(::std::concat!($cls_name, "::", $fn_name))
                 .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
-                .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
+                .execute::<_, $rett>(
+                    unsafe { ctx.instance() }.map(AsRef::as_ref),
+                    ($( $crate::IntoRepr::into_repr($args), )*)
+                )
         })()
     };
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {

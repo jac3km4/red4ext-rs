@@ -2,8 +2,9 @@ use std::{mem, ptr};
 
 use crate::raw::root::RED4ext as red;
 use crate::types::{
-    Bitfield, CName, Class, ClassFlags, ClassHandle, Enum, Function, GlobalFunction, PoolRef,
-    RedArray, RedHashMap, RwSpinLockReadGuard, RwSpinLockWriteGuard, Type,
+    Bitfield, CName, Class, ClassFlags, ClassHandle, Enum, Function, GameEngine, GlobalFunction,
+    PoolRef, RedArray, RedHashMap, Ref, RwSpinLockReadGuard, RwSpinLockWriteGuard,
+    ScriptableSystem, Type,
 };
 
 /// The RTTI system containing information about all types in the game.
@@ -192,7 +193,7 @@ impl RttiSystem {
 
     /// Resolves a static method by its full name, which should be in the format `Class::Method`.
     #[inline]
-    pub fn resolve_static_by_full_name(&self, full_name: &str) -> Option<&Function> {
+    pub fn resolve_static_method_by_full_name(&self, full_name: &str) -> Option<&Function> {
         fn resolve_native(rtti: &RttiSystem, class: CName, method: CName) -> Option<&Function> {
             rtti.get_class(class)?
                 .static_methods()
@@ -210,6 +211,19 @@ impl RttiSystem {
             let method = CName::from_bytes(parts.next()?);
             resolve_native(self, class, method)
         })
+    }
+
+    /// Resolve the context required for a call to a static scripted method on specified class.
+    /// Returns `None` if the class was not found in the RTTI system.
+    pub fn resolve_static_context(&self, class: CName) -> Option<Ref<ScriptableSystem>> {
+        let game = GameEngine::get().game_instance();
+        let get_context = |class| Some(game.get_system(self.get_class(class)?.as_type()));
+        let ctx = get_context(class)?;
+        if ctx.is_null() {
+            get_context(CName::new("cpPlayerSystem"))
+        } else {
+            Some(ctx)
+        }
     }
 
     #[inline]
