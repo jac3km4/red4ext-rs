@@ -75,8 +75,8 @@ fn example(player: Ref<IScriptable>) -> i32 {
     // the line below will attempt to look up a matching method in the instance and call it
     let size = call!(player, "GetDeviceActionMaxQueueSize;" () -> i32).unwrap();
     // the lines below will attempt to look up a matching static method (scripted or native) and call it
-    let _ = call!("MathHelper"::"EulerNumber"() -> f32).unwrap();
-    let _ = call!("PlayerPuppet"::"GetCriticalHealthThreshold" () -> f32).unwrap();
+    let _ = call!("MathHelper"::"EulerNumber;"() -> f32).unwrap();
+    let _ = call!("PlayerPuppet"::"GetCriticalHealthThreshold;" () -> f32).unwrap();
     // the line below invokes a global native function (the operator for adding two Int32)
     let added1 = call!("OperatorAdd;Int32Int32;Int32" (size, 4i32) -> i32).unwrap();
     added1

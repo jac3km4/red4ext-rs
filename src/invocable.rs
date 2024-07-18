@@ -344,7 +344,7 @@ macro_rules! method {
 /// }
 ///
 /// fn static_example() -> f32 {
-///    call!("PlayerPuppet"::"GetCriticalHealthThreshold" () -> f32).unwrap()
+///    call!("PlayerPuppet"::"GetCriticalHealthThreshold;" () -> f32).unwrap()
 /// }
 /// ```
 #[macro_export]
