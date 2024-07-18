@@ -16,8 +16,12 @@ impl CName {
     /// If you want it to be added to the global name pool, use [`CNamePool::add_cstr`].
     #[inline]
     pub const fn new(name: &str) -> Self {
+        Self::from_bytes(name.as_bytes())
+    }
+
+    pub const fn from_bytes(name: &[u8]) -> Self {
         #[allow(clippy::equatable_if_let)]
-        if let b"None" = name.as_bytes() {
+        if let b"None" = name {
             return Self::undefined();
         }
         Self(red::CName {

@@ -202,8 +202,13 @@ impl RttiSystem {
         }
 
         self.get_function(CName::new(full_name)).or_else(|| {
-            let (class, method) = full_name.split_once("::")?;
-            resolve_native(self, CName::new(class), CName::new(method))
+            // split on bytes rather than chars to avoid inefficient UTF-8 scanning,
+            // which LLVM fails to optimize away
+            let mut parts = full_name.as_bytes().split(|&c| c == b':');
+            let class = CName::from_bytes(parts.next()?);
+            parts.next()?; // skip the separator
+            let method = CName::from_bytes(parts.next()?);
+            resolve_native(self, class, method)
         })
     }
 
