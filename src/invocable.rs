@@ -59,6 +59,7 @@ pub enum InvokeError {
 
 impl InvokeError {
     #[doc(hidden)]
+    #[cold]
     pub fn new_method_not_found<'a>(
         name: &'static str,
         options: impl IntoIterator<Item = &'a Method>,
@@ -361,7 +362,7 @@ macro_rules! call {
                 .resolve_static_method_by_full_name(::std::concat!($cls_name, "::", $fn_name))
                 .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
                 .execute::<_, $rett>(
-                    unsafe { ctx.instance() }.map(AsRef::as_ref),
+                    unsafe { ctx.instance() }.map(::std::convert::AsRef::as_ref),
                     ($( $crate::IntoRepr::into_repr($args), )*)
                 )
         })()

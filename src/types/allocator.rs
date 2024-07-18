@@ -209,8 +209,7 @@ impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }
 
-// the vault is cached, so this function is called only once per pool, inlining is unproductive
-#[inline(never)]
+#[cold]
 unsafe fn vault_get(handle: u32) -> Option<NonZero<usize>> {
     let vault = &mut *red::Memory::Vault::Get();
 
