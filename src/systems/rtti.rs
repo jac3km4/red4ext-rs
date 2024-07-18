@@ -202,15 +202,15 @@ impl RttiSystem {
                 .map(|m| m.as_function())
         }
 
-        self.get_function(CName::new(full_name)).or_else(|| {
-            // split on bytes rather than chars to avoid inefficient UTF-8 scanning,
-            // which LLVM fails to optimize away
-            let mut parts = full_name.as_bytes().split(|&c| c == b':');
-            let class = CName::from_bytes(parts.next()?);
-            parts.next()?; // skip the separator
-            let method = CName::from_bytes(parts.next()?);
-            resolve_native(self, class, method)
-        })
+        // split on bytes rather than str to avoid inefficient UTF-8 scanning LLVM fails to
+        // optimize away
+        let mut parts = full_name.as_bytes().split(|&c| c == b':');
+        let class = CName::from_bytes(parts.next()?);
+        parts.next()?; // skip the separator
+        let method = CName::from_bytes(parts.next()?);
+
+        self.get_function(CName::new(full_name))
+            .or_else(|| resolve_native(self, class, method))
     }
 
     /// Resolve the context required for a call to a static scripted method on specified class.
