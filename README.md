@@ -194,3 +194,21 @@ fn example() -> Ref<ScanningEvent> {
     .unwrap()
 }
 ```
+
+### interact with native game systems
+```rust
+use red4ext_rs::{
+    call,
+    types::{CName, EntityId, GameEngine, IScriptable, Method, Native, Opt, Ref, ScriptClass},
+    RttiSystem,
+};
+
+fn example() {
+    let rtti = RttiSystem::get();
+    let class = rtti.get_class(CName::new("gameGameAudioSystem")).unwrap();
+    let engine = GameEngine::get();
+    let game = engine.game_instance();
+    let system = game.get_system(class.as_type());
+    call!(system, "Play" (CName::new("ono_v_pain_long"), Opt::<EntityId>::Default, Opt::<CName>::Default) -> ()).unwrap()
+}
+```

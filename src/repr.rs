@@ -40,18 +40,6 @@ unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
 }
 
-impl<A: NativeRepr + Default + PartialEq> FromRepr for Opt<A> {
-    type Repr = A;
-
-    fn from_repr(repr: Self::Repr) -> Self {
-        let repr = A::from_repr(repr);
-        if repr == A::default() {
-            return Self::Default;
-        }
-        Self::NonDefault(repr)
-    }
-}
-
 macro_rules! impl_native_repr {
     ($ty:ty, $name:literal) => {
         unsafe impl NativeRepr for $ty {
@@ -129,6 +117,18 @@ where
     }
 }
 
+impl<A: NativeRepr + Default + PartialEq> IntoRepr for Opt<A> {
+    type Repr = A;
+
+    #[inline]
+    fn into_repr(self) -> Self::Repr {
+        match self {
+            Self::Default => A::default(),
+            Self::NonDefault(x) => x,
+        }
+    }
+}
+
 /// A trait for types that can be created from a representation passed across the FFI boundary.
 pub trait FromRepr: Sized {
     type Repr: NativeRepr;
@@ -162,5 +162,17 @@ where
 
     fn from_repr(repr: Self::Repr) -> Self {
         repr.into_iter().map(FromRepr::from_repr).collect()
+    }
+}
+
+impl<A: NativeRepr + Default + PartialEq> FromRepr for Opt<A> {
+    type Repr = A;
+
+    fn from_repr(repr: Self::Repr) -> Self {
+        let repr = A::from_repr(repr);
+        if repr == A::default() {
+            return Self::Default;
+        }
+        Self::NonDefault(repr)
     }
 }
