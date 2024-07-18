@@ -340,7 +340,11 @@ macro_rules! method {
 /// }
 ///
 /// fn global_example() -> i32 {
-///   call!("OperatorAdd;Int32Int32;Int32" (1i32, 2i32) -> i32).unwrap()
+///    call!("OperatorAdd;Int32Int32;Int32" (1i32, 2i32) -> i32).unwrap()
+/// }
+///
+/// fn static_example() -> f32 {
+///    call!("PlayerPuppet"::"GetCriticalHealthThreshold" () -> f32).unwrap()
 /// }
 /// ```
 #[macro_export]
