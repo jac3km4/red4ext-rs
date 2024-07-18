@@ -19,9 +19,9 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"], rev = "v0.6.3" }
+red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"], rev = "v0.6.4" }
 # you can also add the bindings crate which exposes all in-game types for convenience
-red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.2.2" }
+red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.2.3" }
 ```
 
 ### set up a basic plugin
