@@ -78,7 +78,6 @@ pub struct GameInstanceVft {
     _unk68: VoidPtr,
 }
 
-/// game engine.
 #[repr(transparent)]
 pub struct GameEngine(red::CGameEngine);
 
