@@ -130,7 +130,7 @@ fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
     {
         return Err(ResourcePathError::NotCanonical);
     }
-    Ok(fnv1a64(&sanitized))
+    Ok(fnv1a64(sanitized.as_bytes()))
 }
 
 #[derive(Debug, Error)]

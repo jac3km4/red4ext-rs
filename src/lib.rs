@@ -675,11 +675,11 @@ impl PluginInfo {
     }
 }
 
-const fn fnv1a64(str: &str) -> u64 {
+const fn fnv1a64(str: &[u8]) -> u64 {
     const PRIME: u64 = 0x0100_0000_01b3;
     const SEED: u64 = 0xCBF2_9CE4_8422_2325;
 
-    let mut tail = str.as_bytes();
+    let mut tail = str;
     let mut hash = SEED;
     loop {
         match tail.split_first() {
