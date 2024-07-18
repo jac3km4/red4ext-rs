@@ -15,6 +15,8 @@ use crate::VoidPtr;
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
 pub enum InvokeError {
+    #[error("class could not be found by name '{0}'")]
+    ClassNotFound(&'static str),
     #[error("function could not be found by full name '{0}'")]
     FunctionNotFound(&'static str),
     #[error(
@@ -351,10 +353,23 @@ macro_rules! method {
 macro_rules! call {
     ($cls_name:literal :: $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            $crate::RttiSystem::get()
+            let rtti = $crate::RttiSystem::get();
+            let func = rtti
                 .resolve_static_by_full_name(::std::concat!($cls_name, "::", $fn_name))
-                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?
-                .execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
+                .ok_or($crate::InvokeError::FunctionNotFound($fn_name))?;
+            if func.flags().is_native() {
+                func.execute::<_, $rett>(None, ($( $crate::IntoRepr::into_repr($args), )*))
+            } else {
+                let cls = rtti.get_class($crate::types::CName::new(
+                    if $cls_name == "PlayerPuppet" { "cpPlayerSystem" } else { $cls_name }))
+                    .ok_or($crate::InvokeError::ClassNotFound($cls_name))?;
+                let ty = cls.as_type();
+                let engine = $crate::types::GameEngine::get();
+                let game = engine.game_instance();
+                let ctx = game.get_system(ty);
+                let ctx: Option<&$crate::types::IScriptable> = unsafe { ::std::mem::transmute(ctx.instance()) };
+                func.execute::<_, $rett>(ctx, ($( $crate::IntoRepr::into_repr($args), )*))
+            }
         })()
     };
     ($fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
