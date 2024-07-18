@@ -174,11 +174,11 @@ mod tests {
 
         assert_eq!(
             encode_path("\'base/somewhere/in/archive/\'").unwrap(),
-            fnv1a64("base\\somewhere\\in\\archive")
+            fnv1a64(b"base\\somewhere\\in\\archive")
         );
         assert_eq!(
             encode_path("\"MULTI\\\\SOMEWHERE\\\\IN\\\\ARCHIVE\"").unwrap(),
-            fnv1a64("multi\\somewhere\\in\\archive")
+            fnv1a64(b"multi\\somewhere\\in\\archive")
         );
         assert!(encode_path("..\\somewhere\\in\\archive\\custom.ent").is_err());
         assert!(encode_path("base\\somewhere\\in\\archive\\custom.ent").is_ok());
