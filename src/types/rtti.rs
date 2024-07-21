@@ -1285,7 +1285,7 @@ pub struct ArrayType(red::CRTTIBaseArrayType);
 
 impl ArrayType {
     #[inline]
-    pub fn inner_type(&self) -> &Type {
+    pub fn element_type(&self) -> &Type {
         unsafe { &*(self.vft().get_inner_type)(self) }
     }
 
