@@ -144,6 +144,8 @@ where
 #[macro_export]
 macro_rules! export_plugin_symbols {
     ($trait:ty) => {
+        // The exports will not work in tests, so they are disabled here.
+        #[cfg(not(test))]
         mod __api {
             use super::*;
 
