@@ -4,17 +4,19 @@ use std::ptr::NonNull;
 use std::{fmt, iter, mem, ptr, slice};
 
 use super::{
-    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
-    ScriptClass, StackArg, StackFrame,
+    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString, StackArg,
+    StackFrame,
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
 use crate::systems::RttiSystem;
-use crate::VoidPtr;
+use crate::{class_kind, ScriptClass, VoidPtr};
 
+/// A handler for function calls.
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
 
+/// An RTTI representation of a type.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Type(red::CBaseRTTIType);
@@ -45,7 +47,7 @@ impl Type {
     }
 
     #[inline]
-    pub fn kind(&self) -> Kind {
+    pub fn kind(&self) -> TypeKind {
         unsafe { mem::transmute((self.vft().tail.CBaseRTTIType_GetType)(&self.0)) }
     }
 
@@ -84,23 +86,23 @@ impl Type {
     #[allow(clippy::missing_transmute_annotations)]
     pub fn tagged(&self) -> TaggedType<'_> {
         match self.kind() {
-            Kind::Name => TaggedType::Name,
-            Kind::Fundamental => TaggedType::Fundamental,
-            Kind::Class => TaggedType::Class(unsafe { mem::transmute(&self.0) }),
-            Kind::Array => TaggedType::Array(unsafe { mem::transmute(&self.0) }),
-            Kind::Simple => TaggedType::Simple,
-            Kind::Enum => TaggedType::Enum(unsafe { mem::transmute(&self.0) }),
-            Kind::StaticArray => TaggedType::StaticArray(unsafe { mem::transmute(&self.0) }),
-            Kind::NativeArray => TaggedType::NativeArray(unsafe { mem::transmute(&self.0) }),
-            Kind::Pointer => TaggedType::Pointer(unsafe { mem::transmute(&self.0) }),
-            Kind::Ref => TaggedType::Ref(unsafe { mem::transmute(&self.0) }),
-            Kind::WeakRef => TaggedType::WeakRef(unsafe { mem::transmute(&self.0) }),
-            Kind::ResourceRef => TaggedType::ResourceRef(unsafe { mem::transmute(&self.0) }),
-            Kind::RaRef => TaggedType::RaRef(unsafe { mem::transmute(&self.0) }),
-            Kind::BitField => TaggedType::BitField(unsafe { mem::transmute(&self.0) }),
-            Kind::Curve => TaggedType::Curve(unsafe { mem::transmute(&self.0) }),
-            Kind::ScriptRef => TaggedType::ScriptRef(unsafe { mem::transmute(&self.0) }),
-            Kind::FixedArray => TaggedType::FixedArray(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Name => TaggedType::Name,
+            TypeKind::Fundamental => TaggedType::Fundamental,
+            TypeKind::Class => TaggedType::Class(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Array => TaggedType::Array(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Simple => TaggedType::Simple,
+            TypeKind::Enum => TaggedType::Enum(unsafe { mem::transmute(&self.0) }),
+            TypeKind::StaticArray => TaggedType::StaticArray(unsafe { mem::transmute(&self.0) }),
+            TypeKind::NativeArray => TaggedType::NativeArray(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Pointer => TaggedType::Pointer(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Ref => TaggedType::Ref(unsafe { mem::transmute(&self.0) }),
+            TypeKind::WeakRef => TaggedType::WeakRef(unsafe { mem::transmute(&self.0) }),
+            TypeKind::ResourceRef => TaggedType::ResourceRef(unsafe { mem::transmute(&self.0) }),
+            TypeKind::RaRef => TaggedType::RaRef(unsafe { mem::transmute(&self.0) }),
+            TypeKind::BitField => TaggedType::BitField(unsafe { mem::transmute(&self.0) }),
+            TypeKind::Curve => TaggedType::Curve(unsafe { mem::transmute(&self.0) }),
+            TypeKind::ScriptRef => TaggedType::ScriptRef(unsafe { mem::transmute(&self.0) }),
+            TypeKind::FixedArray => TaggedType::FixedArray(unsafe { mem::transmute(&self.0) }),
         }
     }
 
@@ -122,9 +124,10 @@ impl Type {
     }
 }
 
+/// An identifier for a kind of type.
 #[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
-pub enum Kind {
+pub enum TypeKind {
     Name = red::ERTTIType::Name,
     Fundamental = red::ERTTIType::Fundamental,
     Class = red::ERTTIType::Class,
@@ -144,7 +147,7 @@ pub enum Kind {
     FixedArray = red::ERTTIType::FixedArray,
 }
 
-impl Kind {
+impl TypeKind {
     #[inline]
     pub fn is_class(self) -> bool {
         self == Self::Class
@@ -159,27 +162,46 @@ impl Kind {
     }
 }
 
+/// Enum representation of the RTTI type.
 #[derive(Debug)]
 pub enum TaggedType<'a> {
+    /// A name type.
     Name,
+    /// A fundamental type (e.g. `Int32`).
     Fundamental,
+    /// A class type.
     Class(&'a Class),
+    /// An array type.
     Array(&'a ArrayType),
+    /// A simple type.
     Simple,
+    /// An enum type.
     Enum(&'a Enum),
+    /// A static array type with a fixed size.
     StaticArray(&'a StaticArrayType),
+    /// A native array type with a fixed size.
     NativeArray(&'a NativeArrayType),
+    /// A pointer type.
     Pointer(&'a PointerType),
+    /// A reference type.
     Ref(&'a RefType),
+    /// A weak reference type.
     WeakRef(&'a WeakRefType),
+    /// A resource reference type.
     ResourceRef(&'a ResourceRefType),
+    /// An asynchronous resource reference type.
     RaRef(&'a RaRefType),
+    /// A bitfield type.
     BitField(&'a Bitfield),
+    /// A curve type.
     Curve(&'a CurveType),
+    /// A script reference type.
     ScriptRef(&'a ScriptRefType),
+    /// A fixed size array type.
     FixedArray(&'a ArrayType),
 }
 
+/// An RTTI representation of a class.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Class(red::CClass);
@@ -364,6 +386,7 @@ impl Drop for Class {
     }
 }
 
+/// Flags for a class type.
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct ClassFlags(red::CClass_Flags);
@@ -484,6 +507,7 @@ impl fmt::Debug for ClassFlags {
     }
 }
 
+/// An RTTI representation of a native class.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct NativeClass<T>(Class, PhantomData<*mut T>);
@@ -495,7 +519,7 @@ impl<T> NativeClass<T> {
     /// done through RTTI.
     pub fn new_handle(base: Option<&Class>) -> ClassHandle
     where
-        T: Default + Clone + ScriptClass,
+        T: Default + Clone + ScriptClass<Kind = class_kind::Native>,
     {
         const VFT_SIZE: usize = 30;
         const IS_EQUAL_SLOT: usize = 9;
@@ -504,7 +528,7 @@ impl<T> NativeClass<T> {
         const DESTRUCT_SLOT: usize = 28;
         const ALLOC_SLOT: usize = 29;
 
-        let cstr = CString::new(T::CLASS_NAME).expect("should create a CString");
+        let cstr = CString::new(T::NAME).expect("should create a CString");
 
         let mut class = Class::new_native(&cstr, mem::size_of::<T>() as u32);
         if let Some(base) = base {
@@ -582,6 +606,7 @@ impl ClassHandle {
     }
 }
 
+/// An RTTI representation of a pointer type.
 #[derive(Debug)]
 pub struct PointerType(red::CRTTIPointerType);
 
@@ -602,6 +627,7 @@ impl PointerType {
     }
 }
 
+/// An RTTI representation of a reference type.
 #[derive(Debug)]
 pub struct RefType(red::CRTTIHandleType);
 
@@ -622,6 +648,7 @@ impl RefType {
     }
 }
 
+/// An RTTI representation of a weak reference type.
 #[derive(Debug)]
 pub struct WeakRefType(red::CRTTIWeakHandleType);
 
@@ -642,6 +669,7 @@ impl WeakRefType {
     }
 }
 
+/// An RTTI representation of a script reference type.
 #[derive(Debug)]
 pub struct ScriptRefType(red::CRTTIScriptReferenceType);
 
@@ -662,6 +690,7 @@ impl ScriptRefType {
     }
 }
 
+/// An RTTI representation of a static array type.
 #[derive(Debug)]
 pub struct StaticArrayType(red::CRTTIStaticArrayType);
 
@@ -687,6 +716,7 @@ impl StaticArrayType {
     }
 }
 
+/// An RTTI representation of a native array type.
 #[derive(Debug)]
 pub struct NativeArrayType(red::CRTTINativeArrayType);
 
@@ -712,6 +742,7 @@ impl NativeArrayType {
     }
 }
 
+/// An RTTI representation of a resource reference type.
 #[derive(Debug)]
 pub struct ResourceRefType(red::CRTTIResourceReferenceType);
 
@@ -732,6 +763,7 @@ impl ResourceRefType {
     }
 }
 
+/// An RTTI representation of an asynchronous resource reference type.
 #[derive(Debug)]
 pub struct RaRefType(red::CRTTIResourceAsyncReferenceType);
 
@@ -752,6 +784,7 @@ impl RaRefType {
     }
 }
 
+/// An RTTI representation of a curve type.
 #[derive(Debug)]
 pub struct CurveType(red::CRTTILegacySingleChannelCurveType);
 
@@ -772,6 +805,7 @@ impl CurveType {
     }
 }
 
+/// An RTTI representation of a function type.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Function(red::CBaseFunction);
@@ -830,6 +864,9 @@ impl Function {
         unsafe { self.0.SetReturnType(typ.to_raw()) };
     }
 
+    /// Executes the function with the given arguments represented as a tuple of values
+    /// that satsify the [`NativeRepr`] trait.
+    /// Returns the result of the function execution.
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
     where
         A: Args,
@@ -916,6 +953,7 @@ impl Function {
     }
 }
 
+/// An RTTI representation of a global function.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct GlobalFunction(red::CGlobalFunction);
@@ -966,6 +1004,7 @@ impl Drop for GlobalFunction {
     }
 }
 
+/// An RTTI representation of a method.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Method(red::CClassFunction);
@@ -986,7 +1025,7 @@ impl Method {
 
         let rtti = RttiSystem::get();
         let class = rtti
-            .get_class(CName::new(C::CLASS_NAME))
+            .get_class(CName::new(C::NAME))
             .expect("should find the class");
 
         Self::ctor(
@@ -1043,6 +1082,7 @@ impl Drop for Method {
     }
 }
 
+/// An RTTI representation of a static method.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StaticMethod(red::CClassStaticFunction);
@@ -1117,6 +1157,7 @@ impl Drop for StaticMethod {
     }
 }
 
+/// Flags for a function.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct FunctionFlags(red::CBaseFunction_Flags);
@@ -1155,6 +1196,7 @@ impl FunctionFlags {
     }
 }
 
+/// An RTTI representation of a property.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Property(red::CProperty);
@@ -1213,6 +1255,7 @@ impl Property {
     }
 }
 
+/// Flags for a property.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct PropertyFlags(red::CProperty_Flags);
@@ -1235,6 +1278,7 @@ impl PropertyFlags {
     }
 }
 
+/// An RTTI representation of an array type.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ArrayType(red::CRTTIBaseArrayType);
@@ -1279,6 +1323,7 @@ impl Drop for ArrayType {
     }
 }
 
+/// An RTTI representation of an enum type.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Enum(red::CEnum);
@@ -1323,6 +1368,7 @@ impl Drop for Enum {
     }
 }
 
+/// An RTTI representation of a bitfield type.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Bitfield(red::CBitfield);
@@ -1357,6 +1403,7 @@ impl Drop for Bitfield {
     }
 }
 
+/// The base type for all types held inside game references.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ISerializable(red::ISerializable);
@@ -1373,11 +1420,12 @@ impl ISerializable {
 }
 
 unsafe impl ScriptClass for ISerializable {
-    type Kind = Native;
+    type Kind = class_kind::Native;
 
-    const CLASS_NAME: &'static str = "ISerializable";
+    const NAME: &'static str = "ISerializable";
 }
 
+/// The base type for all scripted classes.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IScriptable(red::IScriptable);
@@ -1433,11 +1481,12 @@ impl Drop for IScriptable {
 }
 
 unsafe impl ScriptClass for IScriptable {
-    type Kind = Native;
+    type Kind = class_kind::Native;
 
-    const CLASS_NAME: &'static str = "IScriptable";
+    const NAME: &'static str = "IScriptable";
 }
 
+/// A container holding values, e.g. object fields or function arguments.
 #[derive(Debug, Clone, Copy)]
 pub struct ValueContainer(VoidPtr);
 
@@ -1448,11 +1497,12 @@ impl ValueContainer {
     }
 
     #[inline]
-    pub(super) fn as_ptr(&self) -> VoidPtr {
+    pub(crate) fn as_ptr(&self) -> VoidPtr {
         self.0
     }
 }
 
+/// A pointer to a script value.
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct ValuePtr(VoidPtr);

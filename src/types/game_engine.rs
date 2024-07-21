@@ -1,6 +1,7 @@
 use std::mem;
 
-use super::{IScriptable, Native, Ref, ScriptClass, Type};
+use super::{IScriptable, Ref, Type};
+use crate::class::{class_kind, ScriptClass};
 use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};
@@ -97,9 +98,9 @@ impl GameEngine {
 pub struct ScriptableSystem(red::ScriptableSystem);
 
 unsafe impl ScriptClass for ScriptableSystem {
-    type Kind = Native;
+    type Kind = class_kind::Native;
 
-    const CLASS_NAME: &'static str = "gameScriptableSystem";
+    const NAME: &'static str = "gameScriptableSystem";
 }
 
 impl AsRef<IScriptable> for ScriptableSystem {

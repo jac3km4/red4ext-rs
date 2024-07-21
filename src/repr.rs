@@ -1,8 +1,9 @@
 use const_combine::bounded::const_combine as combine;
 
+use crate::class::ScriptClass;
 use crate::types::{
-    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptClass, ScriptRef,
-    TweakDbId, Variant, WeakRef,
+    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptRef, TweakDbId,
+    Variant, WeakRef,
 };
 
 /// A trait for types that can be passed across the FFI boundary to the game engine without
@@ -29,11 +30,11 @@ unsafe impl<A: NativeRepr> NativeRepr for RedArray<A> {
 }
 
 unsafe impl<A: ScriptClass> NativeRepr for Ref<A> {
-    const NAME: &'static str = combine!("handle:", A::CLASS_NAME);
+    const NAME: &'static str = combine!("handle:", A::NAME);
 }
 
 unsafe impl<A: ScriptClass> NativeRepr for WeakRef<A> {
-    const NAME: &'static str = combine!("whandle:", A::CLASS_NAME);
+    const NAME: &'static str = combine!("whandle:", A::NAME);
 }
 
 unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {

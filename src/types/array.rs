@@ -1,3 +1,4 @@
+//! A dynamically sized array.
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::{fmt, mem, ops, ptr, slice};

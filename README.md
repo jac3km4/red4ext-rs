@@ -27,14 +27,15 @@ red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", 
 ### set up a basic plugin
 ```rs
 use red4ext_rs::{
-    export_plugin, exports, global, wcstr, Exportable, GlobalExport, Plugin, SemVer, U16CStr,
+    export_plugin_symbols, exports, global, wcstr, Exportable, GlobalExport, Plugin, SemVer,
+    U16CStr,
 };
 
 pub struct Example;
 
 impl Plugin for Example {
-    const NAME: &'static U16CStr = wcstr!("example");
     const AUTHOR: &'static U16CStr = wcstr!("me");
+    const NAME: &'static U16CStr = wcstr!("example");
     const VERSION: SemVer = SemVer::new(0, 1, 0);
 
     // exports a named global function
@@ -53,7 +54,7 @@ impl Plugin for Example {
     }
 }
 
-export_plugin!(Example);
+export_plugin_symbols!(Example);
 
 fn add2(a: i32) -> i32 {
     a + 2
@@ -64,10 +65,8 @@ You can now build your project with `cargo build` and copy the compiled DLL from
 
 ### call global and instance functions
 ```rust
-use red4ext_rs::{
-    call,
-    types::{IScriptable, Ref},
-};
+use red4ext_rs::call;
+use red4ext_rs::types::{IScriptable, Ref};
 
 // you can expose Rust functions to the game as long as their signatures consist of supported
 // types, you'll see a compiler error when you try to use an unsupported type like i128
@@ -92,11 +91,8 @@ types defined in RTTI in the game.
 ```rust
 use std::cell::Cell;
 
-use red4ext_rs::{
-    exports, methods,
-    types::{IScriptable, Native, ScriptClass},
-    ClassExport, Exportable,
-};
+use red4ext_rs::types::IScriptable;
+use red4ext_rs::{class_kind, exports, methods, ClassExport, Exportable, ScriptClass};
 
 // ...defined in impl Plugin
 fn exports() -> impl Exportable {
@@ -130,8 +126,9 @@ impl MyClass {
 }
 
 unsafe impl ScriptClass for MyClass {
-    const CLASS_NAME: &'static str = "MyClass";
-    type Kind = Native;
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "MyClass";
 }
 ```
 ...and on REDscript side:
@@ -145,7 +142,8 @@ native class MyClass {
 
 ### interact with scripted classes using hand-written bindings
 ```rust
-use red4ext_rs::types::{EntityId, Ref, ScriptClass, ScriptClassOps, Scripted};
+use red4ext_rs::types::{EntityId, Ref};
+use red4ext_rs::{class_kind, ScriptClass, ScriptClassOps};
 
 #[repr(C)]
 struct AddInvestigatorEvent {
@@ -153,8 +151,9 @@ struct AddInvestigatorEvent {
 }
 
 unsafe impl ScriptClass for AddInvestigatorEvent {
-    const CLASS_NAME: &'static str = "AddInvestigatorEvent";
-    type Kind = Scripted;
+    type Kind = class_kind::Scripted;
+
+    const NAME: &'static str = "AddInvestigatorEvent";
 }
 
 fn example() -> Ref<AddInvestigatorEvent> {
@@ -167,14 +166,15 @@ fn example() -> Ref<AddInvestigatorEvent> {
     // we can obtain a reference to the fields of the ref
     let fields = unsafe { instance.fields() }.unwrap();
     let _investigator = fields.investigator;
-    
+
     instance
 }
 ```
 
 ### interact with native classes using hand-written bindings
 ```rust
-use red4ext_rs::types::{IScriptable, Native, Ref, ScriptClass, ScriptClassOps};
+use red4ext_rs::types::{IScriptable, Ref};
+use red4ext_rs::{class_kind, ScriptClass, ScriptClassOps};
 
 #[repr(C)]
 struct ScanningEvent {
@@ -183,8 +183,9 @@ struct ScanningEvent {
 }
 
 unsafe impl ScriptClass for ScanningEvent {
-    const CLASS_NAME: &'static str = "gameScanningEvent";
-    type Kind = Native;
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "gameScanningEvent";
 }
 
 fn example() -> Ref<ScanningEvent> {
@@ -197,11 +198,8 @@ fn example() -> Ref<ScanningEvent> {
 
 ### interact with native game systems
 ```rust
-use red4ext_rs::{
-    call,
-    types::{CName, EntityId, GameEngine, IScriptable, Method, Native, Opt, Ref, ScriptClass},
-    RttiSystem,
-};
+use red4ext_rs::types::{CName, EntityId, GameEngine, Opt};
+use red4ext_rs::{call, RttiSystem};
 
 fn example() {
     let rtti = RttiSystem::get();

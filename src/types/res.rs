@@ -9,6 +9,7 @@ use crate::raw::root::RED4ext as red;
 
 pub const MAX_LENGTH: usize = 216;
 
+/// An asynchronous resource reference.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct RaRef<T>(red::RaRef, PhantomData<T>);

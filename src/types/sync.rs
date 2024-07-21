@@ -4,6 +4,7 @@ use std::ptr::NonNull;
 
 use crate::raw::root::RED4ext as red;
 
+/// A read-write spin lock read guard. Permits any number of readers to access the locked data.
 pub struct RwSpinLockReadGuard<'a, T> {
     lock: &'a red::SharedSpinLock,
     value: NonNull<T>,
@@ -40,6 +41,7 @@ impl<T> Drop for RwSpinLockReadGuard<'_, T> {
     }
 }
 
+/// A read-write spin lock write guard. Permits only one thread at a time to access the locked data.
 pub struct RwSpinLockWriteGuard<'a, T> {
     lock: &'a red::SharedSpinLock,
     value: NonNull<T>,

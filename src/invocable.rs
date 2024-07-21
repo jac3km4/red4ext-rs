@@ -5,12 +5,13 @@ use std::mem::MaybeUninit;
 use sealed::sealed;
 use thiserror::Error;
 
+use crate::class::ClassKind;
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, ClassKind, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable,
-    Method, PoolRef, Ref, ScriptClass, StackArg, StackFrame,
+    CName, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
+    Ref, StackArg, StackFrame,
 };
-use crate::VoidPtr;
+use crate::{ScriptClass, VoidPtr};
 
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
@@ -75,7 +76,7 @@ impl InvokeError {
 /// A trait for functions that can be exported as global functions.
 #[sealed]
 pub trait GlobalInvocable<A, R> {
-    const FN_TYPE: FnType;
+    const FN_TYPE: FunctionType;
 
     fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
 }
@@ -91,7 +92,7 @@ macro_rules! impl_global_invocable {
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
-                const FN_TYPE: FnType = FnType {
+                const FN_TYPE: FunctionType = FunctionType {
                     args: &[$(CName::new($types::Repr::NAME),)*],
                     ret: CName::new(R::Repr::NAME)
                 };
@@ -120,7 +121,7 @@ impl_global_invocable!(
 /// A trait for functions that can be exported as class methods.
 #[sealed]
 pub trait MethodInvocable<Ctx, A, R> {
-    const FN_TYPE: FnType;
+    const FN_TYPE: FunctionType;
 
     fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
 }
@@ -136,7 +137,7 @@ macro_rules! impl_method_invocable {
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
-                const FN_TYPE: FnType = FnType {
+                const FN_TYPE: FunctionType = FunctionType {
                     args: &[$(CName::new($types::Repr::NAME),)*],
                     ret: CName::new(R::Repr::NAME)
                 };
@@ -164,12 +165,12 @@ impl_method_invocable!(
 
 /// A representation of a function type, including its arguments and return type.
 #[derive(Debug)]
-pub struct FnType {
+pub struct FunctionType {
     args: &'static [CName],
     ret: CName,
 }
 
-impl FnType {
+impl FunctionType {
     fn initialize_func(&self, func: &mut Function) {
         for &arg in self.args {
             func.add_param(arg, c"", false, false);
@@ -183,7 +184,7 @@ impl FnType {
 pub struct GlobalMetadata {
     name: &'static CStr,
     func: FunctionHandler<IScriptable, VoidPtr>,
-    typ: FnType,
+    typ: FunctionType,
 }
 
 impl GlobalMetadata {
@@ -219,7 +220,7 @@ impl GlobalMetadata {
 pub struct MethodMetadata<Ctx> {
     name: &'static CStr,
     func: FunctionHandler<Ctx, VoidPtr>,
-    typ: FnType,
+    typ: FunctionType,
     parent: PhantomData<fn() -> *const Ctx>,
     is_event: bool,
     is_final: bool,
@@ -377,7 +378,7 @@ macro_rules! call {
     };
     ($this:expr, $fn_name:literal ($( $args:expr ),*) -> $rett:ty) => {
         (|| {
-            let receiver = $crate::Receiver::as_receiver(&$this)?;
+            let receiver = $crate::AsReceiver::as_receiver(&$this)?;
             $crate::types::IScriptable::class(receiver)
                 .get_method($crate::types::CName::new($fn_name))
                 .map_err(|err| $crate::InvokeError::new_method_not_found($fn_name, err))?
@@ -392,13 +393,13 @@ macro_rules! call {
 
 /// A trait for types that can be used as the receiver of a method call.
 #[sealed]
-pub trait Receiver {
+pub trait AsReceiver {
     #[doc(hidden)]
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError>;
 }
 
 #[sealed]
-impl<T: AsRef<IScriptable>> Receiver for T {
+impl<T: AsRef<IScriptable>> AsReceiver for T {
     #[inline]
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
         Ok(self.as_ref())
@@ -406,7 +407,7 @@ impl<T: AsRef<IScriptable>> Receiver for T {
 }
 
 #[sealed]
-impl<T: ScriptClass> Receiver for Ref<T>
+impl<T: ScriptClass> AsReceiver for Ref<T>
 where
     <T::Kind as ClassKind<T>>::NativeType: AsRef<IScriptable>,
 {
@@ -414,18 +415,18 @@ where
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
         unsafe { self.instance() }
             .map(AsRef::as_ref)
-            .ok_or(InvokeError::NullReceiver(T::CLASS_NAME))
+            .ok_or(InvokeError::NullReceiver(T::NAME))
     }
 }
 
 #[sealed]
-impl<T: ScriptClass> Receiver for &Ref<T>
+impl<T: ScriptClass> AsReceiver for &Ref<T>
 where
     <T::Kind as ClassKind<T>>::NativeType: AsRef<IScriptable>,
 {
     #[inline]
     fn as_receiver(&self) -> Result<&IScriptable, InvokeError> {
-        <Ref<T> as Receiver>::as_receiver(*self)
+        <Ref<T> as AsReceiver>::as_receiver(*self)
     }
 }
 

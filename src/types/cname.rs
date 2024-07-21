@@ -107,6 +107,7 @@ impl Hash for CName {
     }
 }
 
+/// A global pool containing all [`CName`]s.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct CNamePool(red::CNamePool);

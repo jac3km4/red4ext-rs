@@ -14,10 +14,10 @@ mod res;
 pub use res::{RaRef, ResRef};
 mod tweak_db_id;
 pub use tweak_db_id::TweakDbId;
-mod array;
-pub use array::{IntoIter, RedArray};
+pub mod array;
+pub use array::RedArray;
 mod refs;
-pub use refs::{ClassKind, Native, Ref, ScriptClass, ScriptClassOps, ScriptRef, Scripted, WeakRef};
+pub use refs::{Ref, ScriptRef, WeakRef};
 mod string;
 pub use string::RedString;
 mod cname;
@@ -25,10 +25,10 @@ pub use cname::{CName, CNamePool};
 mod rtti;
 pub use rtti::{
     ArrayType, Bitfield, Class, ClassFlags, ClassHandle, CurveType, Enum, Function, FunctionFlags,
-    FunctionHandler, GlobalFunction, IScriptable, ISerializable, Kind, Method, NativeArrayType,
+    FunctionHandler, GlobalFunction, IScriptable, ISerializable, Method, NativeArrayType,
     NativeClass, PointerType, Property, PropertyFlags, RaRefType, RefType, ResourceRefType,
-    ScriptRefType, StaticArrayType, StaticMethod, TaggedType, Type, ValueContainer, ValuePtr,
-    WeakRefType,
+    ScriptRefType, StaticArrayType, StaticMethod, TaggedType, Type, TypeKind, ValueContainer,
+    ValuePtr, WeakRefType,
 };
 mod bytecode;
 pub use bytecode::{

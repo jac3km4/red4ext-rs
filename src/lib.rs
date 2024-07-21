@@ -4,11 +4,14 @@ use std::ffi::CString;
 use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
 
-pub use export::{ClassExport, ExportList, ExportNil, Exportable, GlobalExport};
+pub use export::{
+    ClassExport, ClassExportBuilder, ExportList, ExportNil, Exportable, GlobalExport,
+};
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
+mod class;
 mod export;
 mod invocable;
 mod raw;
@@ -18,8 +21,10 @@ mod systems;
 /// A module encapsulating various types defined in the RED4ext SDK.
 pub mod types;
 
+pub use class::{class_kind, ClassKind, ScriptClass, ScriptClassOps};
 pub use invocable::{
-    FnType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable, MethodMetadata, Receiver,
+    AsReceiver, FunctionType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable,
+    MethodMetadata,
 };
 pub use repr::{FromRepr, IntoRepr, NativeRepr};
 pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
@@ -29,12 +34,12 @@ pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
 /// # Example
 /// Resolve a hash to an address:
 /// ```rust
-/// use red4ext_rs::hashes;
+/// use red4ext_rs::addr_hashes;
 ///
 /// fn exec_hash() -> usize {
-///   hashes::resolve(hashes::CBaseFunction_ExecuteNative)
+///   addr_hashes::resolve(addr_hashes::CBaseFunction_ExecuteNative)
 /// }
-pub mod hashes {
+pub mod addr_hashes {
     pub use super::red::Detail::AddressHashes::*;
 
     /// Resolves a hash to an address.
@@ -134,10 +139,10 @@ where
     }
 }
 
-/// Exports a set of necessary DLL entry points for RED4ext to load the plugin. Your plugin will
+/// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
 /// not be loaded unless you call this macro.
 #[macro_export]
-macro_rules! export_plugin {
+macro_rules! export_plugin_symbols {
     ($trait:ty) => {
         mod __api {
             use super::*;
@@ -313,35 +318,35 @@ impl SdkEnv {
     }
 
     /// Logs a message at the info level.
-    /// You should generally use the [`info!`] macro instead of calling this method directly.
+    /// You should generally use the [`info!`](crate::log::info) macro instead of calling this method directly.
     #[inline]
     pub fn info(&self, txt: impl fmt::Display) {
         log_internal!(self, Info, txt);
     }
 
     /// Logs a message at the warn level.
-    /// You should generally use the [`warn!`] macro instead of calling this method directly.
+    /// You should generally use the [`warn!`](crate::log::warn) macro instead of calling this method directly.
     #[inline]
     pub fn warn(&self, txt: impl fmt::Display) {
         log_internal!(self, Warn, txt);
     }
 
     /// Logs a message at the error level.
-    /// You should generally use the [`error!`] macro instead of calling this method directly.
+    /// You should generally use the [`error!`](crate::log::error) macro instead of calling this method directly.
     #[inline]
     pub fn error(&self, txt: impl fmt::Display) {
         log_internal!(self, Error, txt);
     }
 
     /// Logs a message at the debug level.
-    /// You should generally use the [`debug!`] macro instead of calling this method directly.
+    /// You should generally use the [`debug!`](crate::log::debug) macro instead of calling this method directly.
     #[inline]
     pub fn debug(&self, txt: impl fmt::Display) {
         log_internal!(self, Debug, txt);
     }
 
     /// Logs a message at the trace level.
-    /// You should generally use the [`trace!`] macro instead of calling this method directly.
+    /// You should generally use the [`trace!`](crate::log::trace) macro instead of calling this method directly.
     #[inline]
     pub fn trace(&self, txt: impl fmt::Display) {
         log_internal!(self, Trace, txt);
@@ -654,6 +659,7 @@ pub enum StateType {
 
 /// Information about a plugin.
 #[derive(Debug)]
+#[doc(hidden)]
 #[repr(transparent)]
 pub struct PluginInfo(red::PluginInfo);
 
@@ -734,7 +740,7 @@ macro_rules! fn_from_hash {
                 ::once_cell::race::OnceNonZeroUsize::new();
             let addr = STATIC
                 .get_or_try_init(|| {
-                    ::std::num::NonZero::new($crate::hashes::resolve($crate::hashes::$name)).ok_or(())
+                    ::std::num::NonZero::new($crate::addr_hashes::resolve($crate::addr_hashes::$name)).ok_or(())
                 })
                 .expect(::std::stringify!(should resolve $name hash))
                 .get();

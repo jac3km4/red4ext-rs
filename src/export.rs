@@ -2,7 +2,8 @@ use sealed::sealed;
 
 use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
-use crate::types::{CName, NativeClass, ScriptClass};
+use crate::types::{CName, NativeClass};
+use crate::{class_kind, ScriptClass};
 
 /// A list of exports to register with the game.
 #[derive(Debug)]
@@ -75,7 +76,7 @@ impl<C: ScriptClass> ClassExport<C> {
 }
 
 #[sealed]
-impl<C: Default + Clone + ScriptClass> Exportable for ClassExport<C> {
+impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for ClassExport<C> {
     fn register(&self) {
         let mut rtti = RttiSystemMut::get();
         let base = self
@@ -94,7 +95,7 @@ impl<C: Default + Clone + ScriptClass> Exportable for ClassExport<C> {
 
         let mut rtti = RttiSystemMut::get();
         let class = rtti
-            .get_class(CName::new(C::CLASS_NAME))
+            .get_class(CName::new(C::NAME))
             .expect("class should exist");
         for method in converted {
             class.add_method(method);
@@ -119,7 +120,7 @@ impl<C> ClassExportBuilder<C> {
     }
 
     /// Set the methods of the class to be exported.
-    /// See the [`methods!`] macro for a convenient way to define methods.
+    /// See the [`methods!`](crate::methods) macro for a convenient way to define methods.
     pub const fn methods(mut self, methods: &'static [MethodMetadata<C>]) -> Self {
         self.methods = methods;
         self
@@ -151,14 +152,14 @@ impl Exportable for GlobalExport {
     }
 }
 
-/// Define a list of exports to register with the game.
+/// Creates a list of exports to be registered within the game's RTTI system.
 ///
 /// # Example
 /// ```rust
 /// use std::cell::Cell;
 ///
-/// use red4ext_rs::{ClassExport, Exportable, GlobalExport, exports, methods, global};
-/// use red4ext_rs::types::{IScriptable, ScriptClass, Native};
+/// use red4ext_rs::{ClassExport, Exportable, GlobalExport, ScriptClass, class_kind, exports, methods, global};
+/// use red4ext_rs::types::IScriptable;
 ///
 /// fn exports() -> impl Exportable {
 ///     exports![
@@ -196,8 +197,8 @@ impl Exportable for GlobalExport {
 /// }
 ///
 /// unsafe impl ScriptClass for MyClass {
-///    const CLASS_NAME: &'static str = "MyClass";
-///    type Kind = Native;
+///    const NAME: &'static str = "MyClass";
+///    type Kind = class_kind::Native;
 /// }
 #[macro_export]
 macro_rules! exports {

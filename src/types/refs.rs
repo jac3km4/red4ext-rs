@@ -2,100 +2,14 @@ use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{mem, ptr};
 
-use sealed::sealed;
-
-use super::{CName, IScriptable, ISerializable, Type};
+use super::{CName, ISerializable, Type};
+use crate::class::{NativeType, ScriptClass};
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
-use crate::VoidPtr;
+use crate::{ClassKind, VoidPtr};
 
-/// A trait for types that represent script classes.
-///
-/// # Safety
-/// Implementors must ensure that the type's layout is compatible with the layout of the native
-/// type that has the specified name.
-pub unsafe trait ScriptClass: Sized {
-    type Kind: ClassKind<Self>;
-
-    const CLASS_NAME: &'static str;
-}
-
-/// A trait for distinguishing between native and scripted classes.
-#[sealed]
-pub trait ClassKind<T> {
-    type NativeType;
-
-    fn get(inst: &Self::NativeType) -> &T;
-    fn get_mut(inst: &mut Self::NativeType) -> &mut T;
-}
-
-/// A marker type for scripted classes. Scripted classes are stored with an additional level of
-/// indirection inside of [`IScriptable`].
-#[derive(Debug)]
-pub struct Scripted;
-
-#[sealed]
-impl<T> ClassKind<T> for Scripted {
-    type NativeType = IScriptable;
-
-    #[inline]
-    fn get(inst: &Self::NativeType) -> &T {
-        unsafe { &*inst.fields().as_ptr().cast::<T>() }
-    }
-
-    #[inline]
-    fn get_mut(inst: &mut Self::NativeType) -> &mut T {
-        unsafe { &mut *inst.fields().as_ptr().cast::<T>() }
-    }
-}
-
-/// A marker type for native classes. Native classes are represented directly by their native type.
-#[derive(Debug)]
-pub struct Native;
-
-#[sealed]
-impl<T> ClassKind<T> for Native {
-    type NativeType = T;
-
-    #[inline]
-    fn get(inst: &Self::NativeType) -> &T {
-        inst
-    }
-
-    #[inline]
-    fn get_mut(inst: &mut Self::NativeType) -> &mut T {
-        inst
-    }
-}
-
-/// A trait for operations on script classes.
-#[sealed]
-pub trait ScriptClassOps: ScriptClass {
-    /// Creates a new reference to the class.
-    fn new_ref() -> Option<Ref<Self>>;
-    /// Creates a new reference to the class and initializes it with the provided function.
-    fn new_ref_with(init: impl FnOnce(&mut Self)) -> Option<Ref<Self>>;
-}
-
-#[sealed]
-impl<T: ScriptClass> ScriptClassOps for T {
-    #[inline]
-    fn new_ref() -> Option<Ref<Self>> {
-        Ref::new()
-    }
-
-    #[inline]
-    fn new_ref_with(init: impl FnOnce(&mut Self)) -> Option<Ref<Self>> {
-        Ref::new_with(init)
-    }
-}
-
-type NativeType<T> = <<T as ScriptClass>::Kind as ClassKind<T>>::NativeType;
-
-/// A strong reference to a script class. A live instance of the reference guarantees that the
-/// instance is still alive. When the reference is dropped, the strong reference count is
-/// decremented. If the strong reference count reaches zero, the underlying value is destroyed.
+/// A reference counted shared pointer to a script class.
 #[repr(transparent)]
 pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
 
@@ -109,11 +23,11 @@ impl<T: ScriptClass> Ref<T> {
     /// Creates a new reference to the class and initializes it with the provided function.
     pub fn new_with(init: impl FnOnce(&mut T)) -> Option<Self> {
         let system = RttiSystem::get();
-        let class = system.get_class(CName::new(T::CLASS_NAME))?;
+        let class = system.get_class(CName::new(T::NAME))?;
         let mut this = Self::default();
         Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
-        init(T::Kind::get_mut(this.0.instance_mut()?));
+        init(T::Kind::fields_mut(this.0.instance_mut()?));
         Some(this)
     }
 
@@ -131,7 +45,7 @@ impl<T: ScriptClass> Ref<T> {
     /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
     #[inline]
     pub unsafe fn fields(&self) -> Option<&T> {
-        Some(T::Kind::get(self.0.instance()?))
+        Some(T::Kind::fields(self.0.instance()?))
     }
 
     /// Returns a mutable reference to the fields of the class.
@@ -141,7 +55,7 @@ impl<T: ScriptClass> Ref<T> {
     /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
     #[inline]
     pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
-        Some(T::Kind::get_mut(self.0.instance_mut()?))
+        Some(T::Kind::fields_mut(self.0.instance_mut()?))
     }
 
     /// Returns a reference to the instance of the class.
@@ -171,7 +85,7 @@ impl<T: ScriptClass> Ref<T> {
         let inst = unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }?;
         inst.class()
             .base_iter_with_self()
-            .any(|class| class.name() == CName::new(U::CLASS_NAME))
+            .any(|class| class.name() == CName::new(U::NAME))
             .then(|| unsafe { mem::transmute(self) })
     }
 

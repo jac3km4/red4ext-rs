@@ -6,6 +6,7 @@ use crate::raw::root::RED4ext as red;
 
 const INVALID_INDEX: u32 = u32::MAX;
 
+/// A hash map.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct RedHashMap<K, V>(red::HashMap<K, V>);
@@ -257,6 +258,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
 impl<K, V> FusedIterator for Iter<'_, K, V> {}
 
+/// A trait for types that can be hashed.
 pub trait Hash {
     fn hash(&self) -> u32;
 }
