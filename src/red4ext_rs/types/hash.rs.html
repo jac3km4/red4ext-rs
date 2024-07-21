@@ -275,6 +275,8 @@
 <a href="#275" id="275">275</a>
 <a href="#276" id="276">276</a>
 <a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::iter::FusedIterator;
 <span class="kw">use </span>std::{mem, ptr, slice};
 
@@ -283,7 +285,8 @@
 
 <span class="kw">const </span>INVALID_INDEX: u32 = u32::MAX;
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// A hash map.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>RedHashMap&lt;K, V&gt;(red::HashMap&lt;K, V&gt;);
 
@@ -534,7 +537,8 @@
 
 <span class="kw">impl</span>&lt;K, V&gt; FusedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">'_</span>, K, V&gt; {}
 
-<span class="kw">pub trait </span>Hash {
+<span class="doccomment">/// A trait for types that can be hashed.
+</span><span class="kw">pub trait </span>Hash {
     <span class="kw">fn </span>hash(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32;
 }
 

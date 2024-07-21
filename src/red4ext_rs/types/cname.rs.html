@@ -141,6 +141,7 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::{<span class="self">self</span>, CStr};
 <span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::hash::Hash;
@@ -250,7 +251,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// A global pool containing all [`CName`]s.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>CNamePool(red::CNamePool);
 

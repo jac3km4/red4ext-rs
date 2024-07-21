@@ -176,11 +176,13 @@
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>const_combine::bounded::const_combine <span class="kw">as </span>combine;
 
+<span class="kw">use </span><span class="kw">crate</span>::class::ScriptClass;
 <span class="kw">use </span><span class="kw">crate</span>::types::{
-    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptClass, ScriptRef,
-    TweakDbId, Variant, WeakRef,
+    CName, EntityId, GameTime, ItemId, Opt, RedArray, RedString, Ref, ScriptRef, TweakDbId,
+    Variant, WeakRef,
 };
 
 <span class="doccomment">/// A trait for types that can be passed across the FFI boundary to the game engine without
@@ -207,11 +209,11 @@
 }
 
 <span class="kw">unsafe impl</span>&lt;A: ScriptClass&gt; NativeRepr <span class="kw">for </span>Ref&lt;A&gt; {
-    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="macro">combine!</span>(<span class="string">"handle:"</span>, A::CLASS_NAME);
+    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="macro">combine!</span>(<span class="string">"handle:"</span>, A::NAME);
 }
 
 <span class="kw">unsafe impl</span>&lt;A: ScriptClass&gt; NativeRepr <span class="kw">for </span>WeakRef&lt;A&gt; {
-    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="macro">combine!</span>(<span class="string">"whandle:"</span>, A::CLASS_NAME);
+    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="macro">combine!</span>(<span class="string">"whandle:"</span>, A::NAME);
 }
 
 <span class="kw">unsafe impl</span>&lt;<span class="lifetime">'a</span>, A: NativeRepr&gt; NativeRepr <span class="kw">for </span>ScriptRef&lt;<span class="lifetime">'a</span>, A&gt; {

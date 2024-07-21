@@ -1497,24 +1497,76 @@
 <a href="#1497" id="1497">1497</a>
 <a href="#1498" id="1498">1498</a>
 <a href="#1499" id="1499">1499</a>
+<a href="#1500" id="1500">1500</a>
+<a href="#1501" id="1501">1501</a>
+<a href="#1502" id="1502">1502</a>
+<a href="#1503" id="1503">1503</a>
+<a href="#1504" id="1504">1504</a>
+<a href="#1505" id="1505">1505</a>
+<a href="#1506" id="1506">1506</a>
+<a href="#1507" id="1507">1507</a>
+<a href="#1508" id="1508">1508</a>
+<a href="#1509" id="1509">1509</a>
+<a href="#1510" id="1510">1510</a>
+<a href="#1511" id="1511">1511</a>
+<a href="#1512" id="1512">1512</a>
+<a href="#1513" id="1513">1513</a>
+<a href="#1514" id="1514">1514</a>
+<a href="#1515" id="1515">1515</a>
+<a href="#1516" id="1516">1516</a>
+<a href="#1517" id="1517">1517</a>
+<a href="#1518" id="1518">1518</a>
+<a href="#1519" id="1519">1519</a>
+<a href="#1520" id="1520">1520</a>
+<a href="#1521" id="1521">1521</a>
+<a href="#1522" id="1522">1522</a>
+<a href="#1523" id="1523">1523</a>
+<a href="#1524" id="1524">1524</a>
+<a href="#1525" id="1525">1525</a>
+<a href="#1526" id="1526">1526</a>
+<a href="#1527" id="1527">1527</a>
+<a href="#1528" id="1528">1528</a>
+<a href="#1529" id="1529">1529</a>
+<a href="#1530" id="1530">1530</a>
+<a href="#1531" id="1531">1531</a>
+<a href="#1532" id="1532">1532</a>
+<a href="#1533" id="1533">1533</a>
+<a href="#1534" id="1534">1534</a>
+<a href="#1535" id="1535">1535</a>
+<a href="#1536" id="1536">1536</a>
+<a href="#1537" id="1537">1537</a>
+<a href="#1538" id="1538">1538</a>
+<a href="#1539" id="1539">1539</a>
+<a href="#1540" id="1540">1540</a>
+<a href="#1541" id="1541">1541</a>
+<a href="#1542" id="1542">1542</a>
+<a href="#1543" id="1543">1543</a>
+<a href="#1544" id="1544">1544</a>
+<a href="#1545" id="1545">1545</a>
+<a href="#1546" id="1546">1546</a>
+<a href="#1547" id="1547">1547</a>
+<a href="#1548" id="1548">1548</a>
+<a href="#1549" id="1549">1549</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::{CStr, CString};
 <span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::ptr::NonNull;
 <span class="kw">use </span>std::{fmt, iter, mem, ptr, slice};
 
 <span class="kw">use super</span>::{
-    CName, CNamePool, IAllocator, Native, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
-    ScriptClass, StackArg, StackFrame,
+    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString, StackArg,
+    StackFrame,
 };
 <span class="kw">use </span><span class="kw">crate</span>::invocable::{Args, InvokeError};
 <span class="kw">use </span><span class="kw">crate</span>::raw::root::RED4ext <span class="kw">as </span>red;
 <span class="kw">use </span><span class="kw">crate</span>::repr::{FromRepr, NativeRepr};
 <span class="kw">use </span><span class="kw">crate</span>::systems::RttiSystem;
-<span class="kw">use </span><span class="kw">crate</span>::VoidPtr;
+<span class="kw">use crate</span>::{class_kind, ScriptClass, VoidPtr};
 
-<span class="kw">pub type </span>FunctionHandler&lt;C, R&gt; = <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(<span class="kw-2">&amp;</span>C, <span class="kw-2">&amp;mut </span>StackFrame, R, i64);
+<span class="doccomment">/// A handler for function calls.
+</span><span class="kw">pub type </span>FunctionHandler&lt;C, R&gt; = <span class="kw">extern </span><span class="string">"C" </span><span class="kw">fn</span>(<span class="kw-2">&amp;</span>C, <span class="kw-2">&amp;mut </span>StackFrame, R, i64);
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a type.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Type(red::CBaseRTTIType);
 
@@ -1544,7 +1596,7 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>kind(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Kind {
+    </span><span class="kw">pub fn </span>kind(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TypeKind {
         <span class="kw">unsafe </span>{ mem::transmute((<span class="self">self</span>.vft().tail.CBaseRTTIType_GetType)(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>)) }
     }
 
@@ -1583,23 +1635,23 @@
     <span class="attr">#[allow(clippy::missing_transmute_annotations)]
     </span><span class="kw">pub fn </span>tagged(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TaggedType&lt;<span class="lifetime">'_</span>&gt; {
         <span class="kw">match </span><span class="self">self</span>.kind() {
-            Kind::Name =&gt; TaggedType::Name,
-            Kind::Fundamental =&gt; TaggedType::Fundamental,
-            Kind::Class =&gt; TaggedType::Class(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::Array =&gt; TaggedType::Array(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::Simple =&gt; TaggedType::Simple,
-            Kind::Enum =&gt; TaggedType::Enum(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::StaticArray =&gt; TaggedType::StaticArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::NativeArray =&gt; TaggedType::NativeArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::Pointer =&gt; TaggedType::Pointer(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::Ref =&gt; TaggedType::Ref(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::WeakRef =&gt; TaggedType::WeakRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::ResourceRef =&gt; TaggedType::ResourceRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::RaRef =&gt; TaggedType::RaRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::BitField =&gt; TaggedType::BitField(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::Curve =&gt; TaggedType::Curve(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::ScriptRef =&gt; TaggedType::ScriptRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
-            Kind::FixedArray =&gt; TaggedType::FixedArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Name =&gt; TaggedType::Name,
+            TypeKind::Fundamental =&gt; TaggedType::Fundamental,
+            TypeKind::Class =&gt; TaggedType::Class(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Array =&gt; TaggedType::Array(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Simple =&gt; TaggedType::Simple,
+            TypeKind::Enum =&gt; TaggedType::Enum(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::StaticArray =&gt; TaggedType::StaticArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::NativeArray =&gt; TaggedType::NativeArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Pointer =&gt; TaggedType::Pointer(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Ref =&gt; TaggedType::Ref(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::WeakRef =&gt; TaggedType::WeakRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::ResourceRef =&gt; TaggedType::ResourceRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::RaRef =&gt; TaggedType::RaRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::BitField =&gt; TaggedType::BitField(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::Curve =&gt; TaggedType::Curve(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::ScriptRef =&gt; TaggedType::ScriptRef(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
+            TypeKind::FixedArray =&gt; TaggedType::FixedArray(<span class="kw">unsafe </span>{ mem::transmute(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>) }),
         }
     }
 
@@ -1621,9 +1673,10 @@
     }
 }
 
-<span class="attr">#[derive(Debug, PartialEq, Eq)]
+<span class="doccomment">/// An identifier for a kind of type.
+</span><span class="attr">#[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
-</span><span class="kw">pub enum </span>Kind {
+</span><span class="kw">pub enum </span>TypeKind {
     Name = red::ERTTIType::Name,
     Fundamental = red::ERTTIType::Fundamental,
     Class = red::ERTTIType::Class,
@@ -1643,7 +1696,7 @@
     FixedArray = red::ERTTIType::FixedArray,
 }
 
-<span class="kw">impl </span>Kind {
+<span class="kw">impl </span>TypeKind {
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>is_class(<span class="self">self</span>) -&gt; bool {
         <span class="self">self </span>== <span class="self">Self</span>::Class
@@ -1658,28 +1711,47 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// Enum representation of the RTTI type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub enum </span>TaggedType&lt;<span class="lifetime">'a</span>&gt; {
-    Name,
-    Fundamental,
-    Class(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Class),
-    Array(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayType),
-    Simple,
-    Enum(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Enum),
-    StaticArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>StaticArrayType),
-    NativeArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>NativeArrayType),
-    Pointer(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>PointerType),
-    Ref(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RefType),
-    WeakRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>WeakRefType),
-    ResourceRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ResourceRefType),
-    RaRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RaRefType),
-    BitField(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Bitfield),
-    Curve(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>CurveType),
-    ScriptRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ScriptRefType),
-    FixedArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayType),
+    <span class="doccomment">/// A name type.
+    </span>Name,
+    <span class="doccomment">/// A fundamental type (e.g. `Int32`).
+    </span>Fundamental,
+    <span class="doccomment">/// A class type.
+    </span>Class(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Class),
+    <span class="doccomment">/// An array type.
+    </span>Array(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayType),
+    <span class="doccomment">/// A simple type.
+    </span>Simple,
+    <span class="doccomment">/// An enum type.
+    </span>Enum(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Enum),
+    <span class="doccomment">/// A static array type with a fixed size.
+    </span>StaticArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>StaticArrayType),
+    <span class="doccomment">/// A native array type with a fixed size.
+    </span>NativeArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>NativeArrayType),
+    <span class="doccomment">/// A pointer type.
+    </span>Pointer(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>PointerType),
+    <span class="doccomment">/// A reference type.
+    </span>Ref(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RefType),
+    <span class="doccomment">/// A weak reference type.
+    </span>WeakRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>WeakRefType),
+    <span class="doccomment">/// A resource reference type.
+    </span>ResourceRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ResourceRefType),
+    <span class="doccomment">/// An asynchronous resource reference type.
+    </span>RaRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>RaRefType),
+    <span class="doccomment">/// A bitfield type.
+    </span>BitField(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Bitfield),
+    <span class="doccomment">/// A curve type.
+    </span>Curve(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>CurveType),
+    <span class="doccomment">/// A script reference type.
+    </span>ScriptRef(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ScriptRefType),
+    <span class="doccomment">/// A fixed size array type.
+    </span>FixedArray(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayType),
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a class.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Class(red::CClass);
 
@@ -1863,7 +1935,8 @@
     }
 }
 
-<span class="attr">#[derive(Default, Clone, Copy)]
+<span class="doccomment">/// Flags for a class type.
+</span><span class="attr">#[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>ClassFlags(red::CClass_Flags);
 
@@ -1983,7 +2056,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a native class.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>NativeClass&lt;T&gt;(Class, PhantomData&lt;<span class="kw-2">*mut </span>T&gt;);
 
@@ -1994,7 +2068,7 @@
     /// done through RTTI.
     </span><span class="kw">pub fn </span>new_handle(base: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Class&gt;) -&gt; ClassHandle
     <span class="kw">where
-        </span>T: Default + Clone + ScriptClass,
+        </span>T: Default + Clone + ScriptClass&lt;Kind = class_kind::Native&gt;,
     {
         <span class="kw">const </span>VFT_SIZE: usize = <span class="number">30</span>;
         <span class="kw">const </span>IS_EQUAL_SLOT: usize = <span class="number">9</span>;
@@ -2003,7 +2077,7 @@
         <span class="kw">const </span>DESTRUCT_SLOT: usize = <span class="number">28</span>;
         <span class="kw">const </span>ALLOC_SLOT: usize = <span class="number">29</span>;
 
-        <span class="kw">let </span>cstr = CString::new(T::CLASS_NAME).expect(<span class="string">"should create a CString"</span>);
+        <span class="kw">let </span>cstr = CString::new(T::NAME).expect(<span class="string">"should create a CString"</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>class = Class::new_native(<span class="kw-2">&amp;</span>cstr, mem::size_of::&lt;T&gt;() <span class="kw">as </span>u32);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(base) = base {
@@ -2081,7 +2155,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a pointer type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>PointerType(red::CRTTIPointerType);
 
 <span class="kw">impl </span>PointerType {
@@ -2101,7 +2176,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a reference type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>RefType(red::CRTTIHandleType);
 
 <span class="kw">impl </span>RefType {
@@ -2121,7 +2197,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a weak reference type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>WeakRefType(red::CRTTIWeakHandleType);
 
 <span class="kw">impl </span>WeakRefType {
@@ -2141,7 +2218,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a script reference type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>ScriptRefType(red::CRTTIScriptReferenceType);
 
 <span class="kw">impl </span>ScriptRefType {
@@ -2161,7 +2239,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a static array type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>StaticArrayType(red::CRTTIStaticArrayType);
 
 <span class="kw">impl </span>StaticArrayType {
@@ -2186,7 +2265,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a native array type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>NativeArrayType(red::CRTTINativeArrayType);
 
 <span class="kw">impl </span>NativeArrayType {
@@ -2211,7 +2291,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a resource reference type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>ResourceRefType(red::CRTTIResourceReferenceType);
 
 <span class="kw">impl </span>ResourceRefType {
@@ -2231,7 +2312,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of an asynchronous resource reference type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>RaRefType(red::CRTTIResourceAsyncReferenceType);
 
 <span class="kw">impl </span>RaRefType {
@@ -2251,7 +2333,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a curve type.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>CurveType(red::CRTTILegacySingleChannelCurveType);
 
 <span class="kw">impl </span>CurveType {
@@ -2271,7 +2354,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a function type.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Function(red::CBaseFunction);
 
@@ -2329,7 +2413,10 @@
         <span class="kw">unsafe </span>{ <span class="self">self</span>.<span class="number">0</span>.SetReturnType(typ.to_raw()) };
     }
 
-    <span class="kw">pub fn </span>execute&lt;A, R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>IScriptable&gt;, <span class="kw-2">mut </span>args: A) -&gt; <span class="prelude-ty">Result</span>&lt;R, InvokeError&gt;
+    <span class="doccomment">/// Executes the function with the given arguments represented as a tuple of values
+    /// that satsify the [`NativeRepr`] trait.
+    /// Returns the result of the function execution.
+    </span><span class="kw">pub fn </span>execute&lt;A, R&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>IScriptable&gt;, <span class="kw-2">mut </span>args: A) -&gt; <span class="prelude-ty">Result</span>&lt;R, InvokeError&gt;
     <span class="kw">where
         </span>A: Args,
         R: FromRepr,
@@ -2415,7 +2502,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a global function.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>GlobalFunction(red::CGlobalFunction);
 
@@ -2465,7 +2553,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a method.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Method(red::CClassFunction);
 
@@ -2485,7 +2574,7 @@
 
         <span class="kw">let </span>rtti = RttiSystem::get();
         <span class="kw">let </span>class = rtti
-            .get_class(CName::new(C::CLASS_NAME))
+            .get_class(CName::new(C::NAME))
             .expect(<span class="string">"should find the class"</span>);
 
         <span class="self">Self</span>::ctor(
@@ -2542,7 +2631,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a static method.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>StaticMethod(red::CClassStaticFunction);
 
@@ -2616,7 +2706,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug, Default, Clone, Copy)]
+<span class="doccomment">/// Flags for a function.
+</span><span class="attr">#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>FunctionFlags(red::CBaseFunction_Flags);
 
@@ -2654,7 +2745,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a property.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Property(red::CProperty);
 
@@ -2712,7 +2804,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug, Default, Clone, Copy)]
+<span class="doccomment">/// Flags for a property.
+</span><span class="attr">#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>PropertyFlags(red::CProperty_Flags);
 
@@ -2734,13 +2827,14 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of an array type.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>ArrayType(red::CRTTIBaseArrayType);
 
 <span class="kw">impl </span>ArrayType {
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>inner_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Type {
+    </span><span class="kw">pub fn </span>element_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Type {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>(<span class="self">self</span>.vft().get_inner_type)(<span class="self">self</span>) }
     }
 
@@ -2778,7 +2872,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of an enum type.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Enum(red::CEnum);
 
@@ -2822,7 +2917,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// An RTTI representation of a bitfield type.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>Bitfield(red::CBitfield);
 
@@ -2856,7 +2952,8 @@
     }
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// The base type for all types held inside game references.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>ISerializable(red::ISerializable);
 
@@ -2872,12 +2969,13 @@
 }
 
 <span class="kw">unsafe impl </span>ScriptClass <span class="kw">for </span>ISerializable {
-    <span class="kw">type </span>Kind = Native;
+    <span class="kw">type </span>Kind = class_kind::Native;
 
-    <span class="kw">const </span>CLASS_NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"ISerializable"</span>;
+    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"ISerializable"</span>;
 }
 
-<span class="attr">#[derive(Debug)]
+<span class="doccomment">/// The base type for all scripted classes.
+</span><span class="attr">#[derive(Debug)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>IScriptable(red::IScriptable);
 
@@ -2932,12 +3030,13 @@
 }
 
 <span class="kw">unsafe impl </span>ScriptClass <span class="kw">for </span>IScriptable {
-    <span class="kw">type </span>Kind = Native;
+    <span class="kw">type </span>Kind = class_kind::Native;
 
-    <span class="kw">const </span>CLASS_NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"IScriptable"</span>;
+    <span class="kw">const </span>NAME: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"IScriptable"</span>;
 }
 
-<span class="attr">#[derive(Debug, Clone, Copy)]
+<span class="doccomment">/// A container holding values, e.g. object fields or function arguments.
+</span><span class="attr">#[derive(Debug, Clone, Copy)]
 </span><span class="kw">pub struct </span>ValueContainer(VoidPtr);
 
 <span class="kw">impl </span>ValueContainer {
@@ -2947,12 +3046,13 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>as_ptr(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; VoidPtr {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>as_ptr(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; VoidPtr {
         <span class="self">self</span>.<span class="number">0
     </span>}
 }
 
-<span class="attr">#[derive(Debug, Clone, Copy)]
+<span class="doccomment">/// A pointer to a script value.
+</span><span class="attr">#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>ValuePtr(VoidPtr);
 

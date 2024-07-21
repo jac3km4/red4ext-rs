@@ -737,17 +737,36 @@
 <a href="#737" id="737">737</a>
 <a href="#738" id="738">738</a>
 <a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
 </pre></div><pre class="rust"><code><span class="attr">#![doc = <span class="macro">include_str!</span>(<span class="string">"../README.md"</span>)]
 #![allow(clippy::missing_safety_doc)]
 </span><span class="kw">use </span>std::ffi::CString;
 <span class="kw">use </span>std::sync::OnceLock;
 <span class="kw">use </span>std::{ffi, fmt, mem};
 
-<span class="kw">pub use </span>export::{ClassExport, ExportList, ExportNil, Exportable, GlobalExport};
+<span class="kw">pub use </span>export::{
+    ClassExport, ClassExportBuilder, ExportList, ExportNil, Exportable, GlobalExport,
+};
 <span class="kw">use </span>raw::root::{versioning, RED4ext <span class="kw">as </span>red};
 <span class="kw">use </span>sealed::sealed;
 <span class="kw">pub use </span>widestring::{widecstr <span class="kw">as </span>wcstr, U16CStr};
 
+<span class="kw">mod </span>class;
 <span class="kw">mod </span>export;
 <span class="kw">mod </span>invocable;
 <span class="kw">mod </span>raw;
@@ -757,8 +776,10 @@
 <span class="doccomment">/// A module encapsulating various types defined in the RED4ext SDK.
 </span><span class="kw">pub mod </span>types;
 
+<span class="kw">pub use </span>class::{class_kind, ClassKind, ScriptClass, ScriptClassOps};
 <span class="kw">pub use </span>invocable::{
-    FnType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable, MethodMetadata, Receiver,
+    AsReceiver, FunctionType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable,
+    MethodMetadata,
 };
 <span class="kw">pub use </span>repr::{FromRepr, IntoRepr, NativeRepr};
 <span class="kw">pub use </span>systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
@@ -768,12 +789,12 @@
 /// # Example
 /// Resolve a hash to an address:
 /// ```rust
-/// use red4ext_rs::hashes;
+/// use red4ext_rs::addr_hashes;
 ///
 /// fn exec_hash() -&gt; usize {
-///   hashes::resolve(hashes::CBaseFunction_ExecuteNative)
+///   addr_hashes::resolve(addr_hashes::CBaseFunction_ExecuteNative)
 /// }
-</span><span class="kw">pub mod </span>hashes {
+</span><span class="kw">pub mod </span>addr_hashes {
     <span class="kw">pub use </span><span class="kw">super</span>::red::Detail::AddressHashes::<span class="kw-2">*</span>;
 
     <span class="doccomment">/// Resolves a hash to an address.
@@ -873,12 +894,14 @@
     }
 }
 
-<span class="doccomment">/// Exports a set of necessary DLL entry points for RED4ext to load the plugin. Your plugin will
+<span class="doccomment">/// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
 /// not be loaded unless you call this macro.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules!</span> export_plugin {
+</span><span class="macro">macro_rules!</span> export_plugin_symbols {
     (<span class="macro-nonterminal">$</span><span class="kw">trait</span>:<span class="macro-nonterminal">ty</span>) =&gt; {
-        <span class="kw">mod </span>__api {
+        <span class="comment">// The exports will not work in tests, so they are disabled here.
+        </span><span class="attr">#[cfg(not(test))]
+        </span><span class="kw">mod </span>__api {
             <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
             <span class="attr">#[no_mangle]
@@ -922,7 +945,10 @@
 /// `log` crate.
 </span><span class="attr">#[cfg(not(feature = <span class="string">"log"</span>))]
 </span><span class="kw">pub mod </span>log {
-    <span class="kw">pub use crate</span>::{debug, error, info, trace, warn};
+    <span class="attr">#[doc(inline)]
+    </span><span class="kw">pub use crate</span>::{
+        __debug <span class="kw">as </span>debug, __error <span class="kw">as </span>error, __info <span class="kw">as </span>info, __trace <span class="kw">as </span>trace, __warn <span class="kw">as </span>warn,
+    };
 
     <span class="doccomment">/// Logs a message at the info level.
     ///
@@ -935,8 +961,9 @@
     ///     // log::info!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
-    </span><span class="attr">#[macro_export]
-    </span><span class="macro">macro_rules!</span> info {
+    </span><span class="attr">#[doc(hidden)]
+    #[macro_export]
+    </span><span class="macro">macro_rules!</span> __info {
         (<span class="macro-nonterminal">$env</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
             <span class="macro-nonterminal">$env</span>.info(<span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>))
         };
@@ -953,8 +980,9 @@
     ///     // log::warn!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
-    </span><span class="attr">#[macro_export]
-    </span><span class="macro">macro_rules!</span> warn {
+    </span><span class="attr">#[doc(hidden)]
+    #[macro_export]
+    </span><span class="macro">macro_rules!</span> __warn {
         (<span class="macro-nonterminal">$env</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
             <span class="macro-nonterminal">$env</span>.warn(<span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>))
         };
@@ -971,8 +999,9 @@
     ///     // log::error!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
-    </span><span class="attr">#[macro_export]
-    </span><span class="macro">macro_rules!</span> error {
+    </span><span class="attr">#[doc(hidden)]
+    #[macro_export]
+    </span><span class="macro">macro_rules!</span> __error {
         (<span class="macro-nonterminal">$env</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
             <span class="macro-nonterminal">$env</span>.error(<span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>))
         };
@@ -989,8 +1018,9 @@
     ///     // log::debug!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
-    </span><span class="attr">#[macro_export]
-    </span><span class="macro">macro_rules!</span> debug {
+    </span><span class="attr">#[doc(hidden)]
+    #[macro_export]
+    </span><span class="macro">macro_rules!</span> __debug {
         (<span class="macro-nonterminal">$env</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
             <span class="macro-nonterminal">$env</span>.debug(<span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>))
         };
@@ -1007,8 +1037,9 @@
     ///     // log::trace!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
-    </span><span class="attr">#[macro_export]
-    </span><span class="macro">macro_rules!</span> trace {
+    </span><span class="attr">#[doc(hidden)]
+    #[macro_export]
+    </span><span class="macro">macro_rules!</span> __trace {
         (<span class="macro-nonterminal">$env</span>:expr, $(<span class="macro-nonterminal">$arg</span>:tt)<span class="kw-2">*</span>) =&gt; {
             <span class="macro-nonterminal">$env</span>.trace(<span class="macro">format_args!</span>($(<span class="macro-nonterminal">$arg</span>)<span class="kw-2">*</span>))
         };
@@ -1044,35 +1075,35 @@
     }
 
     <span class="doccomment">/// Logs a message at the info level.
-    /// You should generally use the [`info!`] macro instead of calling this method directly.
+    /// You should generally use the [`info!`](crate::log::info) macro instead of calling this method directly.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>info(<span class="kw-2">&amp;</span><span class="self">self</span>, txt: <span class="kw">impl </span>fmt::Display) {
         <span class="macro">log_internal!</span>(<span class="self">self</span>, Info, txt);
     }
 
     <span class="doccomment">/// Logs a message at the warn level.
-    /// You should generally use the [`warn!`] macro instead of calling this method directly.
+    /// You should generally use the [`warn!`](crate::log::warn) macro instead of calling this method directly.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>warn(<span class="kw-2">&amp;</span><span class="self">self</span>, txt: <span class="kw">impl </span>fmt::Display) {
         <span class="macro">log_internal!</span>(<span class="self">self</span>, Warn, txt);
     }
 
     <span class="doccomment">/// Logs a message at the error level.
-    /// You should generally use the [`error!`] macro instead of calling this method directly.
+    /// You should generally use the [`error!`](crate::log::error) macro instead of calling this method directly.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>error(<span class="kw-2">&amp;</span><span class="self">self</span>, txt: <span class="kw">impl </span>fmt::Display) {
         <span class="macro">log_internal!</span>(<span class="self">self</span>, Error, txt);
     }
 
     <span class="doccomment">/// Logs a message at the debug level.
-    /// You should generally use the [`debug!`] macro instead of calling this method directly.
+    /// You should generally use the [`debug!`](crate::log::debug) macro instead of calling this method directly.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>debug(<span class="kw-2">&amp;</span><span class="self">self</span>, txt: <span class="kw">impl </span>fmt::Display) {
         <span class="macro">log_internal!</span>(<span class="self">self</span>, Debug, txt);
     }
 
     <span class="doccomment">/// Logs a message at the trace level.
-    /// You should generally use the [`trace!`] macro instead of calling this method directly.
+    /// You should generally use the [`trace!`](crate::log::trace) macro instead of calling this method directly.
     </span><span class="attr">#[inline]
     </span><span class="kw">pub fn </span>trace(<span class="kw-2">&amp;</span><span class="self">self</span>, txt: <span class="kw">impl </span>fmt::Display) {
         <span class="macro">log_internal!</span>(<span class="self">self</span>, Trace, txt);
@@ -1385,6 +1416,7 @@
 
 <span class="doccomment">/// Information about a plugin.
 </span><span class="attr">#[derive(Debug)]
+#[doc(hidden)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>PluginInfo(red::PluginInfo);
 
@@ -1465,7 +1497,7 @@
                 ::once_cell::race::OnceNonZeroUsize::new();
             <span class="kw">let </span>addr = STATIC
                 .get_or_try_init(|| {
-                    ::std::num::NonZero::new(<span class="macro-nonterminal">$crate::hashes::resolve</span>(<span class="macro-nonterminal">$crate::hashes</span>::<span class="macro-nonterminal">$name</span>)).ok_or(())
+                    ::std::num::NonZero::new(<span class="macro-nonterminal">$crate::addr_hashes::resolve</span>(<span class="macro-nonterminal">$crate::addr_hashes</span>::<span class="macro-nonterminal">$name</span>)).ok_or(())
                 })
                 .expect(<span class="macro">::std::stringify!</span>(should resolve <span class="macro-nonterminal">$name </span>hash))
                 .get();

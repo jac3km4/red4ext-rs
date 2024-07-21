@@ -429,6 +429,7 @@
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{mem, ptr};
 
 <span class="kw">use </span><span class="kw">crate</span>::raw::root::RED4ext <span class="kw">as </span>red;
@@ -606,7 +607,7 @@
 
     <span class="doccomment">/// Retrieve a reference to a map of all types by name.
     </span><span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>types(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>RedHashMap&lt;CName, <span class="kw-2">&amp;</span>Type&gt; {
+    </span><span class="kw">pub fn </span>type_map(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>RedHashMap&lt;CName, <span class="kw-2">&amp;</span>Type&gt; {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>.types <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>RedHashMap&lt;CName, <span class="kw-2">&amp;</span>Type&gt;) }
     }
 
@@ -697,10 +698,11 @@
     </span><span class="kw">pub fn </span>register_class(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>class: ClassHandle) {
         <span class="comment">// implemented manually to avoid the game trying to obtain the type lock
         </span><span class="kw">let </span>id = <span class="kw">unsafe </span>{ red::RTTIRegistrator::GetNextId() };
-        <span class="self">self</span>.types()
+        <span class="self">self</span>.type_map()
             .insert(class.as_ref().name(), class.as_mut().as_type_mut());
-        <span class="self">self</span>.types_by_id().insert(id, class.as_mut().as_type_mut());
-        <span class="self">self</span>.type_ids().insert(class.as_ref().name(), id);
+        <span class="self">self</span>.type_by_id_map()
+            .insert(id, class.as_mut().as_type_mut());
+        <span class="self">self</span>.type_id_map().insert(class.as_ref().name(), id);
     }
 
     <span class="doccomment">/// Register a new [`GlobalFunction`] with the RTTI system.
@@ -713,17 +715,17 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>types(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;CName, <span class="kw-2">&amp;mut </span>Type&gt; {
+    </span><span class="kw">fn </span>type_map(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;CName, <span class="kw-2">&amp;mut </span>Type&gt; {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.<span class="number">0</span>.types <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_ as </span><span class="kw-2">*mut </span>RedHashMap&lt;CName, <span class="kw-2">&amp;mut </span>Type&gt;) }
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>types_by_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;u32, <span class="kw-2">&amp;mut </span>Type&gt; {
+    </span><span class="kw">fn </span>type_by_id_map(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;u32, <span class="kw-2">&amp;mut </span>Type&gt; {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.<span class="number">0</span>.typesByAsyncId <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_ as </span><span class="kw-2">*mut </span>RedHashMap&lt;u32, <span class="kw-2">&amp;mut </span>Type&gt;) }
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">fn </span>type_ids(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;CName, u32&gt; {
+    </span><span class="kw">fn </span>type_id_map(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>RedHashMap&lt;CName, u32&gt; {
         <span class="kw">unsafe </span>{ <span class="kw-2">&amp;mut *</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.<span class="number">0</span>.typeAsyncIds <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_ as </span><span class="kw-2">*mut </span>RedHashMap&lt;CName, u32&gt;) }
     }
 

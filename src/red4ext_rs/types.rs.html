@@ -66,10 +66,10 @@
 <span class="kw">pub use </span>res::{RaRef, ResRef};
 <span class="kw">mod </span>tweak_db_id;
 <span class="kw">pub use </span>tweak_db_id::TweakDbId;
-<span class="kw">mod </span>array;
-<span class="kw">pub use </span>array::{IntoIter, RedArray};
+<span class="kw">pub mod </span>array;
+<span class="kw">pub use </span>array::RedArray;
 <span class="kw">mod </span>refs;
-<span class="kw">pub use </span>refs::{ClassKind, Native, Ref, ScriptClass, ScriptClassOps, ScriptRef, Scripted, WeakRef};
+<span class="kw">pub use </span>refs::{Ref, ScriptRef, WeakRef};
 <span class="kw">mod </span>string;
 <span class="kw">pub use </span>string::RedString;
 <span class="kw">mod </span>cname;
@@ -77,10 +77,10 @@
 <span class="kw">mod </span>rtti;
 <span class="kw">pub use </span>rtti::{
     ArrayType, Bitfield, Class, ClassFlags, ClassHandle, CurveType, Enum, Function, FunctionFlags,
-    FunctionHandler, GlobalFunction, IScriptable, ISerializable, Kind, Method, NativeArrayType,
+    FunctionHandler, GlobalFunction, IScriptable, ISerializable, Method, NativeArrayType,
     NativeClass, PointerType, Property, PropertyFlags, RaRefType, RefType, ResourceRefType,
-    ScriptRefType, StaticArrayType, StaticMethod, TaggedType, Type, ValueContainer, ValuePtr,
-    WeakRefType,
+    ScriptRefType, StaticArrayType, StaticMethod, TaggedType, Type, TypeKind, ValueContainer,
+    ValuePtr, WeakRefType,
 };
 <span class="kw">mod </span>bytecode;
 <span class="kw">pub use </span>bytecode::{
@@ -95,7 +95,7 @@
 <span class="kw">mod </span>sync;
 <span class="kw">pub use </span>sync::{RwSpinLockReadGuard, RwSpinLockWriteGuard};
 <span class="kw">mod </span>game_engine;
-<span class="kw">pub use </span>game_engine::{GameEngine, GameInstance, ScriptGameInstance, ScriptableSystem};
+<span class="kw">pub use </span>game_engine::{GameEngine, GameInstance, NativeGameInstance, ScriptableSystem};
 <span class="kw">mod </span>misc;
 <span class="kw">pub use </span>misc::{
     Curve, DataBuffer, DateTime, DeferredDataBuffer, EditorObjectId, Guid, LocalizationString,

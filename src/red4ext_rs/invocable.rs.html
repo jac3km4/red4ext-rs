@@ -477,6 +477,7 @@
 <a href="#477" id="477">477</a>
 <a href="#478" id="478">478</a>
 <a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ffi::CStr;
 <span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::mem::MaybeUninit;
@@ -484,12 +485,13 @@
 <span class="kw">use </span>sealed::sealed;
 <span class="kw">use </span>thiserror::Error;
 
+<span class="kw">use </span><span class="kw">crate</span>::class::ClassKind;
 <span class="kw">use </span><span class="kw">crate</span>::repr::{FromRepr, IntoRepr, NativeRepr};
 <span class="kw">use </span><span class="kw">crate</span>::types::{
-    CName, ClassKind, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable,
-    Method, PoolRef, Ref, ScriptClass, StackArg, StackFrame,
+    CName, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
+    Ref, StackArg, StackFrame,
 };
-<span class="kw">use </span><span class="kw">crate</span>::VoidPtr;
+<span class="kw">use crate</span>::{ScriptClass, VoidPtr};
 
 <span class="doccomment">/// An error returned when invoking a function fails.
 </span><span class="attr">#[derive(Debug, Error)]
@@ -554,7 +556,7 @@
 <span class="doccomment">/// A trait for functions that can be exported as global functions.
 </span><span class="attr">#[sealed]
 </span><span class="kw">pub trait </span>GlobalInvocable&lt;A, R&gt; {
-    <span class="kw">const </span>FN_TYPE: FnType;
+    <span class="kw">const </span>FN_TYPE: FunctionType;
 
     <span class="kw">fn </span>invoke(<span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>IScriptable, frame: <span class="kw-2">&amp;mut </span>StackFrame, ret: <span class="kw-2">&amp;mut </span>MaybeUninit&lt;R&gt;);
 }
@@ -570,7 +572,7 @@
                 $(<span class="macro-nonterminal">$types</span>: FromRepr, <span class="macro-nonterminal">$types::Repr</span>: Default,)*
                 R: IntoRepr
             {
-                <span class="kw">const </span>FN_TYPE: FnType = FnType {
+                <span class="kw">const </span>FN_TYPE: FunctionType = FunctionType {
                     args: <span class="kw-2">&amp;</span>[$(CName::new(<span class="macro-nonterminal">$types::Repr::NAME</span>),)<span class="kw-2">*</span>],
                     ret: CName::new(R::Repr::NAME)
                 };
@@ -599,7 +601,7 @@
 <span class="doccomment">/// A trait for functions that can be exported as class methods.
 </span><span class="attr">#[sealed]
 </span><span class="kw">pub trait </span>MethodInvocable&lt;Ctx, A, R&gt; {
-    <span class="kw">const </span>FN_TYPE: FnType;
+    <span class="kw">const </span>FN_TYPE: FunctionType;
 
     <span class="kw">fn </span>invoke(<span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>Ctx, frame: <span class="kw-2">&amp;mut </span>StackFrame, ret: <span class="kw-2">&amp;mut </span>MaybeUninit&lt;R&gt;);
 }
@@ -615,7 +617,7 @@
                 $(<span class="macro-nonterminal">$types</span>: FromRepr, <span class="macro-nonterminal">$types::Repr</span>: Default,)*
                 R: IntoRepr
             {
-                <span class="kw">const </span>FN_TYPE: FnType = FnType {
+                <span class="kw">const </span>FN_TYPE: FunctionType = FunctionType {
                     args: <span class="kw-2">&amp;</span>[$(CName::new(<span class="macro-nonterminal">$types::Repr::NAME</span>),)<span class="kw-2">*</span>],
                     ret: CName::new(R::Repr::NAME)
                 };
@@ -643,12 +645,12 @@
 
 <span class="doccomment">/// A representation of a function type, including its arguments and return type.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>FnType {
+</span><span class="kw">pub struct </span>FunctionType {
     args: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>[CName],
     ret: CName,
 }
 
-<span class="kw">impl </span>FnType {
+<span class="kw">impl </span>FunctionType {
     <span class="kw">fn </span>initialize_func(<span class="kw-2">&amp;</span><span class="self">self</span>, func: <span class="kw-2">&amp;mut </span>Function) {
         <span class="kw">for </span><span class="kw-2">&amp;</span>arg <span class="kw">in </span><span class="self">self</span>.args {
             func.add_param(arg, <span class="string">c""</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>);
@@ -662,7 +664,7 @@
 </span><span class="kw">pub struct </span>GlobalMetadata {
     name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>CStr,
     func: FunctionHandler&lt;IScriptable, VoidPtr&gt;,
-    typ: FnType,
+    typ: FunctionType,
 }
 
 <span class="kw">impl </span>GlobalMetadata {
@@ -698,7 +700,7 @@
 </span><span class="kw">pub struct </span>MethodMetadata&lt;Ctx&gt; {
     name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>CStr,
     func: FunctionHandler&lt;Ctx, VoidPtr&gt;,
-    typ: FnType,
+    typ: FunctionType,
     parent: PhantomData&lt;<span class="kw">fn</span>() -&gt; <span class="kw-2">*const </span>Ctx&gt;,
     is_event: bool,
     is_final: bool,
@@ -856,7 +858,7 @@
     };
     (<span class="macro-nonterminal">$this</span>:expr, <span class="macro-nonterminal">$fn_name</span>:literal ($( <span class="macro-nonterminal">$args</span>:expr ),<span class="kw-2">*</span>) -&gt; <span class="macro-nonterminal">$rett</span>:ty) =&gt; {
         (|| {
-            <span class="kw">let </span>receiver = <span class="macro-nonterminal">$crate::Receiver::as_receiver</span>(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$this</span>)<span class="question-mark">?</span>;
+            <span class="kw">let </span>receiver = <span class="macro-nonterminal">$crate::AsReceiver::as_receiver</span>(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$this</span>)<span class="question-mark">?</span>;
             <span class="macro-nonterminal">$crate::types::IScriptable::class</span>(receiver)
                 .get_method(<span class="macro-nonterminal">$crate::types::CName::new</span>(<span class="macro-nonterminal">$fn_name</span>))
                 .map_err(|err| <span class="macro-nonterminal">$crate::InvokeError::new_method_not_found</span>(<span class="macro-nonterminal">$fn_name</span>, err))<span class="question-mark">?
@@ -871,13 +873,13 @@
 
 <span class="doccomment">/// A trait for types that can be used as the receiver of a method call.
 </span><span class="attr">#[sealed]
-</span><span class="kw">pub trait </span>Receiver {
+</span><span class="kw">pub trait </span>AsReceiver {
     <span class="attr">#[doc(hidden)]
     </span><span class="kw">fn </span>as_receiver(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>IScriptable, InvokeError&gt;;
 }
 
 <span class="attr">#[sealed]
-</span><span class="kw">impl</span>&lt;T: AsRef&lt;IScriptable&gt;&gt; Receiver <span class="kw">for </span>T {
+</span><span class="kw">impl</span>&lt;T: AsRef&lt;IScriptable&gt;&gt; AsReceiver <span class="kw">for </span>T {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>as_receiver(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>IScriptable, InvokeError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.as_ref())
@@ -885,7 +887,7 @@
 }
 
 <span class="attr">#[sealed]
-</span><span class="kw">impl</span>&lt;T: ScriptClass&gt; Receiver <span class="kw">for </span>Ref&lt;T&gt;
+</span><span class="kw">impl</span>&lt;T: ScriptClass&gt; AsReceiver <span class="kw">for </span>Ref&lt;T&gt;
 <span class="kw">where
     </span>&lt;T::Kind <span class="kw">as </span>ClassKind&lt;T&gt;&gt;::NativeType: AsRef&lt;IScriptable&gt;,
 {
@@ -893,18 +895,18 @@
     </span><span class="kw">fn </span>as_receiver(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>IScriptable, InvokeError&gt; {
         <span class="kw">unsafe </span>{ <span class="self">self</span>.instance() }
             .map(AsRef::as_ref)
-            .ok_or(InvokeError::NullReceiver(T::CLASS_NAME))
+            .ok_or(InvokeError::NullReceiver(T::NAME))
     }
 }
 
 <span class="attr">#[sealed]
-</span><span class="kw">impl</span>&lt;T: ScriptClass&gt; Receiver <span class="kw">for </span><span class="kw-2">&amp;</span>Ref&lt;T&gt;
+</span><span class="kw">impl</span>&lt;T: ScriptClass&gt; AsReceiver <span class="kw">for </span><span class="kw-2">&amp;</span>Ref&lt;T&gt;
 <span class="kw">where
     </span>&lt;T::Kind <span class="kw">as </span>ClassKind&lt;T&gt;&gt;::NativeType: AsRef&lt;IScriptable&gt;,
 {
     <span class="attr">#[inline]
     </span><span class="kw">fn </span>as_receiver(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>IScriptable, InvokeError&gt; {
-        &lt;Ref&lt;T&gt; <span class="kw">as </span>Receiver&gt;::as_receiver(<span class="kw-2">*</span><span class="self">self</span>)
+        &lt;Ref&lt;T&gt; <span class="kw">as </span>AsReceiver&gt;::as_receiver(<span class="kw-2">*</span><span class="self">self</span>)
     }
 }
 

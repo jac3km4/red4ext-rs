@@ -211,6 +211,7 @@
 <a href="#211" id="211">211</a>
 <a href="#212" id="212">212</a>
 <a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::hash::Hash;
 <span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::path::Path;
@@ -222,7 +223,8 @@
 
 <span class="kw">pub const </span>MAX_LENGTH: usize = <span class="number">216</span>;
 
-<span class="attr">#[derive(Debug, Default, Clone, Copy)]
+<span class="doccomment">/// An asynchronous resource reference.
+</span><span class="attr">#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 </span><span class="kw">pub struct </span>RaRef&lt;T&gt;(red::RaRef, PhantomData&lt;T&gt;);
 

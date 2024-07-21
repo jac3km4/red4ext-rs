@@ -80,13 +80,16 @@
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::marker::PhantomData;
 <span class="kw">use </span>std::ops::{Deref, DerefMut};
 <span class="kw">use </span>std::ptr::NonNull;
 
 <span class="kw">use </span><span class="kw">crate</span>::raw::root::RED4ext <span class="kw">as </span>red;
 
-<span class="kw">pub struct </span>RwSpinLockReadGuard&lt;<span class="lifetime">'a</span>, T&gt; {
+<span class="doccomment">/// A read-write spin lock read guard. Permits any number of readers to access the locked data.
+</span><span class="kw">pub struct </span>RwSpinLockReadGuard&lt;<span class="lifetime">'a</span>, T&gt; {
     lock: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>red::SharedSpinLock,
     value: NonNull&lt;T&gt;,
     phantom: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T&gt;,
@@ -122,7 +125,8 @@
     }
 }
 
-<span class="kw">pub struct </span>RwSpinLockWriteGuard&lt;<span class="lifetime">'a</span>, T&gt; {
+<span class="doccomment">/// A read-write spin lock write guard. Permits only one thread at a time to access the locked data.
+</span><span class="kw">pub struct </span>RwSpinLockWriteGuard&lt;<span class="lifetime">'a</span>, T&gt; {
     lock: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>red::SharedSpinLock,
     value: NonNull&lt;T&gt;,
     phantom: PhantomData&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>T&gt;,

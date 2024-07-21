@@ -218,11 +218,13 @@
 <a href="#218" id="218">218</a>
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>sealed::sealed;
 
 <span class="kw">use </span><span class="kw">crate</span>::invocable::{GlobalMetadata, MethodMetadata};
 <span class="kw">use </span><span class="kw">crate</span>::systems::RttiSystemMut;
-<span class="kw">use </span><span class="kw">crate</span>::types::{CName, NativeClass, ScriptClass};
+<span class="kw">use </span><span class="kw">crate</span>::types::{CName, NativeClass};
+<span class="kw">use crate</span>::{class_kind, ScriptClass};
 
 <span class="doccomment">/// A list of exports to register with the game.
 </span><span class="attr">#[derive(Debug)]
@@ -295,7 +297,7 @@
 }
 
 <span class="attr">#[sealed]
-</span><span class="kw">impl</span>&lt;C: Default + Clone + ScriptClass&gt; Exportable <span class="kw">for </span>ClassExport&lt;C&gt; {
+</span><span class="kw">impl</span>&lt;C: Default + Clone + ScriptClass&lt;Kind = class_kind::Native&gt;&gt; Exportable <span class="kw">for </span>ClassExport&lt;C&gt; {
     <span class="kw">fn </span>register(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">let </span><span class="kw-2">mut </span>rtti = RttiSystemMut::get();
         <span class="kw">let </span>base = <span class="self">self
@@ -314,7 +316,7 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>rtti = RttiSystemMut::get();
         <span class="kw">let </span>class = rtti
-            .get_class(CName::new(C::CLASS_NAME))
+            .get_class(CName::new(C::NAME))
             .expect(<span class="string">"class should exist"</span>);
         <span class="kw">for </span>method <span class="kw">in </span>converted {
             class.add_method(method);
@@ -339,7 +341,7 @@
     </span>}
 
     <span class="doccomment">/// Set the methods of the class to be exported.
-    /// See the [`methods!`] macro for a convenient way to define methods.
+    /// See the [`methods!`](crate::methods) macro for a convenient way to define methods.
     </span><span class="kw">pub const fn </span>methods(<span class="kw-2">mut </span><span class="self">self</span>, methods: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>[MethodMetadata&lt;C&gt;]) -&gt; <span class="self">Self </span>{
         <span class="self">self</span>.methods = methods;
         <span class="self">self
@@ -371,14 +373,14 @@
     }
 }
 
-<span class="doccomment">/// Define a list of exports to register with the game.
+<span class="doccomment">/// Creates a list of exports to be registered within the game's RTTI system.
 ///
 /// # Example
 /// ```rust
 /// use std::cell::Cell;
 ///
-/// use red4ext_rs::{ClassExport, Exportable, GlobalExport, exports, methods, global};
-/// use red4ext_rs::types::{IScriptable, ScriptClass, Native};
+/// use red4ext_rs::{ClassExport, Exportable, GlobalExport, ScriptClass, class_kind, exports, methods, global};
+/// use red4ext_rs::types::IScriptable;
 ///
 /// fn exports() -&gt; impl Exportable {
 ///     exports![
@@ -416,8 +418,8 @@
 /// }
 ///
 /// unsafe impl ScriptClass for MyClass {
-///    const CLASS_NAME: &amp;'static str = "MyClass";
-///    type Kind = Native;
+///    const NAME: &amp;'static str = "MyClass";
+///    type Kind = class_kind::Native;
 /// }
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules!</span> exports {
