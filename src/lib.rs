@@ -183,7 +183,10 @@ macro_rules! export_plugin {
 /// `log` crate.
 #[cfg(not(feature = "log"))]
 pub mod log {
-    pub use crate::{debug, error, info, trace, warn};
+    #[doc(inline)]
+    pub use crate::{
+        __debug as debug, __error as error, __info as info, __trace as trace, __warn as warn,
+    };
 
     /// Logs a message at the info level.
     ///
@@ -196,8 +199,9 @@ pub mod log {
     ///     // log::info!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
+    #[doc(hidden)]
     #[macro_export]
-    macro_rules! info {
+    macro_rules! __info {
         ($env:expr, $($arg:tt)*) => {
             $env.info(format_args!($($arg)*))
         };
@@ -214,8 +218,9 @@ pub mod log {
     ///     // log::warn!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
+    #[doc(hidden)]
     #[macro_export]
-    macro_rules! warn {
+    macro_rules! __warn {
         ($env:expr, $($arg:tt)*) => {
             $env.warn(format_args!($($arg)*))
         };
@@ -232,8 +237,9 @@ pub mod log {
     ///     // log::error!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
+    #[doc(hidden)]
     #[macro_export]
-    macro_rules! error {
+    macro_rules! __error {
         ($env:expr, $($arg:tt)*) => {
             $env.error(format_args!($($arg)*))
         };
@@ -250,8 +256,9 @@ pub mod log {
     ///     // log::debug!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
+    #[doc(hidden)]
     #[macro_export]
-    macro_rules! debug {
+    macro_rules! __debug {
         ($env:expr, $($arg:tt)*) => {
             $env.debug(format_args!($($arg)*))
         };
@@ -268,8 +275,9 @@ pub mod log {
     ///     // log::trace!("Hello, world!"); // if the `log` feature is enabled
     /// }
     /// ```
+    #[doc(hidden)]
     #[macro_export]
-    macro_rules! trace {
+    macro_rules! __trace {
         ($env:expr, $($arg:tt)*) => {
             $env.trace(format_args!($($arg)*))
         };
