@@ -175,7 +175,7 @@ impl RttiSystem {
 
     /// Retrieve a reference to a map of all types by name.
     #[inline]
-    pub fn types(&self) -> &RedHashMap<CName, &Type> {
+    pub fn type_map(&self) -> &RedHashMap<CName, &Type> {
         unsafe { &*(&self.0.types as *const _ as *const RedHashMap<CName, &Type>) }
     }
 
@@ -266,10 +266,11 @@ impl RttiSystemMut {
     pub fn register_class(&mut self, mut class: ClassHandle) {
         // implemented manually to avoid the game trying to obtain the type lock
         let id = unsafe { red::RTTIRegistrator::GetNextId() };
-        self.types()
+        self.type_map()
             .insert(class.as_ref().name(), class.as_mut().as_type_mut());
-        self.types_by_id().insert(id, class.as_mut().as_type_mut());
-        self.type_ids().insert(class.as_ref().name(), id);
+        self.type_by_id_map()
+            .insert(id, class.as_mut().as_type_mut());
+        self.type_id_map().insert(class.as_ref().name(), id);
     }
 
     /// Register a new [`GlobalFunction`] with the RTTI system.
@@ -282,17 +283,17 @@ impl RttiSystemMut {
     }
 
     #[inline]
-    fn types(&mut self) -> &mut RedHashMap<CName, &mut Type> {
+    fn type_map(&mut self) -> &mut RedHashMap<CName, &mut Type> {
         unsafe { &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>) }
     }
 
     #[inline]
-    fn types_by_id(&mut self) -> &mut RedHashMap<u32, &mut Type> {
+    fn type_by_id_map(&mut self) -> &mut RedHashMap<u32, &mut Type> {
         unsafe { &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>) }
     }
 
     #[inline]
-    fn type_ids(&mut self) -> &mut RedHashMap<CName, u32> {
+    fn type_id_map(&mut self) -> &mut RedHashMap<CName, u32> {
         unsafe { &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>) }
     }
 
