@@ -4,8 +4,8 @@ use std::ptr::NonNull;
 use std::{fmt, iter, mem, ptr, slice};
 
 use super::{
-    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
-    StackArg, StackFrame, WeakRef,
+    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString, StackArg,
+    StackFrame, WeakRef,
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
