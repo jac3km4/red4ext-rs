@@ -4,8 +4,8 @@ use std::ptr::NonNull;
 use std::{fmt, iter, mem, ptr, slice};
 
 use super::{
-    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString, StackArg,
-    StackFrame,
+    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString,
+    StackArg, StackFrame, WeakRef,
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
@@ -1416,6 +1416,36 @@ impl ISerializable {
                 (&self.0) as *const _ as *mut red::ISerializable,
             ) as *const Class)
         }
+    }
+
+    #[inline]
+    pub fn is_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        self.class()
+            .base_iter_with_self()
+            .any(|class| class.name() == CName::new(U::NAME))
+    }
+
+    #[inline]
+    pub fn is_exactly_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        self.class().name() == CName::new(U::NAME)
+    }
+
+    #[inline]
+    pub fn inner_ref<U>(&self) -> WeakRef<U>
+    where
+        U: ScriptClass,
+    {
+        if !self.is_a::<U>() {
+            return WeakRef::default();
+        }
+        unsafe { mem::transmute::<&red::WeakHandle<red::ISerializable>, &WeakRef<U>>(&self.0.ref_) }
+            .clone()
     }
 }
 
