@@ -1441,11 +1441,12 @@ impl ISerializable {
     where
         U: ScriptClass,
     {
-        self.is_a::<U>()
-          .then(||
-            unsafe { mem::transmute::<&red::WeakHandle<red::ISerializable>, &WeakRef<U>>(&self.0.ref_) }
-              .clone()
-          )
+        self.is_a::<U>().then(|| {
+            unsafe {
+                mem::transmute::<&red::WeakHandle<red::ISerializable>, &WeakRef<U>>(&self.0.ref_)
+            }
+            .clone()
+        })
     }
 }
 

@@ -91,6 +91,28 @@ impl<T: ScriptClass> Ref<T> {
     pub fn is_null(&self) -> bool {
         self.0 .0.instance.is_null()
     }
+
+    #[inline]
+    pub fn is_exactly_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        !self.is_null()
+            && unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+                .unwrap()
+                .is_exactly_a::<U>()
+    }
+
+    #[inline]
+    pub fn is_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        !self.is_null()
+            && unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+                .unwrap()
+                .is_a::<U>()
+    }
 }
 
 impl<T: ScriptClass> Default for Ref<T> {
