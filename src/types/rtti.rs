@@ -1437,15 +1437,15 @@ impl ISerializable {
     }
 
     #[inline]
-    pub fn inner_ref<U>(&self) -> WeakRef<U>
+    pub fn inner_ref<U>(&self) -> Option<WeakRef<U>>
     where
         U: ScriptClass,
     {
-        if !self.is_a::<U>() {
-            return WeakRef::default();
-        }
-        unsafe { mem::transmute::<&red::WeakHandle<red::ISerializable>, &WeakRef<U>>(&self.0.ref_) }
-            .clone()
+        self.is_a::<U>()
+          .then(||
+            unsafe { mem::transmute::<&red::WeakHandle<red::ISerializable>, &WeakRef<U>>(&self.0.ref_) }
+              .clone()
+          )
     }
 }
 
