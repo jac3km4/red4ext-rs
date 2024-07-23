@@ -98,8 +98,7 @@ impl<T: ScriptClass> Ref<T> {
         U: ScriptClass,
     {
         unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
-            .unwrap()
-            .is_exactly_a::<U>()
+            .is_some_and(|x| x.is_exactly_a::<U>())
     }
 
     #[inline]
@@ -108,8 +107,7 @@ impl<T: ScriptClass> Ref<T> {
         U: ScriptClass,
     {
         unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
-            .unwrap()
-            .is_a::<U>()
+            .is_some_and(|x| x.is_a::<U>())
     }
 }
 
