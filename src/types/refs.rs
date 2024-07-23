@@ -83,16 +83,31 @@ impl<T: ScriptClass> Ref<T> {
         U: ScriptClass,
     {
         let inst = unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }?;
-        inst.class()
-            .base_iter_with_self()
-            .any(|class| class.name() == CName::new(U::NAME))
-            .then(|| unsafe { mem::transmute(self) })
+        inst.is_a::<U>().then(|| unsafe { mem::transmute(self) })
     }
 
     /// Returns whether the reference is null.
     #[inline]
     pub fn is_null(&self) -> bool {
         self.0 .0.instance.is_null()
+    }
+
+    #[inline]
+    pub fn is_exactly_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+            .is_some_and(ISerializable::is_exactly_a::<U>)
+    }
+
+    #[inline]
+    pub fn is_a<U>(&self) -> bool
+    where
+        U: ScriptClass,
+    {
+        unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+            .is_some_and(ISerializable::is_a::<U>)
     }
 }
 
