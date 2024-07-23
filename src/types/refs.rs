@@ -107,8 +107,7 @@ impl<T: ScriptClass> Ref<T> {
     where
         U: ScriptClass,
     {
-        !self.is_null()
-            && unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+            unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
                 .unwrap()
                 .is_a::<U>()
     }
