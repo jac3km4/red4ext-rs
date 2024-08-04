@@ -145,7 +145,7 @@ native class MyClass {
 use std::cell::Cell;
 
 use red4ext_rs::types::IScriptable;
-use red4ext_rs::{class_kind, exports, methods, ClassExport, Exportable, ScriptClass};
+use red4ext_rs::{class_kind, exports, methods, ClassExport, Exportable, NativeRepr, ScriptClass};
 
 // ...defined in impl Plugin
 fn exports() -> impl Exportable {
