@@ -245,6 +245,6 @@ macro_rules! methods {
 #[macro_export]
 macro_rules! static_methods {
     [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
-        const { &[$($crate::static_method!($($mod)* $name, $ty::$id)),*] }
+        const { &[$($crate::global!($($mod)* $name, $ty::$id)),*] }
     };
 }

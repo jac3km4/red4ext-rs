@@ -286,59 +286,6 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
     }
 }
 
-/// A representation of a class method, including its name, a function handler, and its type.
-#[derive(Debug)]
-pub struct StaticMethodMetadata<Ctx> {
-    name: &'static CStr,
-    func: FunctionHandler<IScriptable, VoidPtr>,
-    typ: FunctionType,
-    parent: PhantomData<fn() -> *const Ctx>,
-    is_final: bool,
-}
-
-impl<Ctx: ScriptClass> StaticMethodMetadata<Ctx> {
-    #[doc(hidden)]
-    #[inline]
-    pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
-        name: &'static CStr,
-        ptr: FunctionHandler<IScriptable, VoidPtr>,
-        _f: &F,
-    ) -> Self {
-        Self {
-            name,
-            func: ptr,
-            typ: F::FN_TYPE,
-            parent: PhantomData,
-            is_final: false,
-        }
-    }
-
-    /// Configures this method as final (cannot be overridden).
-    pub const fn with_is_final(mut self) -> Self {
-        self.is_final = true;
-        self
-    }
-
-    /// Converts this metadata into a [`StaticMethod`] instance, which can be registered with
-    /// the [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti(&self) -> PoolRef<StaticMethod> {
-        let mut flags = FunctionFlags::default();
-        flags.set_is_native(true);
-        flags.set_is_static(true);
-        flags.set_is_final(self.is_final);
-
-        let rtti = RttiSystem::get();
-        let class = rtti
-            .get_class(CName::new(Ctx::NAME))
-            .expect("should find the class");
-
-        let mut func =
-            StaticMethod::new::<IScriptable, _>(self.name, self.name, class, self.func, flags);
-        self.typ.initialize_func(func.as_function_mut());
-        func
-    }
-}
-
 /// A macro for defining global functions. Usually used in conjunction with the
 /// [`exports!`](crate::exports) macro.
 ///
@@ -394,30 +341,6 @@ macro_rules! method {
     (event $name:literal, $ty:ident::$id:ident $($mods:ident)*) => {
         $crate::method!($name, $ty::$id with_is_event $($mods)*)
     };
-    (final $name:literal, $ty:ident::$id:ident $($mods:ident)*) => {
-        $crate::method!($name, $ty::$id with_is_final $($mods)*)
-    }
-}
-
-/// A macro for defining class static methods. Usually used in conjunction with the
-/// [`static_methods!`](crate::static_methods) macro.
-#[macro_export]
-macro_rules! static_method {
-    ($name:literal, $ty:ident::$id:ident $($mods:ident)*) => {{
-        extern "C" fn native_impl(
-            ctx: &$ty,
-            frame: &mut $crate::types::StackFrame,
-            ret: $crate::VoidPtr,
-            _unk: i64,
-        ) {
-            let out = unsafe { ::std::mem::transmute(ret) };
-            $crate::MethodInvocable::invoke($ty::$id, ctx, frame, out);
-            unsafe { frame.step() };
-        }
-
-        $crate::StaticMethodMetadata::new($name, native_impl, &$ty::$id)
-            $(.$mods())?
-    }};
     (final $name:literal, $ty:ident::$id:ident $($mods:ident)*) => {
         $crate::method!($name, $ty::$id with_is_final $($mods)*)
     }
