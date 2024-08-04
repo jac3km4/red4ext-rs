@@ -89,26 +89,27 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
     }
 
     fn post_register(&self) {
-        let converted = self
+        let mut rtti = RttiSystemMut::get();
+        let class = rtti
+            .get_class(CName::new(C::NAME))
+            .expect("class should exist");
+
+        let converted_methods = self
             .methods
             .iter()
             .map(MethodMetadata::to_rtti)
             .collect::<Vec<_>>();
 
-        let converted_static = self
+        let converted_static_methods = self
             .static_methods
             .iter()
-            .map(GlobalMetadata::to_rtti_static_method::<C>)
+            .map(|x| x.to_rtti_static_method(class))
             .collect::<Vec<_>>();
-
-        let mut rtti = RttiSystemMut::get();
-        let class = rtti
-            .get_class(CName::new(C::NAME))
-            .expect("class should exist");
-        for method in converted {
+        
+        for method in converted_methods {
             class.add_method(method);
         }
-        for static_method in converted_static {
+        for static_method in converted_static_methods {
             class.add_static_method(static_method);
         }
     }

@@ -8,10 +8,10 @@ use thiserror::Error;
 use crate::class::ClassKind;
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
-    Ref, StackArg, StackFrame, StaticMethod,
+    CName, Class, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method,
+    PoolRef, Ref, StackArg, StackFrame, StaticMethod,
 };
-use crate::{RttiSystem, ScriptClass, VoidPtr};
+use crate::{ScriptClass, VoidPtr};
 
 /// An error returned when invoking a function fails.
 #[derive(Debug, Error)]
@@ -216,16 +216,11 @@ impl GlobalMetadata {
 
     /// Converts this metadata into a [`StaticMethod`] instance, which can be registered with
     /// [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti_static_method<C: ScriptClass>(&self) -> PoolRef<StaticMethod> {
+    pub fn to_rtti_static_method(&self, class: &Class) -> PoolRef<StaticMethod> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_final(true);
         flags.set_is_static(true);
-
-        let rtti = RttiSystem::get();
-        let class = rtti
-            .get_class(CName::new(C::NAME))
-            .expect("class should exist");
 
         let mut func = StaticMethod::new(self.name, self.name, class, self.func, flags);
         self.typ.initialize_func(func.as_function_mut());
