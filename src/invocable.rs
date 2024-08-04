@@ -213,6 +213,22 @@ impl GlobalMetadata {
         self.typ.initialize_func(func.as_function_mut());
         func
     }
+
+    /// Converts this metadata into a [`StaticMethod`] instance, which can be registered with
+    /// [RttiSystemMut](crate::RttiSystemMut).
+    pub fn to_rtti_static_method<C: ScriptClass>(&self) -> PoolRef<StaticMethod> {
+        let mut flags = FunctionFlags::default();
+        flags.set_is_native(true);
+        flags.set_is_final(true);
+        flags.set_is_static(true);
+
+        let rtti = RttiSystem::get();
+        let class = rtti.get_class(CName::new(C::NAME)).expect(C::NAME);
+
+        let mut func = StaticMethod::new::<C, _>(self.name, self.name, class, self.func, flags);
+        self.typ.initialize_func(func.as_function_mut());
+        func
+    }
 }
 
 /// A representation of a class method, including its name, a function handler, and its type.
@@ -274,7 +290,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 #[derive(Debug)]
 pub struct StaticMethodMetadata<Ctx> {
     name: &'static CStr,
-    func: FunctionHandler<Ctx, VoidPtr>,
+    func: FunctionHandler<IScriptable, VoidPtr>,
     typ: FunctionType,
     parent: PhantomData<fn() -> *const Ctx>,
     is_final: bool,
@@ -285,7 +301,7 @@ impl<Ctx: ScriptClass> StaticMethodMetadata<Ctx> {
     #[inline]
     pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
         name: &'static CStr,
-        ptr: FunctionHandler<Ctx, VoidPtr>,
+        ptr: FunctionHandler<IScriptable, VoidPtr>,
         _f: &F,
     ) -> Self {
         Self {
@@ -316,7 +332,8 @@ impl<Ctx: ScriptClass> StaticMethodMetadata<Ctx> {
             .get_class(CName::new(Ctx::NAME))
             .expect("should find the class");
 
-        let mut func = StaticMethod::new(self.name, self.name, class, self.func);
+        let mut func =
+            StaticMethod::new::<IScriptable, _>(self.name, self.name, class, self.func, flags);
         self.typ.initialize_func(func.as_function_mut());
         func
     }

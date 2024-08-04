@@ -1,6 +1,6 @@
 use sealed::sealed;
 
-use crate::invocable::{GlobalMetadata, MethodMetadata, StaticMethodMetadata};
+use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
 use crate::{class_kind, ScriptClass};
@@ -64,7 +64,7 @@ impl Exportable for ExportNil {
 pub struct ClassExport<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
-    static_methods: &'static [StaticMethodMetadata<C>],
+    static_methods: &'static [GlobalMetadata],
 }
 
 impl<C: ScriptClass> ClassExport<C> {
@@ -98,7 +98,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
         let converted_static = self
             .static_methods
             .iter()
-            .map(StaticMethodMetadata::to_rtti)
+            .map(GlobalMetadata::to_rtti_static_method::<C>)
             .collect::<Vec<_>>();
 
         let mut rtti = RttiSystemMut::get();
@@ -119,7 +119,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
 pub struct ClassExportBuilder<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
-    static_methods: &'static [StaticMethodMetadata<C>],
+    static_methods: &'static [GlobalMetadata],
 }
 
 impl<C> ClassExportBuilder<C> {
@@ -140,10 +140,7 @@ impl<C> ClassExportBuilder<C> {
 
     /// Set the static methods of the class to be exported.
     /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
-    pub const fn static_methods(
-        mut self,
-        static_methods: &'static [StaticMethodMetadata<C>],
-    ) -> Self {
+    pub const fn static_methods(mut self, static_methods: &'static [GlobalMetadata]) -> Self {
         self.static_methods = static_methods;
         self
     }

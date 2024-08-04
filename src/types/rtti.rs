@@ -1092,7 +1092,8 @@ impl StaticMethod {
         full_name: &CStr,
         short_name: &CStr,
         class: &Class,
-        handler: FunctionHandler<C, R>,
+        handler: FunctionHandler<IScriptable, R>,
+        flags: FunctionFlags,
     ) -> PoolRef<Self>
     where
         C: ScriptClass,
@@ -1107,6 +1108,7 @@ impl StaticMethod {
             full_name,
             short_name,
             handler as _,
+            flags,
         );
         unsafe { func.assume_init() }
     }
@@ -1117,6 +1119,7 @@ impl StaticMethod {
         full_name: CName,
         short_name: CName,
         handler: VoidPtr,
+        flags: FunctionFlags,
     ) {
         unsafe {
             let ctor = crate::fn_from_hash!(
@@ -1130,14 +1133,7 @@ impl StaticMethod {
                     red::CBaseFunction_Flags,
                 )
             );
-            ctor(
-                ptr,
-                class,
-                full_name,
-                short_name,
-                handler,
-                Default::default(),
-            );
+            ctor(ptr, class, full_name, short_name, handler, flags.0);
         };
     }
 
