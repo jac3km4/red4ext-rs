@@ -10,7 +10,6 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
-use crate::systems::RttiSystem;
 use crate::{class_kind, ScriptClass, VoidPtr};
 
 /// A handler for function calls.
@@ -1013,6 +1012,7 @@ impl Method {
     pub fn new<C, R>(
         full_name: &CStr,
         short_name: &CStr,
+        class: &Class,
         handler: FunctionHandler<C, R>,
         flags: FunctionFlags,
     ) -> PoolRef<Self>
@@ -1023,10 +1023,10 @@ impl Method {
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
 
-        let rtti = RttiSystem::get();
-        let class = rtti
-            .get_class(CName::new(C::NAME))
-            .expect("should find the class");
+        check_invariant(
+            CName::new(C::NAME) == class.name(),
+            "class name doesn't match",
+        );
 
         Self::ctor(
             func.as_mut_ptr(),
@@ -1573,4 +1573,17 @@ struct FunctionVft {
     get_allocator: unsafe extern "fastcall" fn(this: &Function) -> *mut IAllocator,
     destruct: unsafe extern "fastcall" fn(this: &mut Function),
     get_parent: unsafe extern "fastcall" fn(this: &Function) -> *mut Class,
+}
+
+#[cold]
+#[track_caller]
+fn check_invariant(success: bool, message: &'static str) {
+    #[cfg(feature = "log")]
+    if !success {
+        log::error(
+            "invariant violated: {message}: {}",
+            std::panic::Location::caller(),
+        );
+    }
+    assert!(success, "{message}");
 }

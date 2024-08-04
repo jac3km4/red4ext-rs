@@ -271,13 +271,13 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 
     /// Converts this metadata into a [`Method`] instance, which can be registered with
     /// the [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti(&self) -> PoolRef<Method> {
+    pub fn to_rtti(&self, class: &Class) -> PoolRef<Method> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_event(self.is_event);
         flags.set_is_final(self.is_final);
 
-        let mut func = Method::new(self.name, self.name, self.func, flags);
+        let mut func = Method::new(self.name, self.name, class, self.func, flags);
         self.typ.initialize_func(func.as_function_mut());
         func
     }

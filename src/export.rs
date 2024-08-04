@@ -97,7 +97,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
         let converted_methods = self
             .methods
             .iter()
-            .map(MethodMetadata::to_rtti)
+            .map(|x| x.to_rtti(class))
             .collect::<Vec<_>>();
 
         let converted_static_methods = self
@@ -105,7 +105,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             .iter()
             .map(|x| x.to_rtti_static_method(class))
             .collect::<Vec<_>>();
-        
+
         for method in converted_methods {
             class.add_method(method);
         }
