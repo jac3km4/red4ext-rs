@@ -1,6 +1,6 @@
 use sealed::sealed;
 
-use crate::invocable::{GlobalMetadata, MethodMetadata};
+use crate::invocable::{GlobalMetadata, MethodMetadata, StaticMethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
 use crate::{class_kind, ScriptClass};
@@ -64,6 +64,7 @@ impl Exportable for ExportNil {
 pub struct ClassExport<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
+    static_methods: &'static [StaticMethodMetadata<C>],
 }
 
 impl<C: ScriptClass> ClassExport<C> {
@@ -71,6 +72,7 @@ impl<C: ScriptClass> ClassExport<C> {
         ClassExportBuilder {
             base: None,
             methods: &[],
+            static_methods: &[],
         }
     }
 }
@@ -93,12 +95,21 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             .map(MethodMetadata::to_rtti)
             .collect::<Vec<_>>();
 
+        let converted_static = self
+            .static_methods
+            .iter()
+            .map(StaticMethodMetadata::to_rtti)
+            .collect::<Vec<_>>();
+
         let mut rtti = RttiSystemMut::get();
         let class = rtti
             .get_class(CName::new(C::NAME))
             .expect("class should exist");
         for method in converted {
             class.add_method(method);
+        }
+        for static_method in converted_static {
+            class.add_static_method(static_method);
         }
     }
 }
@@ -108,6 +119,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
 pub struct ClassExportBuilder<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
+    static_methods: &'static [StaticMethodMetadata<C>],
 }
 
 impl<C> ClassExportBuilder<C> {
@@ -126,11 +138,22 @@ impl<C> ClassExportBuilder<C> {
         self
     }
 
+    /// Set the static methods of the class to be exported.
+    /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
+    pub const fn static_methods(
+        mut self,
+        static_methods: &'static [StaticMethodMetadata<C>],
+    ) -> Self {
+        self.static_methods = static_methods;
+        self
+    }
+
     /// Build the final [`ClassExport`] instance.
     pub const fn build(self) -> ClassExport<C> {
         ClassExport {
             base: self.base,
             methods: self.methods,
+            static_methods: self.static_methods,
         }
     }
 }
@@ -217,5 +240,14 @@ macro_rules! exports {
 macro_rules! methods {
     [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
         const { &[$($crate::method!($($mod)* $name, $ty::$id)),*] }
+    };
+}
+
+/// Define a list of methods to register with the game. Usually used in conjuction with
+/// [`exports!`].
+#[macro_export]
+macro_rules! static_methods {
+    [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
+        const { &[$($crate::static_method!($($mod)* $name, $ty::$id)),*] }
     };
 }

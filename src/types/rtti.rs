@@ -1088,12 +1088,15 @@ impl Drop for Method {
 pub struct StaticMethod(red::CClassStaticFunction);
 
 impl StaticMethod {
-    pub fn new<R>(
+    pub fn new<C, R>(
         full_name: &CStr,
         short_name: &CStr,
         class: &Class,
-        handler: FunctionHandler<IScriptable, R>,
-    ) -> PoolRef<Self> {
+        handler: FunctionHandler<C, R>,
+    ) -> PoolRef<Self>
+    where
+        C: ScriptClass,
+    {
         let mut func = StaticMethod::alloc().expect("should allocate a StaticMethod");
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
