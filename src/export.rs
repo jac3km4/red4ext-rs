@@ -240,7 +240,7 @@ macro_rules! methods {
     };
 }
 
-/// Define a list of methods to register with the game. Usually used in conjuction with
+/// Define a list of static methods to register with the game. Usually used in conjuction with
 /// [`exports!`].
 #[macro_export]
 macro_rules! static_methods {
