@@ -3,7 +3,7 @@ use sealed::sealed;
 use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
-use crate::{class_kind, ScriptClass};
+use crate::{class_kind, RttiSystem, ScriptClass};
 
 /// A list of exports to register with the game.
 #[derive(Debug)]
@@ -64,6 +64,7 @@ impl Exportable for ExportNil {
 pub struct ClassExport<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
+    static_methods: &'static [GlobalMetadata],
 }
 
 impl<C: ScriptClass> ClassExport<C> {
@@ -71,6 +72,7 @@ impl<C: ScriptClass> ClassExport<C> {
         ClassExportBuilder {
             base: None,
             methods: &[],
+            static_methods: &[],
         }
     }
 }
@@ -87,18 +89,34 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
     }
 
     fn post_register(&self) {
-        let converted = self
-            .methods
-            .iter()
-            .map(MethodMetadata::to_rtti)
-            .collect::<Vec<_>>();
+        let (converted_methods, converted_static_methods) = {
+            let rtti_ro = RttiSystem::get();
+            let class = rtti_ro
+                .get_class(CName::new(C::NAME))
+                .expect("class should exist");
+            let converted_methods = self
+                .methods
+                .iter()
+                .map(|x| x.to_rtti(class))
+                .collect::<Vec<_>>();
+            let converted_static_methods = self
+                .static_methods
+                .iter()
+                .map(|x| x.to_rtti_static_method(class))
+                .collect::<Vec<_>>();
+            (converted_methods, converted_static_methods)
+        };
 
-        let mut rtti = RttiSystemMut::get();
-        let class = rtti
+        let mut rtti_rw = RttiSystemMut::get();
+        let class = rtti_rw
             .get_class(CName::new(C::NAME))
             .expect("class should exist");
-        for method in converted {
+
+        for method in converted_methods {
             class.add_method(method);
+        }
+        for static_method in converted_static_methods {
+            class.add_static_method(static_method);
         }
     }
 }
@@ -108,6 +126,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
 pub struct ClassExportBuilder<C: 'static> {
     base: Option<&'static str>,
     methods: &'static [MethodMetadata<C>],
+    static_methods: &'static [GlobalMetadata],
 }
 
 impl<C> ClassExportBuilder<C> {
@@ -126,11 +145,19 @@ impl<C> ClassExportBuilder<C> {
         self
     }
 
+    /// Set the static methods of the class to be exported.
+    /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
+    pub const fn static_methods(mut self, static_methods: &'static [GlobalMetadata]) -> Self {
+        self.static_methods = static_methods;
+        self
+    }
+
     /// Build the final [`ClassExport`] instance.
     pub const fn build(self) -> ClassExport<C> {
         ClassExport {
             base: self.base,
             methods: self.methods,
+            static_methods: self.static_methods,
         }
     }
 }
@@ -217,5 +244,14 @@ macro_rules! exports {
 macro_rules! methods {
     [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
         const { &[$($crate::method!($($mod)* $name, $ty::$id)),*] }
+    };
+}
+
+/// Define a list of static methods to register with the game. Usually used in conjuction with
+/// [`exports!`].
+#[macro_export]
+macro_rules! static_methods {
+    [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
+        const { &[$($crate::global!($($mod)* $name, $ty::$id)),*] }
     };
 }
