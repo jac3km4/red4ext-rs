@@ -1094,10 +1094,7 @@ impl StaticMethod {
         class: &Class,
         handler: FunctionHandler<IScriptable, R>,
         flags: FunctionFlags,
-    ) -> PoolRef<Self>
-    where
-        C: ScriptClass,
-    {
+    ) -> PoolRef<Self> {
         let mut func = StaticMethod::alloc().expect("should allocate a StaticMethod");
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
