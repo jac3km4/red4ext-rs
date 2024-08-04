@@ -3,7 +3,7 @@ use sealed::sealed;
 use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
-use crate::{class_kind, ScriptClass};
+use crate::{class_kind, RttiSystem, ScriptClass};
 
 /// A list of exports to register with the game.
 #[derive(Debug)]
@@ -89,22 +89,28 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
     }
 
     fn post_register(&self) {
-        let mut rtti = RttiSystemMut::get();
-        let class = rtti
+        let (converted_methods, converted_static_methods) = {
+            let rtti_ro = RttiSystem::get();
+            let class = rtti_ro
+                .get_class(CName::new(C::NAME))
+                .expect("class should exist");
+            let converted_methods = self
+                .methods
+                .iter()
+                .map(|x| x.to_rtti(class))
+                .collect::<Vec<_>>();
+            let converted_static_methods = self
+                .static_methods
+                .iter()
+                .map(|x| x.to_rtti_static_method(class))
+                .collect::<Vec<_>>();
+            (converted_methods, converted_static_methods)
+        };
+
+        let mut rtti_rw = RttiSystemMut::get();
+        let class = rtti_rw
             .get_class(CName::new(C::NAME))
             .expect("class should exist");
-
-        let converted_methods = self
-            .methods
-            .iter()
-            .map(|x| x.to_rtti(class))
-            .collect::<Vec<_>>();
-
-        let converted_static_methods = self
-            .static_methods
-            .iter()
-            .map(|x| x.to_rtti_static_method(class))
-            .collect::<Vec<_>>();
 
         for method in converted_methods {
             class.add_method(method);
