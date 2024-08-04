@@ -759,7 +759,7 @@ pub(crate) use fn_from_hash;
 fn check_invariant(success: bool, message: &'static str) {
     #[cfg(feature = "log")]
     if !success {
-        log::error(
+        log::error!(
             "invariant violated: {message}: {}",
             std::panic::Location::caller(),
         );
