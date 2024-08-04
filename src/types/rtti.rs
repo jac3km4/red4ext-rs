@@ -10,7 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
-use crate::{class_kind, ScriptClass, VoidPtr};
+use crate::{check_invariant, class_kind, ScriptClass, VoidPtr};
 
 /// A handler for function calls.
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
@@ -1573,17 +1573,4 @@ struct FunctionVft {
     get_allocator: unsafe extern "fastcall" fn(this: &Function) -> *mut IAllocator,
     destruct: unsafe extern "fastcall" fn(this: &mut Function),
     get_parent: unsafe extern "fastcall" fn(this: &Function) -> *mut Class,
-}
-
-#[cold]
-#[track_caller]
-fn check_invariant(success: bool, message: &'static str) {
-    #[cfg(feature = "log")]
-    if !success {
-        log::error(
-            "invariant violated: {message}: {}",
-            std::panic::Location::caller(),
-        );
-    }
-    assert!(success, "{message}");
 }
