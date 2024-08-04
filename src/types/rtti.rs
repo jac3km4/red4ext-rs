@@ -1088,7 +1088,7 @@ impl Drop for Method {
 pub struct StaticMethod(red::CClassStaticFunction);
 
 impl StaticMethod {
-    pub fn new<C, R>(
+    pub fn new<R>(
         full_name: &CStr,
         short_name: &CStr,
         class: &Class,

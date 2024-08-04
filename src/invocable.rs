@@ -227,7 +227,7 @@ impl GlobalMetadata {
             .get_class(CName::new(C::NAME))
             .expect("class should exist");
 
-        let mut func = StaticMethod::new::<C, _>(self.name, self.name, class, self.func, flags);
+        let mut func = StaticMethod::new::<_>(self.name, self.name, class, self.func, flags);
         self.typ.initialize_func(func.as_function_mut());
         func
     }
