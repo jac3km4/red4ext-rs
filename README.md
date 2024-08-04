@@ -149,6 +149,7 @@ use red4ext_rs::{class_kind, exports, methods, ClassExport, Exportable, ScriptCl
 
 // ...defined in impl Plugin
 fn exports() -> impl Exportable {
+    // a struct has no base
     exports![ClassExport::<MyClass>::builder().build(),]
 }
 
@@ -158,6 +159,7 @@ struct MyClass {
     value: Cell<i32>,
 }
 
+// but it must implement both traits
 unsafe impl NativeRepr for MyClass {
     const NAME: &'static str = "MyClass";
 }
