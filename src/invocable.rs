@@ -8,8 +8,8 @@ use thiserror::Error;
 use crate::class::ClassKind;
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
-    CName, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method, PoolRef,
-    Ref, StackArg, StackFrame,
+    CName, Class, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method,
+    PoolRef, Ref, StackArg, StackFrame, StaticMethod,
 };
 use crate::{ScriptClass, VoidPtr};
 
@@ -213,6 +213,19 @@ impl GlobalMetadata {
         self.typ.initialize_func(func.as_function_mut());
         func
     }
+
+    /// Converts this metadata into a [`StaticMethod`] instance, which can be registered with
+    /// [RttiSystemMut](crate::RttiSystemMut).
+    pub fn to_rtti_static_method(&self, class: &Class) -> PoolRef<StaticMethod> {
+        let mut flags = FunctionFlags::default();
+        flags.set_is_native(true);
+        flags.set_is_final(true);
+        flags.set_is_static(true);
+
+        let mut func = StaticMethod::new(self.name, self.name, class, self.func, flags);
+        self.typ.initialize_func(func.as_function_mut());
+        func
+    }
 }
 
 /// A representation of a class method, including its name, a function handler, and its type.
@@ -258,13 +271,13 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 
     /// Converts this metadata into a [`Method`] instance, which can be registered with
     /// the [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti(&self) -> PoolRef<Method> {
+    pub fn to_rtti(&self, class: &Class) -> PoolRef<Method> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_event(self.is_event);
         flags.set_is_final(self.is_final);
 
-        let mut func = Method::new(self.name, self.name, self.func, flags);
+        let mut func = Method::new(self.name, self.name, class, self.func, flags);
         self.typ.initialize_func(func.as_function_mut());
         func
     }

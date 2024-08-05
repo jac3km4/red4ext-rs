@@ -10,8 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
-use crate::systems::RttiSystem;
-use crate::{class_kind, ScriptClass, VoidPtr};
+use crate::{check_invariant, class_kind, ScriptClass, VoidPtr};
 
 /// A handler for function calls.
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
@@ -1013,6 +1012,7 @@ impl Method {
     pub fn new<C, R>(
         full_name: &CStr,
         short_name: &CStr,
+        class: &Class,
         handler: FunctionHandler<C, R>,
         flags: FunctionFlags,
     ) -> PoolRef<Self>
@@ -1023,10 +1023,10 @@ impl Method {
         let full_name = CNamePool::add_cstr(full_name);
         let short_name = CNamePool::add_cstr(short_name);
 
-        let rtti = RttiSystem::get();
-        let class = rtti
-            .get_class(CName::new(C::NAME))
-            .expect("should find the class");
+        check_invariant(
+            CName::new(C::NAME) == class.name(),
+            "class name doesn't match",
+        );
 
         Self::ctor(
             func.as_mut_ptr(),
@@ -1093,6 +1093,7 @@ impl StaticMethod {
         short_name: &CStr,
         class: &Class,
         handler: FunctionHandler<IScriptable, R>,
+        flags: FunctionFlags,
     ) -> PoolRef<Self> {
         let mut func = StaticMethod::alloc().expect("should allocate a StaticMethod");
         let full_name = CNamePool::add_cstr(full_name);
@@ -1104,6 +1105,7 @@ impl StaticMethod {
             full_name,
             short_name,
             handler as _,
+            flags,
         );
         unsafe { func.assume_init() }
     }
@@ -1114,6 +1116,7 @@ impl StaticMethod {
         full_name: CName,
         short_name: CName,
         handler: VoidPtr,
+        flags: FunctionFlags,
     ) {
         unsafe {
             let ctor = crate::fn_from_hash!(
@@ -1127,14 +1130,7 @@ impl StaticMethod {
                     red::CBaseFunction_Flags,
                 )
             );
-            ctor(
-                ptr,
-                class,
-                full_name,
-                short_name,
-                handler,
-                Default::default(),
-            );
+            ctor(ptr, class, full_name, short_name, handler, flags.0);
         };
     }
 

@@ -753,3 +753,16 @@ macro_rules! fn_from_hash {
 }
 
 pub(crate) use fn_from_hash;
+
+#[cold]
+#[track_caller]
+fn check_invariant(success: bool, message: &'static str) {
+    #[cfg(feature = "log")]
+    if !success {
+        log::error!(
+            "invariant violated: {message}: {}",
+            std::panic::Location::caller(),
+        );
+    }
+    assert!(success, "{message}");
+}
