@@ -115,7 +115,8 @@ impl_global_invocable!(
     (A, B, C),
     (A, B, C, D),
     (A, B, C, D, E),
-    (A, B, C, D, E, F)
+    (A, B, C, D, E, F),
+    (A, B, C, D, E, F, G)
 );
 
 /// A trait for functions that can be exported as class methods.
@@ -160,7 +161,8 @@ impl_method_invocable!(
     (A, B, C),
     (A, B, C, D),
     (A, B, C, D, E),
-    (A, B, C, D, E, F)
+    (A, B, C, D, E, F),
+    (A, B, C, D, E, F, G)
 );
 
 /// A representation of a function type, including its arguments and return type.
@@ -489,5 +491,6 @@ impl_args!(
     (A, B, C),
     (A, B, C, D),
     (A, B, C, D, E),
-    (A, B, C, D, E, F)
+    (A, B, C, D, E, F),
+    (A, B, C, D, E, F, G)
 );
