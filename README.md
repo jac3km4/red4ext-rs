@@ -140,6 +140,42 @@ native class MyClass {
 }
 ```
 
+### define and export your own struct type
+```rust
+use std::cell::Cell;
+
+use red4ext_rs::types::IScriptable;
+use red4ext_rs::{class_kind, exports, methods, ClassExport, Exportable, NativeRepr, ScriptClass};
+
+// ...defined in impl Plugin
+fn exports() -> impl Exportable {
+    // a struct has no base
+    exports![ClassExport::<MyClass>::builder().build(),]
+}
+
+#[derive(Debug, Default, Clone)]
+#[repr(C)]
+struct MyClass {
+    value: Cell<i32>,
+}
+
+// but it must implement both traits
+unsafe impl NativeRepr for MyClass {
+    const NAME: &'static str = "MyClass";
+}
+unsafe impl ScriptClass for MyClass {
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "MyClass";
+}
+```
+...and on REDscript side:
+```swift
+native struct MyClass {
+    let value: Float;
+}
+```
+
 ### interact with scripted classes using hand-written bindings
 ```rust
 use red4ext_rs::types::{EntityId, Ref};
