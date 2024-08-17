@@ -4,8 +4,8 @@ use std::ptr::NonNull;
 use std::{fmt, iter, mem, ptr, slice};
 
 use super::{
-    CName, CNamePool, IAllocator, PoolRef, PoolableOps, RedArray, RedHashMap, RedString, StackArg,
-    StackFrame, WeakRef,
+    CName, CNamePool, IAllocator, IGameSystem, PoolRef, PoolableOps, RedArray, RedHashMap,
+    RedString, StackArg, StackFrame, WeakRef,
 };
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
@@ -317,7 +317,12 @@ impl Class {
     pub fn is_class(&self) -> bool {
         // there might be a better way to check this
         self.base_iter_with_self()
-            .any(|c| c.name() == CName::new("ISerializable"))
+            .any(|c| c.name() == CName::new(ISerializable::NAME))
+    }
+
+    pub fn is_native_system(&self) -> bool {
+        self.base_iter_with_self()
+            .any(|c| c.name() == CName::new(IGameSystem::NAME))
     }
 
     #[inline]

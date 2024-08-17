@@ -1,10 +1,11 @@
 use std::{mem, ptr};
 
-use super::{CName, IScriptable, Ref, Type};
+use super::{IScriptable, RedArray, RedHashMap, Ref, Type};
 use crate::class::{class_kind, ScriptClass};
 use crate::raw::root::RED4ext as red;
+use crate::raw::root::RED4ext::game::IGameSystem_OnInitialize;
 use crate::types::WeakRef;
-use crate::{NativeRepr, RttiSystem, VoidPtr};
+use crate::{NativeRepr, VoidPtr};
 
 /// Scripted game instance.
 ///
@@ -52,8 +53,36 @@ impl NativeGameInstance {
         unsafe { &*(self.0.vtable_ as *const GameInstanceVft) }
     }
 
+    #[inline]
     pub fn exists(&self, ty: &Type) -> bool {
         !unsafe { (self.vft().get_system)(self, ty) }.is_null()
+    }
+
+    #[inline]
+    pub fn add_native_system<C: ScriptClass>(&mut self, ty: &mut Type, singleton: Ref<C>) {
+        let (map, implementations, instances) = self.split_types();
+        map.insert(ty as *mut _ as u32, singleton.clone().cast().unwrap());
+        implementations.insert(ty as *mut _ as u32, ty);
+        instances.push(singleton.cast().unwrap());
+    }
+
+    #[inline]
+    #[allow(clippy::type_complexity)]
+    fn split_types(
+        &mut self,
+    ) -> (
+        &mut RedHashMap<u32, Ref<IScriptable>>,
+        &mut RedHashMap<u32, &mut Type>,
+        &mut RedArray<Ref<IScriptable>>,
+    ) {
+        unsafe {
+            (
+                &mut *(&mut self.0.systemMap as *mut _ as *mut RedHashMap<u32, Ref<IScriptable>>),
+                &mut *(&mut self.0.systemImplementations as *mut _
+                    as *mut RedHashMap<u32, &mut Type>),
+                &mut *(&mut self.0.systemInstances as *mut _ as *mut RedArray<Ref<IScriptable>>),
+            )
+        }
     }
 }
 
@@ -93,8 +122,16 @@ impl GameEngine {
         unsafe { &*(red::CGameEngine::Get() as *const GameEngine) }
     }
 
+    pub fn get_mut<'a>() -> &'a mut Self {
+        unsafe { &mut *(red::CGameEngine::Get() as *mut GameEngine) }
+    }
+
     pub fn game_instance(&self) -> &NativeGameInstance {
         unsafe { &*((*self.0.framework).gameInstance as *const NativeGameInstance) }
+    }
+
+    pub fn game_instance_mut(&mut self) -> &mut NativeGameInstance {
+        unsafe { &mut *((*self.0.framework).gameInstance as *mut NativeGameInstance) }
     }
 }
 
@@ -118,6 +155,25 @@ impl AsRef<IScriptable> for ScriptableSystem {
 #[repr(transparent)]
 pub struct IGameSystem(red::game::IGameSystem);
 
+impl IGameSystem {
+    pub(crate) fn singleton() -> Ref<Self> {
+        let job = JobHandle::default();
+        let this = Ref::<Self>::new_with(|x| {
+            x.0.gameInstance =
+                Box::leak(Box::new(GameEngine::get().game_instance())) as *const _ as *mut _;
+        })
+        .unwrap();
+        unsafe {
+            IGameSystem_OnInitialize(
+                Box::leak(Box::new(this.clone())) as *const _ as VoidPtr,
+                &job.0 as *const _,
+            )
+        };
+        mem::forget(job);
+        this
+    }
+}
+
 unsafe impl ScriptClass for IGameSystem {
     type Kind = class_kind::Native;
 
@@ -136,5 +192,6 @@ impl AsRef<IScriptable> for IGameSystem {
     }
 }
 
+#[derive(Default)]
 #[repr(transparent)]
 pub struct JobHandle(red::JobHandle);

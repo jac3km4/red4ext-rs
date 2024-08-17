@@ -3,9 +3,10 @@ use std::{mem, ptr};
 use crate::raw::root::RED4ext as red;
 use crate::types::{
     Bitfield, CName, Class, ClassFlags, ClassHandle, Enum, Function, GameEngine, GlobalFunction,
-    PoolRef, RedArray, RedHashMap, Ref, RwSpinLockReadGuard, RwSpinLockWriteGuard,
+    IGameSystem, PoolRef, RedArray, RedHashMap, Ref, RwSpinLockReadGuard, RwSpinLockWriteGuard,
     ScriptableSystem, Type,
 };
+use crate::ScriptClass;
 
 /// The RTTI system containing information about all types in the game.
 ///
@@ -263,14 +264,27 @@ impl RttiSystemMut {
     /// Register a new [`ClassHandle`] with the RTTI system.
     /// The handle can be obtained from
     /// [`NativeClass::new_handle`](crate::types::NativeClass::new_handle).
-    pub fn register_class(&mut self, mut class: ClassHandle) {
-        // implemented manually to avoid the game trying to obtain the type lock
-        let id = unsafe { red::RTTIRegistrator::GetNextId() };
-        self.type_map()
-            .insert(class.as_ref().name(), class.as_mut().as_type_mut());
-        self.type_by_id_map()
-            .insert(id, class.as_mut().as_type_mut());
-        self.type_id_map().insert(class.as_ref().name(), id);
+    pub fn register_class<C: ScriptClass>(&mut self, mut class: ClassHandle) {
+        if !class.as_ref().is_native_system() {
+            // implemented manually to avoid the game trying to obtain the type lock
+            let id = unsafe { red::RTTIRegistrator::GetNextId() };
+            self.type_map()
+                .insert(class.as_ref().name(), class.as_mut().as_type_mut());
+            self.type_by_id_map()
+                .insert(id, class.as_mut().as_type_mut());
+            self.type_id_map().insert(class.as_ref().name(), id);
+        } else {
+            if GameEngine::get()
+                .game_instance()
+                .exists(class.as_ref().as_type())
+            {
+                return;
+            }
+            let singleton = IGameSystem::singleton();
+            GameEngine::get_mut()
+                .game_instance_mut()
+                .add_native_system(class.as_mut().as_type_mut(), singleton);
+        }
     }
 
     /// Register a new [`GlobalFunction`] with the RTTI system.

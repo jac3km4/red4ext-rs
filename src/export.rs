@@ -85,7 +85,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             .base
             .map(|name| &*rtti.get_class(CName::new(name)).expect("base should exist"));
         let handle = NativeClass::<C>::new_handle(base);
-        rtti.register_class(handle);
+        rtti.register_class::<C>(handle);
     }
 
     fn post_register(&self) {
