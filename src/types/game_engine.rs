@@ -156,20 +156,26 @@ pub struct IGameSystem(red::game::IGameSystem);
 
 impl IGameSystem {
     pub(crate) fn singleton() -> Ref<Self> {
-        let job = JobHandle::default();
+        let job = JobHandle::new(10);
         let this = Ref::<Self>::new_with(|x| {
             x.0.gameInstance =
                 Box::leak(Box::new(GameEngine::get().game_instance())) as *const _ as *mut _;
+            unsafe {
+                red::game::IGameSystem_OnInitialize(
+                    Box::leak(Box::new(&mut x.0)) as *const _ as VoidPtr,
+                    &job.0 as *const _,
+                )
+            };
         })
         .unwrap();
-        unsafe {
-            red::game::IGameSystem_OnInitialize(
-                Box::leak(Box::new(this.clone())) as *const _ as VoidPtr,
-                &job.0 as *const _,
-            )
-        };
         mem::forget(job);
         this
+    }
+}
+
+impl Drop for IGameSystem {
+    fn drop(&mut self) {
+        unsafe { red::game::IGameSystem_OnUninitialize(&mut self.0 as *const _ as VoidPtr) }
     }
 }
 
@@ -195,8 +201,14 @@ impl AsRef<IScriptable> for IGameSystem {
 #[repr(transparent)]
 pub struct JobHandle(red::JobHandle);
 
+impl JobHandle {
+    pub fn new(timeout: usize) -> Self {
+        Self(unsafe { red::JobHandle::new(timeout) })
+    }
+}
+
 impl Drop for JobHandle {
     fn drop(&mut self) {
-        unsafe { red::JobHandle_JobHandle_destructor(&mut self.0) }
+        unsafe { self.0.destruct() };
     }
 }
