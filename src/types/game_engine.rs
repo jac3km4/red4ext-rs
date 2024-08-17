@@ -135,3 +135,6 @@ impl AsRef<IScriptable> for IGameSystem {
         unsafe { mem::transmute(&self.0._base._base) }
     }
 }
+
+#[repr(transparent)]
+pub struct JobHandle(red::JobHandle);
