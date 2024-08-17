@@ -156,7 +156,7 @@ pub struct IGameSystem(red::game::IGameSystem);
 
 impl IGameSystem {
     pub(crate) fn singleton() -> Ref<Self> {
-        let job = JobHandle::new(10);
+        let job = JobHandle::new();
         let this = Ref::<Self>::new_with(|x| {
             x.0.gameInstance =
                 Box::leak(Box::new(GameEngine::get().game_instance())) as *const _ as *mut _;
@@ -202,8 +202,8 @@ impl AsRef<IScriptable> for IGameSystem {
 pub struct JobHandle(red::JobHandle);
 
 impl JobHandle {
-    pub fn new(timeout: usize) -> Self {
-        Self(unsafe { red::JobHandle::new(timeout) })
+    pub fn new() -> Self {
+        Self(unsafe { red::JobHandle::new(0) })
     }
 }
 
