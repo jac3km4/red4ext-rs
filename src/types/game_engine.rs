@@ -1,10 +1,10 @@
-use std::mem;
+use std::{mem, ptr};
 
-use super::{IScriptable, Ref, Type};
+use super::{CName, IScriptable, Ref, Type};
 use crate::class::{class_kind, ScriptClass};
 use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
-use crate::{NativeRepr, VoidPtr};
+use crate::{NativeRepr, RttiSystem, VoidPtr};
 
 /// Scripted game instance.
 ///
@@ -51,6 +51,10 @@ impl NativeGameInstance {
     fn vft(&self) -> &GameInstanceVft {
         unsafe { &*(self.0.vtable_ as *const GameInstanceVft) }
     }
+
+    pub fn exists(&self, ty: &Type) -> bool {
+        !unsafe { (self.vft().get_system)(self, ty) }.is_null()
+    }
 }
 
 impl Drop for NativeGameInstance {
@@ -94,6 +98,7 @@ impl GameEngine {
     }
 }
 
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct ScriptableSystem(red::ScriptableSystem);
 
@@ -104,6 +109,28 @@ unsafe impl ScriptClass for ScriptableSystem {
 }
 
 impl AsRef<IScriptable> for ScriptableSystem {
+    fn as_ref(&self) -> &IScriptable {
+        unsafe { mem::transmute(&self.0._base._base) }
+    }
+}
+
+#[derive(Debug, Default)]
+#[repr(transparent)]
+pub struct IGameSystem(red::game::IGameSystem);
+
+unsafe impl ScriptClass for IGameSystem {
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "gameIGameSystem";
+}
+
+impl Clone for IGameSystem {
+    fn clone(&self) -> Self {
+        unsafe { ptr::read(self) }
+    }
+}
+
+impl AsRef<IScriptable> for IGameSystem {
     fn as_ref(&self) -> &IScriptable {
         unsafe { mem::transmute(&self.0._base._base) }
     }
