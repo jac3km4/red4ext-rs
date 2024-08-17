@@ -543,9 +543,9 @@ impl fmt::Display for red::v0::SemVer_PrereleaseInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.type_ {
             OFFICIAL => write!(f, ""),
-            ALPHA => write!(f, "alpha+{}", self.number),
-            BETA => write!(f, "beta+{}", self.number),
-            RC => write!(f, "rc+{}", self.number),
+            ALPHA => write!(f, "alpha.{}", self.number),
+            BETA => write!(f, "beta.{}", self.number),
+            RC => write!(f, "rc.{}", self.number),
             _ => unimplemented!(),
         }
     }
