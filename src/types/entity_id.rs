@@ -1,3 +1,4 @@
+use std::fmt;
 use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
@@ -75,5 +76,25 @@ impl From<u64> for EntityId {
 impl From<EntityId> for u64 {
     fn from(EntityId(red::ent::EntityID { hash }): EntityId) -> Self {
         hash
+    }
+}
+
+impl fmt::Display for EntityId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut attrs = Vec::with_capacity(2); // transient and persistable are exclusive
+        if self.is_defined() {
+            if self.is_dynamic() {
+                attrs.push("dynamic");
+            } else {
+                attrs.push("static")
+            }
+            if self.is_transient() {
+                attrs.push("transient");
+            }
+        }
+        if self.is_persistable() {
+            attrs.push("persistable");
+        }
+        write!(f, "{}: '{}'", attrs.join(" "), self.0.hash)
     }
 }
