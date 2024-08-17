@@ -536,6 +536,25 @@ impl fmt::Display for red::v0::SemVer_PrereleaseInfo {
     }
 }
 
+impl From<SemVer> for [u32; 5] {
+    fn from(
+        SemVer(red::SemVer {
+            major,
+            minor,
+            patch,
+            prerelease,
+        }): SemVer,
+    ) -> Self {
+        [
+            major as u32,
+            minor as u32,
+            patch,
+            prerelease.type_,
+            prerelease.number,
+        ]
+    }
+}
+
 /// A version number representing the game's version.
 #[derive(Debug)]
 pub struct RuntimeVersion(red::FileVer);
