@@ -465,19 +465,74 @@ impl log::Log for SdkEnv {
 #[derive(Debug)]
 pub struct SemVer(red::SemVer);
 
+const OFFICIAL: u32 = 0;
+const ALPHA: u32 = 1;
+const BETA: u32 = 2;
+const RC: u32 = 3;
+
 impl SemVer {
     /// Creates a new semantic version.
     #[inline]
     pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
+        Self::exact(major, minor, patch, OFFICIAL, 0)
+    }
+
+    /// Creates a new alpha version.
+    #[inline]
+    pub const fn alpha(major: u8, minor: u16, patch: u32, number: u32) -> Self {
+        Self::exact(major, minor, patch, ALPHA, number)
+    }
+
+    /// Creates a new beta version.
+    #[inline]
+    pub const fn beta(major: u8, minor: u16, patch: u32, number: u32) -> Self {
+        Self::exact(major, minor, patch, BETA, number)
+    }
+
+    /// Creates a new release candidate version.
+    #[inline]
+    pub const fn rc(major: u8, minor: u16, patch: u32, number: u32) -> Self {
+        Self::exact(major, minor, patch, RC, number)
+    }
+
+    #[inline]
+    const fn exact(major: u8, minor: u16, patch: u32, type_: u32, number: u32) -> Self {
         Self(red::SemVer {
             major,
             minor,
             patch,
-            prerelease: red::v0::SemVer_PrereleaseInfo {
-                type_: 0,
-                number: 0,
-            },
+            prerelease: red::v0::SemVer_PrereleaseInfo { type_, number },
         })
+    }
+
+    const fn is_prerelease(&self) -> bool {
+        self.0.prerelease.type_ > OFFICIAL
+    }
+}
+
+impl fmt::Display for SemVer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_prerelease() {
+            write!(
+                f,
+                "{}.{}.{}-{}",
+                self.0.major, self.0.minor, self.0.patch, self.0.prerelease
+            )
+        } else {
+            write!(f, "{}.{}.{}", self.0.major, self.0.minor, self.0.patch)
+        }
+    }
+}
+
+impl fmt::Display for red::v0::SemVer_PrereleaseInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.type_ {
+            OFFICIAL => write!(f, ""),
+            ALPHA => write!(f, "alpha+{}", self.number),
+            BETA => write!(f, "beta+{}", self.number),
+            RC => write!(f, "rc+{}", self.number),
+            _ => unimplemented!(),
+        }
     }
 }
 
