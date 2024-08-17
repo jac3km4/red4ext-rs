@@ -27,7 +27,7 @@ fn main() {
         // std types get generated incorrectly for some reason, so they need to be opaque
         .opaque_type("std::(vector|string)")
         .allowlist_item("RED4ext::[^:]+")
-        .allowlist_item("RED4ext::(Detail|ent)::.+")
+        .allowlist_item("RED4ext::(Detail|ent|game)::.+")
         .allowlist_item("RED4ext::Memory::(Vault|IAllocator)")
         .allowlist_item("versioning::.+")
         // callback handlers generate incorrect Rust code
