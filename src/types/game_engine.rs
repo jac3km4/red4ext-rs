@@ -3,7 +3,6 @@ use std::{mem, ptr};
 use super::{IScriptable, RedArray, RedHashMap, Ref, Type};
 use crate::class::{class_kind, ScriptClass};
 use crate::raw::root::RED4ext as red;
-use crate::raw::root::RED4ext::game::IGameSystem_OnInitialize;
 use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};
 
@@ -164,7 +163,7 @@ impl IGameSystem {
         })
         .unwrap();
         unsafe {
-            IGameSystem_OnInitialize(
+            red::game::IGameSystem_OnInitialize(
                 Box::leak(Box::new(this.clone())) as *const _ as VoidPtr,
                 &job.0 as *const _,
             )
@@ -195,3 +194,9 @@ impl AsRef<IScriptable> for IGameSystem {
 #[derive(Default)]
 #[repr(transparent)]
 pub struct JobHandle(red::JobHandle);
+
+impl Drop for JobHandle {
+    fn drop(&mut self) {
+        unsafe { red::JobHandle_JobHandle_destructor(&mut self.0) }
+    }
+}
