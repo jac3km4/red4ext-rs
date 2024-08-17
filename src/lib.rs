@@ -9,6 +9,7 @@ pub use export::{
 };
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
+use types::RedArray;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod class;
@@ -521,6 +522,20 @@ impl fmt::Display for SemVer {
         } else {
             write!(f, "{}.{}.{}", self.0.major, self.0.minor, self.0.patch)
         }
+    }
+}
+
+impl IntoRepr for SemVer {
+    type Repr = RedArray<u32>;
+
+    fn into_repr(self) -> Self::Repr {
+        Self::Repr::from_iter([
+            self.0.major as u32,
+            self.0.minor as u32,
+            self.0.patch as u32,
+            self.0.prerelease.type_ as u32,
+            self.0.prerelease.number as u32,
+        ])
     }
 }
 
