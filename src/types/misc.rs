@@ -64,30 +64,11 @@ pub struct StaticArray<T, const N: usize> {
     size: u32,
 }
 
-const fn const_digit_str(x: usize) -> &'static str {
-    match x {
-        1 => "1",
-        2 => "2",
-        3 => "3",
-        4 => "4",
-        5 => "5",
-        6 => "6",
-        7 => "7",
-        8 => "8",
-        9 => "9",
-        10 => "10",
-        11 => "11",
-        12 => "12",
-        13 => "13",
-        14 => "14",
-        15 => "15",
-        16 => "16",
-        _ => unimplemented!(),
-    }
-}
-
 unsafe impl<T: NativeRepr, const N: usize> NativeRepr for StaticArray<T, N> {
-    const NAME: &'static str = combine!(combine!(combine!("[", const_digit_str(N)), "]"), T::NAME);
+    const NAME: &'static str = combine!(
+        combine!(combine!("[", crate::const_digit_str(N)), "]"),
+        T::NAME
+    );
 }
 
 impl<T, const N: usize> From<[T; N]> for StaticArray<T, N> {

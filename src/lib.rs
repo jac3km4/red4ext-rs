@@ -507,11 +507,7 @@ impl IntoRepr for SemVer {
     type Repr = StaticArray<u16, 3>;
 
     fn into_repr(self) -> Self::Repr {
-        Self::Repr::from([
-            self.0.major as u16,
-            self.0.minor,
-            self.0.patch as u16,
-        ])
+        Self::Repr::from([self.0.major as u16, self.0.minor, self.0.patch as u16])
     }
 }
 
@@ -800,3 +796,5 @@ fn check_invariant(success: bool, message: &'static str) {
     }
     assert!(success, "{message}");
 }
+
+include!(concat!(env!("OUT_DIR"), "/sizes.rs"));
