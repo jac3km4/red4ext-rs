@@ -9,7 +9,7 @@ pub use export::{
 };
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
-use types::RedArray;
+use types::{RedArray, StaticArray};
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod class;
@@ -485,19 +485,39 @@ impl SemVer {
     }
 }
 
-impl IntoRepr for SemVer {
-    type Repr = RedArray<u32>;
-
-    fn into_repr(self) -> Self::Repr {
-        Self::Repr::from_iter([
-            self.0.major as u32,
-            self.0.minor as u32,
-            self.0.patch,
-            self.0.prerelease.type_,
-            self.0.prerelease.number,
+impl From<SemVer> for StaticArray<u16, 3> {
+    fn from(value: SemVer) -> Self {
+        Self::from([
+            value.0.major as u16,
+            value.0.minor as u16,
+            value.0.patch as u16,
         ])
     }
 }
+
+impl From<SemVer> for StaticArray<u32, 5> {
+    fn from(value: SemVer) -> Self {
+        Self::from([
+            value.0.major as u32,
+            value.0.minor as u32,
+            value.0.patch,
+            value.0.prerelease.type_,
+            value.0.prerelease.number,
+        ])
+    }
+}
+
+// impl IntoRepr for SemVer {
+//     type Repr = StaticArray<u16, 3>;
+
+//     fn into_repr(self) -> Self::Repr {
+//         Self::Repr::from([
+//             self.0.major as u16,
+//             self.0.minor as u16,
+//             self.0.patch as u16,
+//         ])
+//     }
+// }
 
 /// A version number representing the game's version.
 #[derive(Debug)]
