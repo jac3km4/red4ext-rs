@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct EntityId(red::ent::EntityID);
 
@@ -79,22 +79,26 @@ impl From<EntityId> for u64 {
     }
 }
 
-impl fmt::Display for EntityId {
+impl fmt::Debug for EntityId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut attrs = Vec::with_capacity(2); // transient and persistable are exclusive
+        let mut attrs = f.debug_set(); // transient and persistable are exclusive
         if self.is_defined() {
             if self.is_dynamic() {
-                attrs.push("dynamic");
+                attrs.entry(&"dynamic");
             } else {
-                attrs.push("static")
+                attrs.entry(&"static");
             }
             if self.is_transient() {
-                attrs.push("transient");
+                attrs.entry(&"transient");
             }
         }
         if self.is_persistable() {
-            attrs.push("persistable");
+            attrs.entry(&"persistable");
         }
-        write!(f, "{}: '{}'", attrs.join(" "), self.0.hash)
+        let flags = attrs.finish();
+        f.debug_struct("EntityId")
+            .field("hash", &self.0.hash)
+            .field("flags", &flags)
+            .finish_non_exhaustive()
     }
 }
