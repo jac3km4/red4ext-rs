@@ -1,8 +1,9 @@
+use std::fmt;
 use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct EntityId(red::ent::EntityID);
 
@@ -75,5 +76,29 @@ impl From<u64> for EntityId {
 impl From<EntityId> for u64 {
     fn from(EntityId(red::ent::EntityID { hash }): EntityId) -> Self {
         hash
+    }
+}
+
+impl fmt::Debug for EntityId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut attrs = f.debug_set(); // transient and persistable are exclusive
+        if self.is_defined() {
+            if self.is_dynamic() {
+                attrs.entry(&"dynamic");
+            } else {
+                attrs.entry(&"static");
+            }
+            if self.is_transient() {
+                attrs.entry(&"transient");
+            }
+        }
+        if self.is_persistable() {
+            attrs.entry(&"persistable");
+        }
+        let flags = attrs.finish();
+        f.debug_struct("EntityId")
+            .field("hash", &self.0.hash)
+            .field("flags", &flags)
+            .finish_non_exhaustive()
     }
 }
