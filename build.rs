@@ -45,23 +45,4 @@ fn main() {
         "cargo:warning=Generated bindings: {}",
         out_path.join("bindings.rs").display()
     );
-
-    const SIZE: usize = 512;
-    let mut sizes = String::with_capacity(11264); // increase according to size (SIZE)
-    sizes.push_str("pub const fn const_digit_str(x: usize) -> &'static str {");
-    sizes.push_str("\n    match x {");
-    for i in 1..=SIZE {
-        sizes.push_str("\n        ");
-        sizes.push_str(i.to_string().as_str());
-        sizes.push_str(" => ");
-        sizes.push('"');
-        sizes.push_str(i.to_string().as_str());
-        sizes.push('"');
-        sizes.push(',');
-    }
-    sizes.push_str("\n      _ => unimplemented!()");
-    sizes.push_str("\n    }");
-    sizes.push('\n');
-    sizes.push('}');
-    std::fs::write(out_path.join("sizes.rs"), sizes).expect("Couldn't write const_digit_str!");
 }

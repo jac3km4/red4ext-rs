@@ -796,5 +796,3 @@ fn check_invariant(success: bool, message: &'static str) {
     }
     assert!(success, "{message}");
 }
-
-include!(concat!(env!("OUT_DIR"), "/sizes.rs"));
