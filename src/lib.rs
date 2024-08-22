@@ -9,6 +9,7 @@ pub use export::{
 };
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
+use types::StaticArray;
 pub use widestring::{widecstr as wcstr, U16CStr};
 
 mod class;
@@ -469,15 +470,44 @@ impl SemVer {
     /// Creates a new semantic version.
     #[inline]
     pub const fn new(major: u8, minor: u16, patch: u32) -> Self {
+        Self::exact(major, minor, patch, 0, 0)
+    }
+
+    /// Creates a new exact semantic version.
+    #[inline]
+    pub const fn exact(major: u8, minor: u16, patch: u32, type_: u32, number: u32) -> Self {
         Self(red::SemVer {
             major,
             minor,
             patch,
-            prerelease: red::v0::SemVer_PrereleaseInfo {
-                type_: 0,
-                number: 0,
-            },
+            prerelease: red::v0::SemVer_PrereleaseInfo { type_, number },
         })
+    }
+}
+
+impl From<SemVer> for StaticArray<u16, 3> {
+    fn from(value: SemVer) -> Self {
+        Self::from([value.0.major as u16, value.0.minor, value.0.patch as u16])
+    }
+}
+
+impl From<SemVer> for StaticArray<u16, 5> {
+    fn from(value: SemVer) -> Self {
+        Self::from([
+            value.0.major as u16,
+            value.0.minor,
+            value.0.patch as u16,
+            value.0.prerelease.type_ as u16,
+            value.0.prerelease.number as u16,
+        ])
+    }
+}
+
+impl IntoRepr for SemVer {
+    type Repr = StaticArray<u16, 3>;
+
+    fn into_repr(self) -> Self::Repr {
+        Self::Repr::from([self.0.major as u16, self.0.minor, self.0.patch as u16])
     }
 }
 
