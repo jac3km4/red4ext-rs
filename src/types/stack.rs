@@ -5,7 +5,7 @@ use super::{CName, Function, IScriptable, Instr, Type, ValueContainer, OPCODE_SI
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
-use crate::VoidPtr;
+use crate::{FromRepr, VoidPtr};
 
 /// A script stack frame.
 #[derive(Debug)]
@@ -75,10 +75,14 @@ impl StackFrame {
     /// # Safety
     /// The type `T` must be the correct type of the next argument.
     #[inline]
-    pub unsafe fn get_arg<T: Default>(&mut self) -> T {
-        let mut out = T::default();
-        self.read_arg(&mut out as *mut T as VoidPtr);
-        out
+    pub unsafe fn get_arg<T>(&mut self) -> T
+    where
+        T: FromRepr,
+        T::Repr: Default,
+    {
+        let mut out = T::Repr::default();
+        self.read_arg(&mut out as *mut T::Repr as VoidPtr);
+        T::from_repr(out)
     }
 
     unsafe fn read_arg(&mut self, ptr: VoidPtr) {
@@ -136,7 +140,7 @@ impl StackFrame {
     ///
     ///     // stack must be saved before reading stack function parameters
     ///     let state = frame.args_state();
-    ///     
+    ///
     ///     // assuming our function accepts these 3 parameters
     ///     let event_name: CName = StackFrame::get_arg(frame);
     ///     let entity_id: EntityId = StackFrame::get_arg(frame);
