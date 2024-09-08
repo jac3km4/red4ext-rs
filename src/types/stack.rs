@@ -80,9 +80,9 @@ impl StackFrame {
         T: FromRepr,
         T::Repr: Default,
     {
-        let mut out = T::Repr::default();
-        self.read_arg(&mut out as *mut T::Repr as VoidPtr);
-        T::from_repr(out)
+        let mut repr = T::Repr::default();
+        self.read_arg(&mut repr as *mut T::Repr as VoidPtr);
+        T::from_repr(repr)
     }
 
     unsafe fn read_arg(&mut self, ptr: VoidPtr) {
