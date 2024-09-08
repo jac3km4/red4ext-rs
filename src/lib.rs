@@ -163,8 +163,10 @@ macro_rules! export_plugin_symbols {
                 reason: $crate::internal::EMainReason::Type,
                 sdk: $crate::internal::Sdk,
             ) {
-                <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
-                $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+                if reason == $crate::internal::EMainReason::Load {
+                    <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
+                    $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+                }
             }
 
             #[no_mangle]
