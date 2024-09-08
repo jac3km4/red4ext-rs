@@ -285,9 +285,9 @@
         </span>T: FromRepr,
         T::Repr: Default,
     {
-        <span class="kw">let </span><span class="kw-2">mut </span>out = T::Repr::default();
-        <span class="self">self</span>.read_arg(<span class="kw-2">&amp;mut </span>out <span class="kw">as </span><span class="kw-2">*mut </span>T::Repr <span class="kw">as </span>VoidPtr);
-        T::from_repr(out)
+        <span class="kw">let </span><span class="kw-2">mut </span>repr = T::Repr::default();
+        <span class="self">self</span>.read_arg(<span class="kw-2">&amp;mut </span>repr <span class="kw">as </span><span class="kw-2">*mut </span>T::Repr <span class="kw">as </span>VoidPtr);
+        T::from_repr(repr)
     }
 
     <span class="kw">unsafe fn </span>read_arg(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ptr: VoidPtr) {

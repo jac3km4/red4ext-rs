@@ -595,7 +595,7 @@
 
                 <span class="attr">#[inline]
                 </span><span class="kw">fn </span>invoke(<span class="self">self</span>, _ctx: <span class="kw-2">&amp;</span>IScriptable, frame: <span class="kw-2">&amp;mut </span>StackFrame, ret: <span class="kw-2">&amp;mut </span>MaybeUninit&lt;R::Repr&gt;) {
-                    $(<span class="kw">let </span><span class="macro-nonterminal">$types </span>= <span class="macro-nonterminal">$types::from_repr</span>(<span class="kw">unsafe </span>{ frame.get_arg::&lt;<span class="macro-nonterminal">$types::Repr</span>&gt;() });)*
+                    $(<span class="kw">let </span><span class="macro-nonterminal">$types </span>= <span class="kw">unsafe </span>{ frame.get_arg::&lt;<span class="macro-nonterminal">$types</span>&gt;() };)*
                     <span class="kw">let </span>res = <span class="self">self</span>($(<span class="macro-nonterminal">$types</span>,)<span class="kw-2">*</span>);
                     <span class="kw">unsafe </span>{ ret.as_mut_ptr().write(res.into_repr()) }
                 }
@@ -641,7 +641,7 @@
 
                 <span class="attr">#[inline]
                 </span><span class="kw">fn </span>invoke(<span class="self">self</span>, ctx: <span class="kw-2">&amp;</span>Ctx, frame: <span class="kw-2">&amp;mut </span>StackFrame, ret: <span class="kw-2">&amp;mut </span>MaybeUninit&lt;R::Repr&gt;) {
-                    $(<span class="kw">let </span><span class="macro-nonterminal">$types </span>= <span class="macro-nonterminal">$types::from_repr</span>(<span class="kw">unsafe </span>{ frame.get_arg::&lt;<span class="macro-nonterminal">$types::Repr</span>&gt;() });)*
+                    $(<span class="kw">let </span><span class="macro-nonterminal">$types </span>= <span class="kw">unsafe </span>{ frame.get_arg::&lt;<span class="macro-nonterminal">$types</span>&gt;() };)*
                     <span class="kw">let </span>res = <span class="self">self</span>(ctx, $(<span class="macro-nonterminal">$types</span>,)<span class="kw-2">*</span>);
                     <span class="kw">unsafe </span>{ ret.as_mut_ptr().write(res.into_repr()) }
                 }
