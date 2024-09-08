@@ -23,7 +23,7 @@ jobs:
 
   lint:
     name: Run clippy
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       RUSTFLAGS: -D warnings
     steps:
@@ -38,7 +38,7 @@ jobs:
 
   build:
     name: Run build
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       RUSTFLAGS: -D warnings
     steps:
@@ -53,7 +53,7 @@ jobs:
 
   test:
     name: Run tests
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
         with:
