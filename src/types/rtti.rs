@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 use std::{fmt, iter, mem, ptr, slice};
@@ -516,9 +516,9 @@ impl<T> NativeClass<T> {
     /// Returns a handle to the class, this handle should be used to register the class with
     /// [`RttiSystemMut`](crate::RttiSystemMut). Any further interaction with the class should be
     /// done through RTTI.
-    pub fn new_handle(base: Option<&Class>) -> ClassHandle
+    pub fn new_handle(name: &CStr, base: Option<&Class>) -> ClassHandle
     where
-        T: Default + Clone + ScriptClass<Kind = class_kind::Native>,
+        T: Default + Clone,
     {
         const VFT_SIZE: usize = 30;
         const IS_EQUAL_SLOT: usize = 9;
@@ -527,9 +527,7 @@ impl<T> NativeClass<T> {
         const DESTRUCT_SLOT: usize = 28;
         const ALLOC_SLOT: usize = 29;
 
-        let cstr = CString::new(T::NAME).expect("should create a CString");
-
-        let mut class = Class::new_native(&cstr, mem::size_of::<T>() as u32);
+        let mut class = Class::new_native(name, mem::size_of::<T>() as u32);
         if let Some(base) = base {
             class.0.parent = base.as_raw() as *const _ as *mut red::CClass;
         }

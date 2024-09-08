@@ -1,9 +1,12 @@
+use std::ffi::CString;
+use std::marker::PhantomData;
+
 use sealed::sealed;
 
 use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
-use crate::{class_kind, RttiSystem, ScriptClass};
+use crate::{class_kind, NativeRepr, RttiSystem, ScriptClass};
 
 /// A list of exports to register with the game.
 #[derive(Debug)]
@@ -62,7 +65,7 @@ impl Exportable for ExportNil {
 /// This can be used to define a custom class to be exported to the game.
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
-    base: Option<&'static str>,
+    base: &'static str,
     methods: &'static [MethodMetadata<C>],
     static_methods: &'static [GlobalMetadata],
 }
@@ -70,7 +73,7 @@ pub struct ClassExport<C: 'static> {
 impl<C: ScriptClass> ClassExport<C> {
     pub fn builder() -> ClassExportBuilder<C> {
         ClassExportBuilder {
-            base: None,
+            base: "IScriptable",
             methods: &[],
             static_methods: &[],
         }
@@ -81,10 +84,11 @@ impl<C: ScriptClass> ClassExport<C> {
 impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for ClassExport<C> {
     fn register(&self) {
         let mut rtti = RttiSystemMut::get();
-        let base = self
-            .base
-            .map(|name| &*rtti.get_class(CName::new(name)).expect("base should exist"));
-        let handle = NativeClass::<C>::new_handle(base);
+        let name_cstr = CString::new(C::NAME).expect("name should be valid");
+        let base = rtti
+            .get_class(CName::new(self.base))
+            .expect("base should exist");
+        let handle = NativeClass::<C>::new_handle(&name_cstr, Some(base));
         rtti.register_class(handle);
     }
 
@@ -97,12 +101,12 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             let converted_methods = self
                 .methods
                 .iter()
-                .map(|x| x.to_rtti(class))
+                .map(|m| m.to_rtti(class))
                 .collect::<Vec<_>>();
             let converted_static_methods = self
                 .static_methods
                 .iter()
-                .map(|x| x.to_rtti_static_method(class))
+                .map(|m| m.to_rtti_static_method(class))
                 .collect::<Vec<_>>();
             (converted_methods, converted_static_methods)
         };
@@ -124,17 +128,16 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
 /// A builder for [`ClassExport`].
 #[derive(Debug)]
 pub struct ClassExportBuilder<C: 'static> {
-    base: Option<&'static str>,
+    base: &'static str,
     methods: &'static [MethodMetadata<C>],
     static_methods: &'static [GlobalMetadata],
 }
 
 impl<C> ClassExportBuilder<C> {
     /// Set the base class of the class to be exported.
-    /// You must set this "IScriptable" or derived type to expose a class instead of a struct.
-    /// You must include the base type as the first field in your struct.
+    /// This is set to `IScriptable` by default.
     pub const fn base(mut self, base: &'static str) -> Self {
-        self.base = Some(base);
+        self.base = base;
         self
     }
 
@@ -158,6 +161,93 @@ impl<C> ClassExportBuilder<C> {
             base: self.base,
             methods: self.methods,
             static_methods: self.static_methods,
+        }
+    }
+}
+
+/// A single struct export.
+/// This can be used to define a custom struct to be exported to the game.
+#[derive(Debug)]
+pub struct StructExport<C> {
+    base: Option<&'static str>,
+    static_methods: &'static [GlobalMetadata],
+    _phantom: PhantomData<fn() -> C>,
+}
+
+impl<C> StructExport<C> {
+    pub fn builder() -> StructExportBuilder<C> {
+        StructExportBuilder {
+            base: None,
+            static_methods: &[],
+            _phantom: PhantomData,
+        }
+    }
+}
+
+#[sealed]
+impl<C: Default + Clone + NativeRepr> Exportable for StructExport<C> {
+    fn register(&self) {
+        let mut rtti = RttiSystemMut::get();
+        let name_cstr = CString::new(C::NAME).expect("name should be valid");
+        let base = self
+            .base
+            .map(|base| &*rtti.get_class(CName::new(base)).expect("base should exist"));
+        let handle = NativeClass::<C>::new_handle(&name_cstr, base);
+        rtti.register_class(handle);
+    }
+
+    fn post_register(&self) {
+        let converted_static_methods = {
+            let rtti_ro = RttiSystem::get();
+            let class = rtti_ro
+                .get_class(CName::new(C::NAME))
+                .expect("class should exist");
+            self.static_methods
+                .iter()
+                .map(|m| m.to_rtti_static_method(class))
+                .collect::<Vec<_>>()
+        };
+
+        let mut rtti_rw = RttiSystemMut::get();
+        let class = rtti_rw
+            .get_class(CName::new(C::NAME))
+            .expect("class should exist");
+
+        for static_method in converted_static_methods {
+            class.add_static_method(static_method);
+        }
+    }
+}
+
+/// A builder for [`StructExport`].
+#[derive(Debug)]
+pub struct StructExportBuilder<C> {
+    base: Option<&'static str>,
+    static_methods: &'static [GlobalMetadata],
+    _phantom: PhantomData<fn() -> C>,
+}
+
+impl<C> StructExportBuilder<C> {
+    /// Set the base type of the struct to be exported.
+    /// Structs do not have a base type by default.
+    pub const fn base(mut self, base: &'static str) -> Self {
+        self.base = Some(base);
+        self
+    }
+
+    /// Set the static methods of the struct to be exported.
+    /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
+    pub const fn static_methods(mut self, static_methods: &'static [GlobalMetadata]) -> Self {
+        self.static_methods = static_methods;
+        self
+    }
+
+    /// Build the final [`StructExport`] instance.
+    pub const fn build(self) -> StructExport<C> {
+        StructExport {
+            base: self.base,
+            static_methods: self.static_methods,
+            _phantom: PhantomData,
         }
     }
 }
@@ -208,7 +298,7 @@ impl Exportable for GlobalExport {
 /// #[derive(Debug, Default, Clone)]
 /// #[repr(C)]
 /// struct MyClass {
-///     // You must include the base native class in your struct.
+///     // You must include the base native class in your Rust struct.
 ///     base: IScriptable,
 ///     value: Cell<i32>,
 /// }

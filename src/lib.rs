@@ -5,7 +5,8 @@ use std::sync::OnceLock;
 use std::{ffi, fmt, mem};
 
 pub use export::{
-    ClassExport, ClassExportBuilder, ExportList, ExportNil, Exportable, GlobalExport,
+    ClassExport, ClassExportBuilder, ExportList, ExportNil, Exportable, GlobalExport, StructExport,
+    StructExportBuilder,
 };
 use raw::root::{versioning, RED4ext as red};
 use sealed::sealed;
