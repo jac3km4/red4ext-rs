@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `E:\Code\red4ext-rs\target\debug\build\red4ext-rs-b08c97742a3d3f48\out/bindings.rs`."><title>bindings.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../..\..\..\..\..\..\../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../..\..\..\..\..\..\../" data-static-root-path="../../..\..\..\..\..\..\../static.files/" data-current-crate="red4ext_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../..\..\..\..\..\..\../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../..\..\..\..\..\..\../src-files.js"></script><script defer src="../../..\..\..\..\..\..\../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../..\..\..\..\..\..\../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../..\..\..\..\..\..\../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../..\..\..\..\..\..\../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../red4ext_rs/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../..\..\..\..\..\..\../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../..\..\..\..\..\..\../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `C:\Users\jac3k\Code\red4ext-rs\target\debug\build\red4ext-rs-7406ae3f7875ede3\out/bindings.rs`."><title>bindings.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../..\..\..\..\..\..\..\..\../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../..\..\..\..\..\..\..\..\../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../..\..\..\..\..\..\..\..\../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../..\..\..\..\..\..\..\..\../" data-static-root-path="../../..\..\..\..\..\..\..\..\../static.files/" data-current-crate="red4ext_rs" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../..\..\..\..\..\..\..\..\../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../..\..\..\..\..\..\..\..\../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../..\..\..\..\..\..\..\..\../src-files.js"></script><script defer src="../../..\..\..\..\..\..\..\..\../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../..\..\..\..\..\..\..\..\../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../..\..\..\..\..\..\..\..\../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../..\..\..\..\..\..\..\..\../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -21465,15 +21465,6 @@
 <a href="#21465" id="21465">21465</a>
 <a href="#21466" id="21466">21466</a>
 <a href="#21467" id="21467">21467</a>
-<a href="#21468" id="21468">21468</a>
-<a href="#21469" id="21469">21469</a>
-<a href="#21470" id="21470">21470</a>
-<a href="#21471" id="21471">21471</a>
-<a href="#21472" id="21472">21472</a>
-<a href="#21473" id="21473">21473</a>
-<a href="#21474" id="21474">21474</a>
-<a href="#21475" id="21475">21475</a>
-<a href="#21476" id="21476">21476</a>
 </pre></div><pre class="rust"><code><span class="comment">/* automatically generated by rust-bindgen 0.69.4 */
 
 </span><span class="attr">#[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
@@ -27293,10 +27284,6 @@
             <span class="kw">pub </span>unk18: root::RED4ext::WeakHandle&lt;root::RED4ext::ISerializable&gt;,
             <span class="kw">pub </span>unk28: u64,
         }
-        <span class="kw">extern </span><span class="string">"C" </span>{
-            <span class="attr">#[link_name = <span class="string">"\u{1}?s_globalIDCounter@ISerializable@RED4ext@@2V?$UniversalRelocPtr@$$CC_J@2@A"</span>]
-            </span><span class="kw">pub static </span><span class="kw-2">mut </span>ISerializable_s_globalIDCounter: root::RED4ext::UniversalRelocPtr&lt;i64&gt;;
-        }
         <span class="attr">#[test]
         </span><span class="kw">fn </span>bindgen_test_layout_ISerializable() {
             <span class="kw">const </span>UNINIT: ::std::mem::MaybeUninit&lt;ISerializable&gt; =
@@ -27495,25 +27482,6 @@
         <span class="kw">extern </span><span class="string">"C" </span>{
             <span class="attr">#[link_name = <span class="string">"\u{1}?CanBeDestructed@ISerializable@RED4ext@@UEAA_NXZ"</span>]
             </span><span class="kw">pub fn </span>ISerializable_CanBeDestructed(this: <span class="kw-2">*mut </span>::std::os::raw::c_void) -&gt; bool;
-        }
-        <span class="attr">#[test]
-        </span><span class="kw">fn </span>__bindgen_test_layout_UniversalRelocPtr_open0_int64_t_close0_instantiation() {
-            <span class="macro">assert_eq!</span>(
-                ::std::mem::size_of::&lt;root::RED4ext::UniversalRelocPtr&lt;i64&gt;&gt;(),
-                <span class="number">8usize</span>,
-                <span class="macro">concat!</span>(
-                    <span class="string">"Size of template specialization: "</span>,
-                    <span class="macro">stringify!</span>(root::RED4ext::UniversalRelocPtr&lt;i64&gt;)
-                )
-            );
-            <span class="macro">assert_eq!</span>(
-                ::std::mem::align_of::&lt;root::RED4ext::UniversalRelocPtr&lt;i64&gt;&gt;(),
-                <span class="number">8usize</span>,
-                <span class="macro">concat!</span>(
-                    <span class="string">"Alignment of template specialization: "</span>,
-                    <span class="macro">stringify!</span>(root::RED4ext::UniversalRelocPtr&lt;i64&gt;)
-                )
-            );
         }
         <span class="kw">pub const </span>DefaultFixedCallbackBufferSize: usize = <span class="number">32</span>;
         <span class="kw">pub const </span>DefaultFlexCallbackBufferSize: usize = <span class="number">24</span>;
@@ -33348,7 +33316,13 @@
         }
         <span class="attr">#[repr(C)]
         </span><span class="kw">pub struct </span>RawBufferAllocator__bindgen_vtable {
-            <span class="kw">pub </span>RawBufferAllocator_sub_00: <span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn</span>(this: <span class="kw-2">*mut </span>RawBufferAllocator),
+            <span class="kw">pub </span>RawBufferAllocator_ReallocAligned:
+                <span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn</span>(
+                    this: <span class="kw-2">*mut </span>RawBufferAllocator,
+                    aData: <span class="kw-2">*mut </span>::std::os::raw::c_void,
+                    aSize: u32,
+                    aAlignment: u32,
+                ) -&gt; <span class="kw-2">*mut </span>::std::os::raw::c_void,
             <span class="kw">pub </span>RawBufferAllocator_Free: <span class="kw">unsafe extern </span><span class="string">"C" </span><span class="kw">fn</span>(
                 this: <span class="kw-2">*mut </span>RawBufferAllocator,
                 aData: <span class="kw-2">*mut </span>::std::os::raw::c_void,
@@ -33464,6 +33438,10 @@
             );
         }
         <span class="kw">extern </span><span class="string">"C" </span>{
+            <span class="attr">#[link_name = <span class="string">"\u{1}?Resize@RawBuffer@RED4ext@@QEAAXI@Z"</span>]
+            </span><span class="kw">pub fn </span>RawBuffer_Resize(this: <span class="kw-2">*mut </span>root::RED4ext::RawBuffer, aSize: u32);
+        }
+        <span class="kw">extern </span><span class="string">"C" </span>{
             <span class="attr">#[link_name = <span class="string">"\u{1}??0RawBuffer@RED4ext@@QEAA@XZ"</span>]
             </span><span class="kw">pub fn </span>RawBuffer_RawBuffer(this: <span class="kw-2">*mut </span>root::RED4ext::RawBuffer);
         }
@@ -33490,6 +33468,10 @@
             }
         }
         <span class="kw">impl </span>RawBuffer {
+            <span class="attr">#[inline]
+            </span><span class="kw">pub unsafe fn </span>Resize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, aSize: u32) {
+                RawBuffer_Resize(<span class="self">self</span>, aSize)
+            }
             <span class="attr">#[inline]
             </span><span class="kw">pub unsafe fn </span>new() -&gt; <span class="self">Self </span>{
                 <span class="kw">let </span><span class="kw-2">mut </span>__bindgen_tmp = ::std::mem::MaybeUninit::uninit();
@@ -40460,7 +40442,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_Handle_open1_IScriptable_close1__bindgen_ty_id_489422_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_Handle_open1_IScriptable_close1__bindgen_ty_id_501092_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -40565,7 +40547,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_ptr_CBaseRTTIType__bindgen_ty_id_489439_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_ptr_CBaseRTTIType__bindgen_ty_id_501109_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41052,7 +41034,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CClassFunction__bindgen_ty_id_489832_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CClassFunction__bindgen_ty_id_501502_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41110,7 +41092,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CProperty__bindgen_ty_id_489857_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CProperty__bindgen_ty_id_501527_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41871,7 +41853,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CBaseRTTIType__bindgen_ty_id_490606_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CBaseRTTIType__bindgen_ty_id_502282_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -41916,7 +41898,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_uint32_t__bindgen_ty_id_490626_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_uint32_t__bindgen_ty_id_502302_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, u32&gt;&gt;(),
@@ -41936,7 +41918,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CGlobalFunction__bindgen_ty_id_490636_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_CGlobalFunction__bindgen_ty_id_502312_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -42054,7 +42036,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490681_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_502357_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, root::RED4ext::CName&gt;&gt;(
@@ -42077,7 +42059,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_490690_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_CName__bindgen_ty_id_502366_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;root::RED4ext::HashMap&lt;root::RED4ext::CName, root::RED4ext::CName&gt;&gt;(
@@ -42272,7 +42254,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_TweakDBID_Handle_open1_IScriptable_close1__bindgen_ty_id_491295_open1_TweakDBID_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_TweakDBID_Handle_open1_IScriptable_close1__bindgen_ty_id_502980_open1_TweakDBID_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -42321,7 +42303,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_DynArray_open1_Handle_open2_IScriptable_close2_close1__bindgen_ty_id_491310_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_ptr_CBaseRTTIType_DynArray_open1_Handle_open2_IScriptable_close2_close1__bindgen_ty_id_502995_open1_ptr_CBaseRTTIType_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
@@ -42519,7 +42501,7 @@
         );
     }
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_FlatValue__bindgen_ty_id_491336_open1_CName_void_close1_close0_instantiation(
+    </span><span class="kw">fn </span>__bindgen_test_layout_HashMap_open0_CName_ptr_FlatValue__bindgen_ty_id_503021_open1_CName_void_close1_close0_instantiation(
     ) {
         <span class="macro">assert_eq!</span>(
             ::std::mem::size_of::&lt;
