@@ -63,6 +63,7 @@ impl Exportable for ExportNil {
 
 /// A single class export.
 /// This can be used to define a custom class to be exported to the game.
+/// This type should not be used for structs, use [`StructExport`] instead.
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
     base: &'static str,
