@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono = { version = "0.4", optional = true }
-chrono-tz = { version = "0.9", optional = true }
+chrono-tz = { version = "0.10", optional = true }
 time = { version = "0.3", optional = true }
 thiserror = "1"
 sealed = "0.5"
@@ -16,7 +16,7 @@ const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.
 log = { version = "0.4", optional = true }
 
 [build-dependencies]
-bindgen = { version = "0.69", features = ["experimental"] }
+bindgen = { version = "0.70", features = ["experimental"] }
 cmake = "0.1"
 
 [features]
