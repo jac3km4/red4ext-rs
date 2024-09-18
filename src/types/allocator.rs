@@ -221,7 +221,7 @@ pub struct RefCountPool;
 
 #[sealed]
 impl Pool for RefCountPool {
-    const NAME: &'static str = "PoolRefCount";
+    const NAME: &'static str = "RefCountAllocator";
 }
 
 #[cold]
