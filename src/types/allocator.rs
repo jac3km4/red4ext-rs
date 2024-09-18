@@ -4,6 +4,7 @@ use std::{mem, ops, ptr};
 use once_cell::race::OnceNonZeroUsize;
 use sealed::sealed;
 
+use super::refs::RefCount;
 use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
@@ -113,6 +114,11 @@ impl Poolable for IScriptable {
 }
 
 #[sealed]
+impl Poolable for RefCount {
+    type Pool = RefCountPool;
+}
+
+#[sealed]
 impl<T> Poolable for mem::MaybeUninit<T>
 where
     T: Poolable,
@@ -207,6 +213,15 @@ pub struct ScriptPool;
 #[sealed]
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
+}
+
+/// A pool for reference counters.
+#[derive(Debug)]
+pub struct RefCountPool;
+
+#[sealed]
+impl Pool for RefCountPool {
+    const NAME: &'static str = "PoolRefCount";
 }
 
 #[cold]

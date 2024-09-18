@@ -17,7 +17,7 @@ pub use tweak_db_id::TweakDbId;
 pub mod array;
 pub use array::RedArray;
 mod refs;
-pub use refs::{Ref, ScriptRef, WeakRef};
+pub use refs::{Ref, ScriptRef, SharedPtr, WeakRef};
 mod string;
 pub use string::RedString;
 mod cname;
