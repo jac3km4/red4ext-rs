@@ -47,7 +47,7 @@ impl IAllocator {
 
 /// A reference to a value stored in a pool.
 #[derive(Debug)]
-pub struct PoolRef<T: Poolable>(*mut T);
+pub struct PoolRef<T: Poolable>(pub(super) *mut T);
 
 impl<T: Poolable> PoolRef<mem::MaybeUninit<T>> {
     #[inline]

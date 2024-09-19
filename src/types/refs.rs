@@ -346,8 +346,8 @@ impl<T: Default + NativeRepr> SharedPtr<T> {
     #[must_use]
     pub fn new_with(mut value: T) -> Self {
         let mut this = red::SharedPtrBase::<T>::default();
-        let mut refcount = RefCount::new();
-        this.refCount = &mut refcount as *const _ as *mut _;
+        let refcount = RefCount::new();
+        this.refCount = refcount.0 as *mut red::RefCnt;
         this.instance = &mut value as *const _ as *mut _;
         mem::forget(refcount);
         mem::forget(value);
