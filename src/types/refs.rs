@@ -343,6 +343,7 @@ impl<T: NativeRepr> Clone for SharedPtr<T> {
 }
 
 impl<T: Default + NativeRepr> SharedPtr<T> {
+    #[must_use]
     pub fn new_with(mut value: T) -> Self {
         let mut this = red::SharedPtrBase::<T>::default();
         let mut refcount = RefCount::new();
