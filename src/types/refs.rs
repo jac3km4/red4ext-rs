@@ -344,13 +344,12 @@ impl<T: NativeRepr> Clone for SharedPtr<T> {
 
 impl<T: Default + NativeRepr> SharedPtr<T> {
     #[must_use]
-    pub fn new_with(mut value: T) -> Self {
+    pub fn new_with(value: T) -> Self {
         let mut this = red::SharedPtrBase::<T>::default();
         let refcount = RefCount::new();
         this.refCount = refcount.0 as *mut red::RefCnt;
-        this.instance = &mut value as *const _ as *mut _;
+        this.instance = Box::leak(Box::new(value)) as *const _ as *mut _;
         mem::forget(refcount);
-        mem::forget(value);
         Self(this)
     }
 }
