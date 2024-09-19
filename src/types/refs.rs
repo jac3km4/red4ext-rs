@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::{mem, ptr};
 
 use super::{CName, ISerializable, PoolRef, Type};
@@ -273,13 +273,13 @@ pub(crate) struct RefCount(red::RefCnt);
 
 impl RefCount {
     #[inline]
-    fn strong(&self) -> &AtomicI32 {
-        unsafe { AtomicI32::from_ptr(&self.0.strongRefs as *const _ as _) }
+    fn strong(&self) -> &AtomicU32 {
+        unsafe { AtomicU32::from_ptr(&self.0.strongRefs as *const _ as _) }
     }
 
     #[inline]
-    fn weak_refs(&self) -> &AtomicI32 {
-        unsafe { AtomicI32::from_ptr(&self.0.weakRefs as *const _ as _) }
+    fn weak_refs(&self) -> &AtomicU32 {
+        unsafe { AtomicU32::from_ptr(&self.0.weakRefs as *const _ as _) }
     }
 
     fn new() -> PoolRef<Self> {
