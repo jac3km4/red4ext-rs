@@ -334,7 +334,7 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
 #[repr(transparent)]
 pub struct SharedPtr<T>(red::SharedPtrBase<T>);
 
-impl<T: NativeRepr> Clone for SharedPtr<T> {
+impl<T> Clone for SharedPtr<T> {
     #[inline]
     fn clone(&self) -> Self {
         self.inc_strong();
