@@ -1,4 +1,4 @@
-use std::num::NonZero;
+use std::num::NonZeroUsize;
 use std::{mem, ops, ptr};
 
 use once_cell::race::OnceNonZeroUsize;
@@ -34,13 +34,12 @@ impl IAllocator {
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         let result = unsafe {
-            ((*self.0.vtable_).IAllocator_AllocAligned)(
+            ((*self.0.vtable_).IAllocator_GetHandle)(
                 &self.0 as *const _ as *mut red::Memory::IAllocator,
-                size,
-                alignment,
             )
         };
-        result.memory.cast()
+        let vault = vault_get(result);
+        vault_alloc_aligned(vault, size, alignment).unwrap_or(ptr::null_mut()) as _
     }
 }
 
@@ -132,16 +131,8 @@ pub trait PoolableOps: Poolable + Sized {
 #[sealed]
 impl<T: Poolable> PoolableOps for T {
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>> {
-        let mut result = AllocationResult::default();
-        let size = mem::size_of::<Self>();
-        unsafe {
-            let alloc = crate::fn_from_hash!(
-                Memory_Vault_Alloc,
-                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
-            );
-            alloc(T::Pool::vault(), &mut result, size as _);
-        };
-        (!result.memory.is_null()).then(|| PoolRef(result.memory.cast::<mem::MaybeUninit<Self>>()))
+        let result = unsafe { vault_alloc(T::Pool::vault(), mem::size_of::<T>() as u32)? };
+        (!result.is_null()).then(|| PoolRef(result.cast::<mem::MaybeUninit<Self>>()))
     }
 
     fn free(ptr: &mut PoolRef<Self>) {
@@ -167,7 +158,9 @@ pub trait Pool {
     fn vault() -> *mut red::Memory::Vault {
         static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
         VAULT
-            .get_or_try_init(|| unsafe { vault_get(fnv1a32(Self::NAME)) }.ok_or(()))
+            .get_or_try_init(|| {
+                NonZeroUsize::new(unsafe { vault_get(fnv1a32(Self::NAME)) as _ }).ok_or(())
+            })
             .expect("should resolve vault")
             .get() as _
     }
@@ -209,18 +202,49 @@ impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }
 
+pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
+    let mut result = AllocationResult::default();
+    unsafe {
+        let alloc = crate::fn_from_hash!(
+            Memory_Vault_Alloc,
+            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
+        );
+        alloc(vault, &mut result, size as _);
+    };
+    (!result.memory.is_null()).then(|| result.memory)
+}
+
+pub(super) unsafe fn vault_alloc_aligned(
+    vault: *mut red::Memory::Vault,
+    size: u32,
+    alignment: u32,
+) -> Option<VoidPtr> {
+    let mut result = AllocationResult::default();
+    unsafe {
+        let alloc_aligned = crate::fn_from_hash!(
+            Memory_Vault_AllocAligned,
+            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32, u32)
+        );
+        alloc_aligned(vault, &mut result, size as _, alignment as _);
+    };
+    (!result.memory.is_null()).then(|| result.memory)
+}
+
 #[cold]
-unsafe fn vault_get(handle: u32) -> Option<NonZero<usize>> {
+pub(super) unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
     let vault = &mut *red::Memory::Vault::Get();
 
     vault.poolRegistry.nodesLock.lock_shared();
-    let info = vault
+    let Some(info) = vault
         .poolRegistry
         .nodes
         .iter()
-        .find(|node| node.handle == handle)?;
+        .find(|node| node.handle == handle)
+    else {
+        return ptr::null_mut();
+    };
     let storage = (*info.storage).allocatorStorage & !7;
     vault.poolRegistry.nodesLock.unlock_shared();
 
-    NonZero::new(storage as usize)
+    storage as _
 }
