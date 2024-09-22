@@ -208,6 +208,15 @@ impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }
 
+/// A pool for scripts values.
+#[derive(Debug)]
+pub struct RefCountPool;
+
+#[sealed]
+impl Pool for RefCountPool {
+    const NAME: &'static str = "PoolRefCount";
+}
+
 pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
     let mut result = AllocationResult::default();
     unsafe {
