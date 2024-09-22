@@ -226,7 +226,7 @@ pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> O
         );
         alloc(vault, &mut result, size as _);
     };
-    (!result.memory.is_null()).then(|| result.memory)
+    (!result.memory.is_null()).then_some(result.memory)
 }
 
 pub(super) unsafe fn vault_alloc_aligned(
@@ -242,7 +242,7 @@ pub(super) unsafe fn vault_alloc_aligned(
         );
         alloc_aligned(vault, &mut result, size as _, alignment as _);
     };
-    (!result.memory.is_null()).then(|| result.memory)
+    (!result.memory.is_null()).then_some(result.memory)
 }
 
 #[cold]
