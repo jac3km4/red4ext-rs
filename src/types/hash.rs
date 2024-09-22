@@ -113,10 +113,11 @@ impl<K, V> RedHashMap<K, V> {
 
         if self.capacity() != 0 {
             if self.size() != 0 {
-                for &idx in self.indexes() {
-                    let mut cur = idx;
+                let (self_nodes, self_indexes) = self.split_mut();
+                for idx in self_indexes {
+                    let mut cur = *idx;
                     while cur != INVALID_INDEX {
-                        let old = &self.nodes()[cur as usize];
+                        let old = unsafe { &*self_nodes.nodes.add(cur as usize) };
                         Self::push_node(
                             &mut node_list,
                             index_table,
@@ -126,6 +127,7 @@ impl<K, V> RedHashMap<K, V> {
                         );
                         cur = old.next;
                     }
+                    *idx = INVALID_INDEX;
                 }
             }
             unsafe { self.allocator().free(self.0.nodeList.nodes) }
@@ -214,7 +216,7 @@ impl<K, V> RedHashMap<K, V> {
 
     #[inline]
     fn allocator(&self) -> &IAllocator {
-        unsafe { &*(self.0.allocator as *const IAllocator) }
+        unsafe { &*(&self.0.allocator as *const _ as *const IAllocator) }
     }
 }
 
