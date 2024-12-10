@@ -102,3 +102,29 @@ impl fmt::Debug for EntityId {
             .finish_non_exhaustive()
     }
 }
+
+impl std::fmt::Display for EntityId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (self.is_defined(), self.is_persistable()) {
+            (true, persistable) => {
+                write!(
+                    f,
+                    "{} {}",
+                    self.0.hash,
+                    match (persistable, self.is_dynamic(), self.is_transient()) {
+                        (true, true, true) => "(P|D|T)",
+                        (true, true, false) => "(P|D)",
+                        (true, false, true) => "(P|S|T)",
+                        (true, false, false) => "(P|S)",
+                        (false, true, true) => "(D|T)",
+                        (false, true, false) => "(D)",
+                        (false, false, true) => "(S|T)",
+                        (false, false, false) => "(S)",
+                    }
+                )
+            }
+            (false, false) => write!(f, "undefined"),
+            (false, true) => write!(f, "undefined (P)"),
+        }
+    }
+}
