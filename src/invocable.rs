@@ -101,7 +101,9 @@ macro_rules! impl_global_invocable {
                 fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self($($types,)*);
-                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if !ret.as_mut_ptr().is_null() {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    }
                 }
             }
         )*
@@ -147,7 +149,9 @@ macro_rules! impl_method_invocable {
                 fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self(ctx, $($types,)*);
-                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if !ret.as_mut_ptr().is_null() {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    }
                 }
             }
         )*
