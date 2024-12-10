@@ -34,6 +34,41 @@ impl IAllocator {
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         let result = unsafe {
+            ((*self.0.vtable_).IAllocator_AllocAligned)(
+                &self.0 as *const _ as *mut red::Memory::IAllocator,
+                size,
+                alignment,
+            )
+        };
+        result.memory.cast()
+    }
+}
+
+/// An interface for allocating and freeing memory.
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct ICollectionAllocator(red::Memory::IAllocator);
+
+impl ICollectionAllocator {
+    /// Frees the memory pointed by `memory`.
+    #[inline]
+    pub unsafe fn free<T>(&self, memory: *mut T) {
+        let mut alloc = AllocationResult {
+            memory: memory as VoidPtr,
+            size: 0,
+        };
+        unsafe {
+            ((*self.0.vtable_).IAllocator_Free)(
+                &self.0 as *const _ as *mut red::Memory::IAllocator,
+                &mut alloc,
+            )
+        }
+    }
+
+    /// Allocates `size` bytes of memory with `alignment` bytes alignment.
+    #[inline]
+    pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
+        let result = unsafe {
             ((*self.0.vtable_).IAllocator_GetHandle)(
                 &self.0 as *const _ as *mut red::Memory::IAllocator,
             )
@@ -131,8 +166,16 @@ pub trait PoolableOps: Poolable + Sized {
 #[sealed]
 impl<T: Poolable> PoolableOps for T {
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>> {
-        let result = unsafe { vault_alloc(T::Pool::vault(), mem::size_of::<T>() as u32)? };
-        (!result.is_null()).then(|| PoolRef(result.cast::<mem::MaybeUninit<Self>>()))
+        let mut result = AllocationResult::default();
+        let size = mem::size_of::<Self>();
+        unsafe {
+            let alloc = crate::fn_from_hash!(
+                Memory_Vault_Alloc,
+                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
+            );
+            alloc(T::Pool::vault(), &mut result, size as _);
+        };
+        (!result.memory.is_null()).then(|| PoolRef(result.memory.cast::<mem::MaybeUninit<Self>>()))
     }
 
     fn free(ptr: &mut PoolRef<Self>) {
@@ -211,7 +254,7 @@ pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> O
         );
         alloc(vault, &mut result, size as _);
     };
-    (!result.memory.is_null()).then(|| result.memory)
+    (!result.memory.is_null()).then_some(result.memory)
 }
 
 pub(super) unsafe fn vault_alloc_aligned(
@@ -227,11 +270,11 @@ pub(super) unsafe fn vault_alloc_aligned(
         );
         alloc_aligned(vault, &mut result, size as _, alignment as _);
     };
-    (!result.memory.is_null()).then(|| result.memory)
+    (!result.memory.is_null()).then_some(result.memory)
 }
 
 #[cold]
-pub(super) unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
+unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
     let vault = &mut *red::Memory::Vault::Get();
 
     vault.poolRegistry.nodesLock.lock_shared();
