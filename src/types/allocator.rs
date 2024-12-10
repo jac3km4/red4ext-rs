@@ -245,18 +245,6 @@ impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 }
 
-pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
-    let mut result = AllocationResult::default();
-    unsafe {
-        let alloc = crate::fn_from_hash!(
-            Memory_Vault_Alloc,
-            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
-        );
-        alloc(vault, &mut result, size as _);
-    };
-    (!result.memory.is_null()).then_some(result.memory)
-}
-
 pub(super) unsafe fn vault_alloc_aligned(
     vault: *mut red::Memory::Vault,
     size: u32,
