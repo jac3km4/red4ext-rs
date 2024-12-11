@@ -37,7 +37,7 @@ unsafe impl<A: ScriptClass> NativeRepr for WeakRef<A> {
     const NAME: &'static str = combine!("whandle:", A::NAME);
 }
 
-unsafe impl<'a, A: NativeRepr> NativeRepr for ScriptRef<'a, A> {
+unsafe impl<A: NativeRepr> NativeRepr for ScriptRef<'_, A> {
     const NAME: &'static str = combine!("script_ref:", A::NAME);
 }
 
