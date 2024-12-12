@@ -103,6 +103,13 @@ impl fmt::Debug for EntityId {
     }
 }
 
+/// A simple entity ID representation.
+///
+/// Flags are displayed as:
+/// - `P`ersistable
+/// - `D`ynamic
+/// - `T`ransient
+/// - `S`tatic
 impl std::fmt::Display for EntityId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.is_defined(), self.is_persistable()) {
