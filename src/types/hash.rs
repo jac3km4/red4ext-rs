@@ -1,7 +1,8 @@
 use std::iter::FusedIterator;
 use std::{mem, ptr, slice};
 
-use super::{CName, IAllocator};
+use super::allocator::ICollectionAllocator;
+use super::CName;
 use crate::raw::root::RED4ext as red;
 
 const INVALID_INDEX: u32 = u32::MAX;
@@ -215,8 +216,8 @@ impl<K, V> RedHashMap<K, V> {
     }
 
     #[inline]
-    fn allocator(&self) -> &IAllocator {
-        unsafe { &*(&self.0.allocator as *const _ as *const IAllocator) }
+    fn allocator(&self) -> &ICollectionAllocator {
+        unsafe { &*(&self.0.allocator as *const _ as *const ICollectionAllocator) }
     }
 }
 
