@@ -78,7 +78,7 @@ impl InvokeError {
 pub trait GlobalInvocable<A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
+    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
 }
 
 macro_rules! impl_global_invocable {
@@ -98,11 +98,11 @@ macro_rules! impl_global_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
+                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self($($types,)*);
-                    if !ret.as_mut_ptr().is_null() {
-                        unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if let Some(ret) = ret {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) };
                     }
                 }
             }
@@ -126,7 +126,7 @@ impl_global_invocable!(
 pub trait MethodInvocable<Ctx, A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
+    fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
 }
 
 macro_rules! impl_method_invocable {
@@ -146,11 +146,11 @@ macro_rules! impl_method_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
+                fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self(ctx, $($types,)*);
-                    if !ret.as_mut_ptr().is_null() {
-                        unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if let Some(ret) = ret {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) };
                     }
                 }
             }
