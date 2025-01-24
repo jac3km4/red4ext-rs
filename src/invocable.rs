@@ -21,8 +21,8 @@ pub enum InvokeError {
     #[error("class could not be found by name '{0}'")]
     ClassNotFound(&'static str),
     #[error(
-        "method could not be found by full name '{0}', available options: {}",
-        .1.iter()
+        "method could not be found by full name '{0}', available options: {options}",
+        options = .1.iter()
             .fold(String::new() ,|mut acc, el| {
                 if !acc.is_empty() {
                     acc.push_str(", ");

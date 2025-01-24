@@ -1,18 +1,16 @@
 use std::time::Duration;
 
-use crate::raw::root::RED4ext as red;
-
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
-pub struct EngineTime(red::EngineTime);
+pub struct EngineTime(f64);
 
 impl EngineTime {
     pub fn is_valid(&self) -> bool {
-        self.0.unk00 != [0; 8]
+        self.0 != 0.
     }
 
     pub fn as_secs_f64(&self) -> f64 {
-        f64::from_ne_bytes(self.0.unk00)
+        self.0
     }
 }
 
@@ -25,7 +23,7 @@ impl std::ops::AddAssign<f64> for EngineTime {
         let addition = current + rhs;
         assert!(!addition.is_infinite(), "EngineTime cannot be infinity");
         assert!(!addition.is_nan(), "EngineTime cannot be NaN");
-        self.0.unk00 = addition.to_ne_bytes();
+        self.0 = addition;
     }
 }
 
@@ -52,7 +50,7 @@ impl std::ops::SubAssign<f64> for EngineTime {
         let substraction = current - rhs;
         assert!(!substraction.is_infinite(), "EngineTime cannot be infinity");
         assert!(!substraction.is_nan(), "EngineTime cannot be NaN");
-        self.0.unk00 = substraction.to_ne_bytes();
+        self.0 = substraction;
     }
 }
 
@@ -72,13 +70,13 @@ impl std::ops::Sub<f64> for EngineTime {
 
 impl PartialEq for EngineTime {
     fn eq(&self, other: &Self) -> bool {
-        self.0.unk00.eq(&other.0.unk00)
+        self.0.eq(&other.0)
     }
 }
 
 impl PartialOrd for EngineTime {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.unk00.partial_cmp(&other.0.unk00)
+        self.0.partial_cmp(&other.0)
     }
 }
 
@@ -92,15 +90,13 @@ impl TryFrom<f64> for EngineTime {
         if value.is_nan() {
             return Err(EngineTimeError::NotANumber);
         }
-        Ok(Self(red::EngineTime {
-            unk00: value.to_ne_bytes(),
-        }))
+        Ok(Self(value))
     }
 }
 
 impl From<EngineTime> for f64 {
-    fn from(EngineTime(red::EngineTime { unk00 }): EngineTime) -> Self {
-        Self::from_ne_bytes(unk00)
+    fn from(EngineTime(value): EngineTime) -> Self {
+        value
     }
 }
 
