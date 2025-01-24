@@ -1,13 +1,17 @@
 # red4ext-rs
+
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
 ## documentation
+
 Read the [documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)!
 
 ## usage
 
 ### quickstart
+
 Define your `Cargo.toml`:
+
 ```toml
 [package]
 name = "my-project"
@@ -19,12 +23,13 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"], rev = "v0.9.0" }
+red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"], rev = "v0.10.0" }
 # you can also add the bindings crate which exposes all in-game types for convenience
-red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.5.0" }
+red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.6.0" }
 ```
 
 ### set up a basic plugin
+
 ```rs
 use red4ext_rs::{
     export_plugin_symbols, exports, global, wcstr, Exportable, GlobalExport, Plugin, SemVer,
@@ -64,6 +69,7 @@ fn add2(a: i32) -> i32 {
 You can now build your project with `cargo build` and copy the compiled DLL from `{project}\target\debug\{project}.dll` to `{game}\red4ext\plugins\`. It should then be loaded by RED4ext and your function should be callable from REDscript and CET.
 
 ### call global and instance functions
+
 ```rust
 use red4ext_rs::call;
 use red4ext_rs::types::{IScriptable, Ref};
@@ -88,6 +94,7 @@ See [red4ext-rs-bindings](https://github.com/jac3km4/red4ext-rs-bindings) for bi
 types defined in RTTI in the game.
 
 ### define and export your own class type
+
 ```rust
 use std::cell::Cell;
 
@@ -131,7 +138,9 @@ unsafe impl ScriptClass for MyClass {
     const NAME: &'static str = "MyClass";
 }
 ```
+
 ...and on REDscript side:
+
 ```swift
 native class MyClass {
     native func GetValue() -> Int32;
@@ -141,6 +150,7 @@ native class MyClass {
 ```
 
 ### interact with scripted classes using hand-written bindings
+
 ```rust
 use red4ext_rs::types::{EntityId, Ref};
 use red4ext_rs::{class_kind, ScriptClass, ScriptClassOps};
@@ -172,6 +182,7 @@ fn example() -> Ref<AddInvestigatorEvent> {
 ```
 
 ### interact with native classes using hand-written bindings
+
 ```rust
 use red4ext_rs::types::{IScriptable, Ref};
 use red4ext_rs::{class_kind, ScriptClass, ScriptClassOps};
@@ -197,6 +208,7 @@ fn example() -> Ref<ScanningEvent> {
 ```
 
 ### interact with native game systems
+
 ```rust
 use red4ext_rs::types::{CName, EntityId, GameEngine, Opt};
 use red4ext_rs::{call, RttiSystem};
