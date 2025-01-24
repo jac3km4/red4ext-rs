@@ -122,7 +122,7 @@ fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
             acc
         })
         .ok_or(ResourcePathError::Empty)?;
-    if sanitized.as_bytes().len() > self::MAX_LENGTH {
+    if sanitized.len() > self::MAX_LENGTH {
         return Err(ResourcePathError::TooLong);
     }
     if Path::new(&sanitized)
