@@ -18,7 +18,7 @@ pub trait Instr {
 }
 
 #[derive(Debug)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct InvokeStatic {
     pub skip: u16,
     pub line: u16,
@@ -32,7 +32,7 @@ impl Instr for InvokeStatic {
 }
 
 #[derive(Debug)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct InvokeVirtual {
     pub skip: u16,
     pub line: u16,
