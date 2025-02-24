@@ -6,60 +6,35 @@ on:
   pull_request:
 
 env:
-  CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
-  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:
-  format:
-    name: Run format
+  check-format:
+    name: Check formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
-      - run: cargo fmt --all --check
+      - run: rustup toolchain install nightly --profile minimal --component rustfmt --no-self-update
+      - run: cargo +nightly fmt --all -- --check
 
   lint:
-    name: Run clippy
+    name: Lint
     runs-on: windows-2019
-    env:
-      RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
       - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: build
-      - run: cargo clippy
-
-  build:
-    name: Run build
-    runs-on: windows-2019
-    env:
-      RUSTFLAGS: -D warnings
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: build
-      - run: cargo build
+      - run: cargo clippy --all-features -- -D warnings
 
   test:
-    name: Run tests
+    name: Test
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup toolchain install stable --profile minimal --no-self-update
       - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: build
       - run: cargo test --all-features
