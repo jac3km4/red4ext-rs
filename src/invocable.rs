@@ -294,7 +294,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 ///
 /// # Example
 /// ```rust
-/// use red4ext_rs::{global, GlobalInvocable, GlobalMetadata};
+/// use red4ext_rs::{GlobalInvocable, GlobalMetadata, global};
 ///
 /// fn my_global() -> GlobalMetadata {
 ///     global!(c"Adder", adder)

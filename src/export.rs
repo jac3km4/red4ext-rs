@@ -6,7 +6,7 @@ use sealed::sealed;
 use crate::invocable::{GlobalMetadata, MethodMetadata};
 use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
-use crate::{class_kind, NativeRepr, RttiSystem, ScriptClass};
+use crate::{NativeRepr, RttiSystem, ScriptClass, class_kind};
 
 /// A list of exports to register with the game.
 #[derive(Debug)]

@@ -203,7 +203,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_info(env: &SdkEnv) {
     ///     log::info!(env, "Hello, world!");
@@ -222,7 +222,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_warn(env: &SdkEnv) {
     ///     log::warn!(env, "Hello, world!");
@@ -241,7 +241,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_error(env: &SdkEnv) {
     ///     log::error!(env, "Hello, world!");
@@ -260,7 +260,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_debug(env: &SdkEnv) {
     ///     log::debug!(env, "Hello, world!");
@@ -279,7 +279,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_trace(env: &SdkEnv) {
     ///     log::trace!(env, "Hello, world!");
@@ -395,7 +395,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{hooks, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, hooks};
     ///
     /// hooks! {
     ///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;

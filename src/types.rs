@@ -32,7 +32,7 @@ pub use rtti::{
 };
 mod bytecode;
 pub use bytecode::{
-    Instr, InvokeStatic, InvokeVirtual, OpcodeHandler, CALL_INSTR_SIZE, OPCODE_SIZE,
+    CALL_INSTR_SIZE, Instr, InvokeStatic, InvokeVirtual, OPCODE_SIZE, OpcodeHandler,
 };
 mod stack;
 pub use stack::{StackArg, StackFrame};
