@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::{iter, ptr};
 
-use super::{CName, Function, IScriptable, Instr, Type, ValueContainer, OPCODE_SIZE};
+use super::{CName, Function, IScriptable, Instr, OPCODE_SIZE, Type, ValueContainer};
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
@@ -60,8 +60,10 @@ impl StackFrame {
         if self.0.code.is_null() {
             return None;
         }
-        let ptr = self.0.code.offset(offset);
-        (ptr.read() as u8 == I::OPCODE).then(|| &*(ptr.offset(OPCODE_SIZE) as *const I))
+        unsafe {
+            let ptr = self.0.code.offset(offset);
+            (ptr.read() as u8 == I::OPCODE).then(|| &*(ptr.offset(OPCODE_SIZE) as *const I))
+        }
     }
 
     /// Steps over a single opcode (1 byte).
@@ -81,7 +83,7 @@ impl StackFrame {
         T::Repr: Default,
     {
         let mut repr = T::Repr::default();
-        self.read_arg(&mut repr as *mut T::Repr as VoidPtr);
+        unsafe { self.read_arg(&mut repr as *mut T::Repr as VoidPtr) };
         T::from_repr(repr)
     }
 

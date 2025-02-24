@@ -3,5 +3,6 @@
 #![allow(non_snake_case)]
 #![allow(unused)]
 #![allow(improper_ctypes)]
+#![allow(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::all)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
