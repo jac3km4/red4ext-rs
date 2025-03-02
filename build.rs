@@ -25,7 +25,7 @@ fn main() {
         .wrap_static_fns(true)
         .vtable_generation(true)
         // std types get generated incorrectly for some reason, so they need to be opaque
-        .opaque_type("std::(vector|string)")
+        .opaque_type("std::(vector|string|filesystem).*")
         .allowlist_item("RED4ext::[^:]+")
         .allowlist_item("RED4ext::(Detail|ent)::.+")
         .allowlist_item("RED4ext::Memory::(Vault|IAllocator)")

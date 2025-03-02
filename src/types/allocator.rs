@@ -8,7 +8,7 @@ use super::refs::RefCount;
 use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
-use crate::{fnv1a32, VoidPtr};
+use crate::{VoidPtr, fnv1a32};
 
 /// An interface for allocating and freeing memory.
 #[derive(Debug)]
@@ -34,13 +34,13 @@ impl IAllocator {
     /// Allocates `size` bytes of memory with `alignment` bytes alignment.
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
-        let result = unsafe {
-            ((*self.0.vtable_).IAllocator_GetHandle)(
+        unsafe {
+            let result = ((*self.0.vtable_).IAllocator_GetHandle)(
                 &self.0 as *const _ as *mut red::Memory::IAllocator,
-            )
-        };
-        let vault = vault_get(result);
-        vault_alloc_aligned(vault, size, alignment).unwrap_or(ptr::null_mut()) as _
+            );
+            let vault = vault_get(result);
+            vault_alloc_aligned(vault, size, alignment).unwrap_or(ptr::null_mut()) as _
+        }
     }
 }
 
@@ -247,19 +247,21 @@ pub(super) unsafe fn vault_alloc_aligned(
 
 #[cold]
 pub(super) unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
-    let vault = &mut *red::Memory::Vault::Get();
+    unsafe {
+        let vault = &mut *red::Memory::Vault::Get();
 
-    vault.poolRegistry.nodesLock.lock_shared();
-    let Some(info) = vault
-        .poolRegistry
-        .nodes
-        .iter()
-        .find(|node| node.handle == handle)
-    else {
-        return ptr::null_mut();
-    };
-    let storage = (*info.storage).allocatorStorage & !7;
-    vault.poolRegistry.nodesLock.unlock_shared();
+        vault.poolRegistry.nodesLock.lock_shared();
+        let Some(info) = vault
+            .poolRegistry
+            .nodes
+            .iter()
+            .find(|node| node.handle == handle)
+        else {
+            return ptr::null_mut();
+        };
+        let storage = (*info.storage).allocatorStorage & !7;
+        vault.poolRegistry.nodesLock.unlock_shared();
 
-    storage as _
+        storage as _
+    }
 }

@@ -21,8 +21,8 @@ pub enum InvokeError {
     #[error("class could not be found by name '{0}'")]
     ClassNotFound(&'static str),
     #[error(
-        "method could not be found by full name '{0}', available options: {}",
-        .1.iter()
+        "method could not be found by full name '{0}', available options: {options}",
+        options = .1.iter()
             .fold(String::new() ,|mut acc, el| {
                 if !acc.is_empty() {
                     acc.push_str(", ");
@@ -78,7 +78,7 @@ impl InvokeError {
 pub trait GlobalInvocable<A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
+    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
 }
 
 macro_rules! impl_global_invocable {
@@ -98,10 +98,12 @@ macro_rules! impl_global_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
+                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self($($types,)*);
-                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if let Some(ret) = ret {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) };
+                    }
                 }
             }
         )*
@@ -124,7 +126,7 @@ impl_global_invocable!(
 pub trait MethodInvocable<Ctx, A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R>);
+    fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
 }
 
 macro_rules! impl_method_invocable {
@@ -144,10 +146,12 @@ macro_rules! impl_method_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: &mut MaybeUninit<R::Repr>) {
+                fn invoke(self, ctx: &Ctx, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self(ctx, $($types,)*);
-                    unsafe { ret.as_mut_ptr().write(res.into_repr()) }
+                    if let Some(ret) = ret {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) };
+                    }
                 }
             }
         )*
@@ -290,7 +294,7 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 ///
 /// # Example
 /// ```rust
-/// use red4ext_rs::{global, GlobalInvocable, GlobalMetadata};
+/// use red4ext_rs::{GlobalInvocable, GlobalMetadata, global};
 ///
 /// fn my_global() -> GlobalMetadata {
 ///     global!(c"Adder", adder)

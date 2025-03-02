@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use const_combine::bounded::const_combine as combine;
 
-use crate::raw::root::RED4ext as red;
 use crate::NativeRepr;
+use crate::raw::root::RED4ext as red;
 
 // temporary module, we should split it up into separate files
 

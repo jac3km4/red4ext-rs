@@ -122,7 +122,7 @@ fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
             acc
         })
         .ok_or(ResourcePathError::Empty)?;
-    if sanitized.as_bytes().len() > self::MAX_LENGTH {
+    if sanitized.len() > self::MAX_LENGTH {
         return Err(ResourcePathError::TooLong);
     }
     if Path::new(&sanitized)
@@ -140,7 +140,9 @@ pub enum ResourcePathError {
     Empty,
     #[error("resource path should be less than {} characters", self::MAX_LENGTH)]
     TooLong,
-    #[error("resource path should be an absolute canonical path in an archive e.g. 'base\\mod\\character.ent'")]
+    #[error(
+        "resource path should be an absolute canonical path in an archive e.g. 'base\\mod\\character.ent'"
+    )]
     NotCanonical,
     #[error("resource path should be valid UTF-8")]
     InvalidUnicode,
@@ -164,7 +166,7 @@ macro_rules! res_ref {
 
 #[cfg(test)]
 mod tests {
-    use super::{encode_path, ResRef};
+    use super::{ResRef, encode_path};
     use crate::fnv1a64;
 
     #[test]

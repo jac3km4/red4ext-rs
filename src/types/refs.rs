@@ -83,14 +83,14 @@ impl<T: ScriptClass> Ref<T> {
     where
         U: ScriptClass,
     {
-        let inst = unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }?;
+        let inst = unsafe { (self.0.0.instance as *const ISerializable).as_ref() }?;
         inst.is_a::<U>().then(|| unsafe { mem::transmute(self) })
     }
 
     /// Returns whether the reference is null.
     #[inline]
     pub fn is_null(&self) -> bool {
-        self.0 .0.instance.is_null()
+        self.0.0.instance.is_null()
     }
 
     #[inline]
@@ -98,7 +98,7 @@ impl<T: ScriptClass> Ref<T> {
     where
         U: ScriptClass,
     {
-        unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+        unsafe { (self.0.0.instance as *const ISerializable).as_ref() }
             .is_some_and(ISerializable::is_exactly_a::<U>)
     }
 
@@ -107,7 +107,7 @@ impl<T: ScriptClass> Ref<T> {
     where
         U: ScriptClass,
     {
-        unsafe { (self.0 .0.instance as *const ISerializable).as_ref() }
+        unsafe { (self.0.0.instance as *const ISerializable).as_ref() }
             .is_some_and(ISerializable::is_a::<U>)
     }
 }
@@ -130,8 +130,8 @@ impl<T: ScriptClass> Clone for Ref<T> {
 impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.0.dec_strong() && !self.0 .0.instance.is_null() {
-            let ptr = self.0 .0.instance.cast::<NativeType<T>>();
+        if self.0.dec_strong() && !self.0.0.instance.is_null() {
+            let ptr = self.0.0.instance.cast::<NativeType<T>>();
             unsafe { ptr::drop_in_place(ptr) }
         }
     }

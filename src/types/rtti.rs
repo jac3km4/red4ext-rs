@@ -10,7 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
-use crate::{check_invariant, class_kind, ScriptClass, VoidPtr};
+use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
 /// A handler for function calls.
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
@@ -1535,12 +1535,14 @@ pub struct ValuePtr(VoidPtr);
 impl ValuePtr {
     pub unsafe fn unwrap_ref(&self) -> Option<&IScriptable> {
         let ptr = self.0 as *mut red::SharedPtrBase<red::IScriptable>;
-        let inst = (*ptr).instance;
-        let rc = (*ptr).refCount;
-        if inst.is_null() || rc.is_null() || (*rc).strongRefs == 0 {
-            return None;
-        };
-        Some(&*(inst as *const IScriptable))
+        unsafe {
+            let inst = (*ptr).instance;
+            let rc = (*ptr).refCount;
+            if inst.is_null() || rc.is_null() || (*rc).strongRefs == 0 {
+                return None;
+            };
+            Some(&*(inst as *const IScriptable))
+        }
     }
 
     #[inline]

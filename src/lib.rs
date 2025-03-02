@@ -8,10 +8,10 @@ pub use export::{
     ClassExport, ClassExportBuilder, ExportList, ExportNil, Exportable, GlobalExport, StructExport,
     StructExportBuilder,
 };
-use raw::root::{versioning, RED4ext as red};
+use raw::root::{RED4ext as red, versioning};
 use sealed::sealed;
 use types::StaticArray;
-pub use widestring::{widecstr as wcstr, U16CStr};
+pub use widestring::{U16CStr, widecstr as wcstr};
 
 mod class;
 mod export;
@@ -23,7 +23,7 @@ mod systems;
 /// A module encapsulating various types defined in the RED4ext SDK.
 pub mod types;
 
-pub use class::{class_kind, ClassKind, ScriptClass, ScriptClassOps};
+pub use class::{ClassKind, ScriptClass, ScriptClassOps, class_kind};
 pub use invocable::{
     AsReceiver, FunctionType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable,
     MethodMetadata,
@@ -203,7 +203,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_info(env: &SdkEnv) {
     ///     log::info!(env, "Hello, world!");
@@ -222,7 +222,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_warn(env: &SdkEnv) {
     ///     log::warn!(env, "Hello, world!");
@@ -241,7 +241,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_error(env: &SdkEnv) {
     ///     log::error!(env, "Hello, world!");
@@ -260,7 +260,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_debug(env: &SdkEnv) {
     ///     log::debug!(env, "Hello, world!");
@@ -279,7 +279,7 @@ pub mod log {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{log, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, log};
     ///
     /// fn log_trace(env: &SdkEnv) {
     ///     log::trace!(env, "Hello, world!");
@@ -395,7 +395,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{hooks, SdkEnv};
+    /// use red4ext_rs::{SdkEnv, hooks};
     ///
     /// hooks! {
     ///    static ADD_HOOK: fn(a: u32, b: u32) -> u32;
@@ -711,7 +711,7 @@ impl PluginInfo {
         Self(red::PluginInfo {
             name: name.as_ptr(),
             author: author.as_ptr(),
-            sdk: sdk.0 .0,
+            sdk: sdk.0.0,
             version: version.0,
             runtime: runtime.0,
         })
@@ -779,7 +779,9 @@ macro_rules! fn_from_hash {
                 })
                 .expect(::std::stringify!(should resolve $name hash))
                 .get();
-            ::std::mem::transmute::<usize, $ty>(addr + $offset)
+            unsafe {
+                ::std::mem::transmute::<usize, $ty>(addr + $offset)
+            }
         }
         inner()
     }};

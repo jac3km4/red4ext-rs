@@ -1,7 +1,7 @@
 use std::mem;
 
 use super::{IScriptable, Ref, Type};
-use crate::class::{class_kind, ScriptClass};
+use crate::class::{ScriptClass, class_kind};
 use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
 use crate::{NativeRepr, VoidPtr};

@@ -4,8 +4,8 @@ use std::marker::PhantomData;
 use std::{fmt, mem, ops, ptr, slice};
 
 use super::IAllocator;
-use crate::raw::root::RED4ext as red;
 use crate::VoidPtr;
+use crate::raw::root::RED4ext as red;
 
 /// A dynamically sized array.
 #[repr(transparent)]
