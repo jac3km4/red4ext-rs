@@ -287,7 +287,7 @@ impl RefCount {
         let ptr = refcount.as_mut_ptr();
         unsafe {
             (*ptr).0.strongRefs = 1;
-            (*ptr).0.weakRefs = 1;
+            (*ptr).0.weakRefs = 0;
             refcount.assume_init()
         }
     }
