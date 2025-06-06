@@ -151,13 +151,13 @@ macro_rules! export_plugin_symbols {
         mod __api {
             use super::*;
 
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             #[allow(non_snake_case, unused_variables)]
             unsafe extern "C" fn Query(info: *mut $crate::internal::PluginInfo) {
                 *info = <$trait as $crate::PluginOps>::info().into_raw();
             }
 
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             #[allow(non_snake_case, unused_variables)]
             extern "C" fn Main(
                 handle: $crate::internal::PluginHandle,
@@ -170,7 +170,7 @@ macro_rules! export_plugin_symbols {
                 }
             }
 
-            #[no_mangle]
+            #[unsafe(no_mangle)]
             #[allow(non_snake_case, unused_variables)]
             extern "C" fn Supports() -> u32 {
                 ::std::convert::Into::into(<$trait as $crate::Plugin>::API_VERSION)
