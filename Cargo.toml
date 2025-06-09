@@ -16,7 +16,7 @@ const-combine = { git = "https://github.com/jac3km4/const-combine", rev = "v0.1.
 log = { version = "0.4", optional = true }
 
 [build-dependencies]
-bindgen = { version = "0.71", features = ["experimental"] }
+bindgen = { version = "0.72", features = ["experimental"] }
 cmake = "0.1"
 
 [features]
