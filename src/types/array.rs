@@ -112,18 +112,22 @@ impl<T> ops::Deref for RedArray<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        (!self.0.entries.is_null())
-            .then(|| unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) })
-            .unwrap_or_default()
+        if !self.0.entries.is_null() {
+            unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) }
+        } else {
+            Default::default()
+        }
     }
 }
 
 impl<T> ops::DerefMut for RedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [T] {
-        (!self.0.entries.is_null())
-            .then(|| unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) })
-            .unwrap_or_default()
+        if !self.0.entries.is_null() {
+            unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) }
+        } else {
+            Default::default()
+        }
     }
 }
 

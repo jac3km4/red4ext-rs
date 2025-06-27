@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn resource_path() {
         const TOO_LONG: &str = "base\\some\\archive\\path\\that\\is\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\very\\long\\and\\above\\216\\bytes";
-        assert!(TOO_LONG.as_bytes().len() > super::MAX_LENGTH);
+        assert!(TOO_LONG.len() > super::MAX_LENGTH);
         assert!(encode_path(TOO_LONG).is_err());
 
         assert_eq!(
