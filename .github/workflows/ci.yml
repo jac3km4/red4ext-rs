@@ -7,6 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  LLVM_VERSION: 20.1.4
 
 jobs:
   check-format:
@@ -19,22 +20,30 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.LLVM_VERSION }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-features -- -D warnings
 
   test:
     name: Test
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --no-self-update
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: ${{ env.LLVM_VERSION }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
