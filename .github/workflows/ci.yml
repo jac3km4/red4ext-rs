@@ -26,10 +26,10 @@ jobs:
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: ${{ env.LLVM_VERSION }}
+      - name: Pin LLVM to a specific version
+        run: |
+          $latestChocoVersion = (Resolve-ChocoPackageVersion -PackageName "llvm" -TargetVersion ${{ env.LLVM_VERSION }})
+          Install-ChocoPackage -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $latestChocoVersion
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-features -- -D warnings
 
@@ -41,9 +41,9 @@ jobs:
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --no-self-update
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: ${{ env.LLVM_VERSION }}
+      - name: Pin LLVM to a specific version
+        run: |
+          $latestChocoVersion = (Resolve-ChocoPackageVersion -PackageName "llvm" -TargetVersion ${{ env.LLVM_VERSION }})
+          Install-ChocoPackage -PackageName llvm -ArgumentList '--allow-downgrade', '--version', $latestChocoVersion
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
