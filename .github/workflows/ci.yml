@@ -7,7 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  LLVM_VERSION: 20.1.4
+  LLVM_VERSION: 20.1.7
 
 jobs:
   check-format:
