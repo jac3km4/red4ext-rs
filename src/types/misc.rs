@@ -10,7 +10,7 @@ use crate::raw::root::RED4ext as red;
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct NodeRef(red::NodeRef);
 
@@ -22,7 +22,7 @@ pub struct DataBuffer(red::DataBuffer);
 #[repr(transparent)]
 pub struct DeferredDataBuffer(red::DeferredDataBuffer);
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct SharedDataBuffer(red::SharedDataBuffer);
 
@@ -34,7 +34,7 @@ pub struct DateTime(red::CDateTime);
 #[repr(transparent)]
 pub struct Guid(red::CGUID);
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct EditorObjectId(red::EditorObjectID);
 
