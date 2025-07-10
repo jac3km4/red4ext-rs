@@ -14,6 +14,10 @@ pub struct LocalizationString(red::LocalizationString);
 #[repr(transparent)]
 pub struct NodeRef(red::NodeRef);
 
+unsafe impl NativeRepr for NodeRef {
+    const NAME: &'static str = "worldGlobalNodeRef";
+}
+
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct DataBuffer(red::DataBuffer);
