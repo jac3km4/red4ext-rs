@@ -10,14 +10,6 @@ use crate::raw::root::RED4ext as red;
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
 
-#[derive(Debug, Default, Clone, Copy)]
-#[repr(transparent)]
-pub struct NodeRef(red::NodeRef);
-
-unsafe impl NativeRepr for NodeRef {
-    const NAME: &'static str = "worldGlobalNodeRef";
-}
-
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct DataBuffer(red::DataBuffer);
