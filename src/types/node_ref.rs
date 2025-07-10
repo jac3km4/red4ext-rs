@@ -1,7 +1,9 @@
+use std::hash::Hash;
+
 use crate::NativeRepr;
 use crate::raw::root::RED4ext as red;
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct NodeRef(red::NodeRef);
 
@@ -49,6 +51,38 @@ impl NodeRef {
         Self(red::NodeRef {
             hash: if hash == SEED { 0 } else { hash },
         })
+    }
+}
+
+impl PartialEq for NodeRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.hash == other.0.hash
+    }
+}
+
+impl Eq for NodeRef {}
+
+impl PartialOrd for NodeRef {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NodeRef {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.hash.cmp(&other.0.hash)
+    }
+}
+
+impl Hash for NodeRef {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash.hash(state);
+    }
+}
+
+impl Default for NodeRef {
+    fn default() -> Self {
+        Self(red::NodeRef { hash: 0 })
     }
 }
 
