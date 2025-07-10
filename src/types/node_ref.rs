@@ -25,7 +25,7 @@ impl NodeRef {
         let mut i = 0;
 
         while i < name.len() {
-            let b = name[i];
+            let mut b = name[i];
 
             if b == b'#' {
                 i += 1;
@@ -41,6 +41,8 @@ impl NodeRef {
                 if i >= name.len() {
                     break;
                 }
+
+                b = name[i];
             }
 
             hash ^= b as u64;
