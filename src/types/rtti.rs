@@ -879,7 +879,7 @@ impl Function {
 
         #[cfg(all(debug_assertions, feature = "log"))]
         if let Err(err) = self.validate_stack(arr.as_ref(), &out) {
-            log::error!("Call error: {}", err);
+            log::error!("Call error: {err}");
             return Err(err);
         }
 
