@@ -53,7 +53,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonDefault(x) => write!(f, "{}", x),
+            Self::NonDefault(x) => write!(f, "{x}"),
             Self::Default => write!(f, "{}", <Self as Default>::default()),
         }
     }

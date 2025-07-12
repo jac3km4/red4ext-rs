@@ -181,37 +181,39 @@ impl<K, V> RedHashMap<K, V> {
     fn split_mut(&mut self) -> (&mut red::HashMap_NodeList<K, V>, &mut [u32]) {
         (
             &mut self.0.nodeList,
-            (self.0.capacity > 0)
-                .then(|| unsafe {
-                    slice::from_raw_parts_mut(self.0.indexTable, self.0.capacity as _)
-                })
-                .unwrap_or_default(),
+            if self.0.capacity > 0 {
+                unsafe { slice::from_raw_parts_mut(self.0.indexTable, self.0.capacity as _) }
+            } else {
+                Default::default()
+            },
         )
     }
 
     #[inline]
     fn indexes(&self) -> &[u32] {
-        (self.capacity() > 0)
-            .then(|| unsafe { slice::from_raw_parts(self.0.indexTable, self.0.capacity as _) })
-            .unwrap_or_default()
+        if self.capacity() > 0 {
+            unsafe { slice::from_raw_parts(self.0.indexTable, self.0.capacity as _) }
+        } else {
+            Default::default()
+        }
     }
 
     #[inline]
     fn nodes(&self) -> &[red::HashMap_Node<K, V>] {
-        (self.capacity() > 0)
-            .then(|| unsafe {
-                slice::from_raw_parts(self.0.nodeList.nodes, self.0.nodeList.size as _)
-            })
-            .unwrap_or_default()
+        if self.capacity() > 0 {
+            unsafe { slice::from_raw_parts(self.0.nodeList.nodes, self.0.nodeList.size as _) }
+        } else {
+            Default::default()
+        }
     }
 
     #[inline]
     fn nodes_mut(&mut self) -> &mut [red::HashMap_Node<K, V>] {
-        (self.capacity() > 0)
-            .then(|| unsafe {
-                slice::from_raw_parts_mut(self.0.nodeList.nodes, self.0.nodeList.size as _)
-            })
-            .unwrap_or_default()
+        if self.capacity() > 0 {
+            unsafe { slice::from_raw_parts_mut(self.0.nodeList.nodes, self.0.nodeList.size as _) }
+        } else {
+            Default::default()
+        }
     }
 
     #[inline]
