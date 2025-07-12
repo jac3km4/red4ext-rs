@@ -348,7 +348,7 @@ impl<T: Default + NativeRepr> SharedPtr<T> {
         let mut this = red::SharedPtrBase::<T>::default();
         let refcount = RefCount::new();
         this.refCount = refcount.0 as *mut red::RefCnt;
-        this.instance = Box::leak(Box::new(value)) as *const _ as *mut _;
+        this.instance = Box::into_raw(Box::new(value)) as *const _ as *mut _;
         mem::forget(refcount);
         Self(this)
     }
@@ -383,9 +383,7 @@ impl<T> Drop for SharedPtr<T> {
                 unsafe { mem::transmute::<*mut red::RefCnt, PoolRef<RefCount>>(self.0.refCount) };
             let ptr_instance = self.0.instance;
             mem::drop(own_refcount);
-            unsafe {
-                ptr::drop_in_place(ptr_instance);
-            }
+            mem::drop(unsafe { Box::from_raw(ptr_instance) });
         }
     }
 }
