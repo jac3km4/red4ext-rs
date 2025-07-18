@@ -73,7 +73,7 @@ impl From<NodeRef> for u64 {
     }
 }
 
-fn fnv1a(name: &[u8]) -> u64 {
+const fn fnv1a(name: &[u8]) -> u64 {
     const PRIME: u64 = 0x100000001b3;
     const SEED: u64 = 0xCBF29CE484222325;
 
