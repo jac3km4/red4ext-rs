@@ -25,41 +25,7 @@ impl NodeRef {
     }
 
     pub const fn from_bytes(name: &[u8]) -> Self {
-        const PRIME: u64 = 0x100000001b3;
-        const SEED: u64 = 0xCBF29CE484222325;
-
-        let mut hash: u64 = SEED;
-        let mut i = 0;
-
-        while i < name.len() {
-            let mut b = name[i];
-
-            if b == b'#' {
-                i += 1;
-                continue;
-            }
-
-            if b == b';' {
-                i += 1;
-                while i < name.len() && name[i] != b'/' {
-                    i += 1;
-                }
-
-                if i >= name.len() {
-                    break;
-                }
-
-                b = name[i];
-            }
-
-            hash ^= b as u64;
-            hash = hash.wrapping_mul(PRIME);
-            i += 1;
-        }
-
-        Self(red::NodeRef {
-            hash: if hash == SEED { 0 } else { hash },
-        })
+        Self(red::NodeRef { hash: fnv1a(name) })
     }
 }
 
@@ -105,6 +71,42 @@ impl From<NodeRef> for u64 {
     fn from(NodeRef(red::NodeRef { hash }): NodeRef) -> Self {
         hash
     }
+}
+
+fn fnv1a(name: &[u8]) -> Self {
+    const PRIME: u64 = 0x100000001b3;
+    const SEED: u64 = 0xCBF29CE484222325;
+
+    let mut hash: u64 = SEED;
+    let mut i = 0;
+
+    while i < name.len() {
+        let mut b = name[i];
+
+        if b == b'#' {
+            i += 1;
+            continue;
+        }
+
+        if b == b';' {
+            i += 1;
+            while i < name.len() && name[i] != b'/' {
+                i += 1;
+            }
+
+            if i >= name.len() {
+                break;
+            }
+
+            b = name[i];
+        }
+
+        hash ^= b as u64;
+        hash = hash.wrapping_mul(PRIME);
+        i += 1;
+    }
+
+    if hash == SEED { 0 } else { hash }
 }
 
 #[cfg(test)]
