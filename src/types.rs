@@ -10,6 +10,8 @@ mod game_time;
 pub use game_time::GameTime;
 mod item_id;
 pub use item_id::{GameEItemIdFlag, GamedataItemStructure, ItemId};
+mod node_ref;
+pub use node_ref::*;
 mod res;
 pub use res::{RaRef, ResRef};
 mod tweak_db_id;
@@ -47,6 +49,5 @@ pub use game_engine::{GameEngine, GameInstance, NativeGameInstance, ScriptableSy
 mod misc;
 pub use misc::{
     Curve, DataBuffer, DateTime, DeferredDataBuffer, EditorObjectId, Guid, LocalizationString,
-    MessageResourcePath, MultiChannelCurve, NodeRef, ResourceRef, SharedDataBuffer, StaticArray,
-    Variant,
+    MessageResourcePath, MultiChannelCurve, ResourceRef, SharedDataBuffer, StaticArray, Variant,
 };

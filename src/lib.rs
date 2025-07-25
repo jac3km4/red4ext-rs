@@ -724,22 +724,21 @@ impl PluginInfo {
     }
 }
 
-const fn fnv1a64(str: &[u8]) -> u64 {
-    const PRIME: u64 = 0x0100_0000_01b3;
+const fn fnv1a64(bytes: &[u8]) -> u64 {
     const SEED: u64 = 0xCBF2_9CE4_8422_2325;
 
-    let mut tail = str;
+    let mut tail = bytes;
     let mut hash = SEED;
-    loop {
-        match tail.split_first() {
-            Some((head, rem)) => {
-                hash ^= *head as u64;
-                hash = hash.wrapping_mul(PRIME);
-                tail = rem;
-            }
-            None => break hash,
-        }
+    while let [head, rem @ ..] = tail {
+        tail = rem;
+        hash = fnv1a64_step(hash, *head);
     }
+    hash
+}
+
+const fn fnv1a64_step(hash: u64, byte: u8) -> u64 {
+    const PRIME: u64 = 0x0100_0000_01b3;
+    (hash ^ byte as u64).wrapping_mul(PRIME)
 }
 
 const fn fnv1a32(str: &str) -> u32 {
