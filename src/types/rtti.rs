@@ -1553,24 +1553,24 @@ impl ValuePtr {
 
 #[repr(C)]
 struct TypeVft {
-    destroy: unsafe extern "fastcall" fn(this: *mut Type),
+    destroy: unsafe extern "C" fn(this: *mut Type),
     tail: red::CBaseRTTIType__bindgen_vtable,
 }
 
 #[repr(C)]
 struct ArrayTypeVft {
     base: TypeVft,
-    get_inner_type: unsafe extern "fastcall" fn(this: *const ArrayType) -> *const Type,
-    sub_c8: unsafe extern "fastcall" fn(this: *const ArrayType) -> bool,
-    get_length: unsafe extern "fastcall" fn(this: *const ArrayType, val: ValuePtr) -> u32,
-    get_max_length: unsafe extern "fastcall" fn(this: *const ArrayType) -> u32,
+    get_inner_type: unsafe extern "C" fn(this: *const ArrayType) -> *const Type,
+    sub_c8: unsafe extern "C" fn(this: *const ArrayType) -> bool,
+    get_length: unsafe extern "C" fn(this: *const ArrayType, val: ValuePtr) -> u32,
+    get_max_length: unsafe extern "C" fn(this: *const ArrayType) -> u32,
     get_element:
-        unsafe extern "fastcall" fn(this: *const ArrayType, val: ValuePtr, index: u32) -> ValuePtr,
+        unsafe extern "C" fn(this: *const ArrayType, val: ValuePtr, index: u32) -> ValuePtr,
 }
 
 #[repr(C)]
 struct FunctionVft {
-    get_allocator: unsafe extern "fastcall" fn(this: &Function) -> *mut IAllocator,
-    destruct: unsafe extern "fastcall" fn(this: &mut Function),
-    get_parent: unsafe extern "fastcall" fn(this: &Function) -> *mut Class,
+    get_allocator: unsafe extern "C" fn(this: &Function) -> *mut IAllocator,
+    destruct: unsafe extern "C" fn(this: &mut Function),
+    get_parent: unsafe extern "C" fn(this: &Function) -> *mut Class,
 }

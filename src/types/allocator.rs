@@ -184,15 +184,6 @@ impl Pool for PropertyPool {
     const NAME: &'static str = "PoolRTTIProperty";
 }
 
-/// A pool for RTTI.
-#[derive(Debug)]
-pub struct RttiPool;
-
-#[sealed]
-impl Pool for RttiPool {
-    const NAME: &'static str = "PoolRTTI";
-}
-
 /// A pool for scripts values.
 #[derive(Debug)]
 pub struct ScriptPool;

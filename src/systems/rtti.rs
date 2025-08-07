@@ -323,65 +323,57 @@ impl RttiSystemMut {
 
 #[repr(C)]
 struct RttiSystemVft {
-    get_type: unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *mut Type,
-    get_type_by_async_id:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, async_id: u32) -> *mut Type,
-    get_class: unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *mut Class,
-    get_enum: unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *mut Enum,
-    get_bitfield:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *mut Bitfield,
-    _sub_28: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    get_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *mut Function,
-    _sub_38: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    get_native_types:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*mut Type>),
+    get_type: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Type,
+    get_type_by_async_id: unsafe extern "C" fn(this: *const RttiSystem, async_id: u32) -> *mut Type,
+    get_class: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Class,
+    get_enum: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Enum,
+    get_bitfield: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Bitfield,
+    _sub_28: unsafe extern "C" fn(this: *const RttiSystem),
+    get_function: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Function,
+    _sub_38: unsafe extern "C" fn(this: *const RttiSystem),
+    get_native_types: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Type>),
     get_global_functions:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
-    _sub_50: unsafe extern "fastcall" fn(this: *const RttiSystem),
+        unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
+    _sub_50: unsafe extern "C" fn(this: *const RttiSystem),
     get_class_functions:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
-    get_enums: unsafe extern "fastcall" fn(this: *const RttiSystem, out: *mut RedArray<*mut Enum>),
-    get_bitfields: unsafe extern "fastcall" fn(
+        unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
+    get_enums: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Enum>),
+    get_bitfields: unsafe extern "C" fn(
         this: *const RttiSystem,
         out: *mut RedArray<*mut Bitfield>,
         scripted_only: bool,
     ),
-    get_classes: unsafe extern "fastcall" fn(
+    get_classes: unsafe extern "C" fn(
         this: *const RttiSystem,
         base_class: *const Class,
         out: *mut RedArray<*mut Class>,
         filter: Option<unsafe extern "C" fn(*const Class) -> bool>,
         include_abstract: bool,
     ),
-    get_derived_classes: unsafe extern "fastcall" fn(
+    get_derived_classes: unsafe extern "C" fn(
         this: *const RttiSystem,
         base_class: *const Class,
         out: *mut RedArray<*mut Class>,
     ),
-    register_type: unsafe extern "fastcall" fn(this: *mut RttiSystem, ty: *mut Type, async_id: u32),
-    _sub_88: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    _sub_90: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    unregister_type: unsafe extern "fastcall" fn(this: *mut RttiSystem, ty: *mut Type),
+    register_type: unsafe extern "C" fn(this: *mut RttiSystem, ty: *mut Type, async_id: u32),
+    _sub_88: unsafe extern "C" fn(this: *const RttiSystem),
+    _sub_90: unsafe extern "C" fn(this: *const RttiSystem),
+    unregister_type: unsafe extern "C" fn(this: *mut RttiSystem, ty: *mut Type),
     register_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystemMut, function: *const GlobalFunction),
+        unsafe extern "C" fn(this: *const RttiSystemMut, function: *const GlobalFunction),
     unregister_function:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, function: *const GlobalFunction),
-    _sub_b0: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    _sub_b8: unsafe extern "fastcall" fn(this: *const RttiSystem),
+        unsafe extern "C" fn(this: *const RttiSystem, function: *const GlobalFunction),
+    _sub_b0: unsafe extern "C" fn(this: *const RttiSystem),
+    _sub_b8: unsafe extern "C" fn(this: *const RttiSystem),
     // FIXME: crashes when used, signature is probably wrong
-    _add_register_callback: unsafe extern "fastcall" fn(
-        this: *const RttiSystem,
-        function: unsafe extern "C" fn() -> (),
-    ),
+    _add_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
     // FIXME: crashes when used, signature is probably wrong
-    _add_post_register_callback: unsafe extern "fastcall" fn(
-        this: *const RttiSystem,
-        function: unsafe extern "C" fn() -> (),
-    ),
-    _sub_d0: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    _sub_d8: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    _create_scripted_class: unsafe extern "fastcall" fn(
+    _add_post_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
+    _sub_d0: unsafe extern "C" fn(this: *const RttiSystem),
+    _sub_d8: unsafe extern "C" fn(this: *const RttiSystem),
+    _create_scripted_class: unsafe extern "C" fn(
         this: *mut RttiSystem,
         name: CName,
         flags: ClassFlags,
@@ -389,7 +381,7 @@ struct RttiSystemVft {
     ),
     // FIXME: signature is wrong, but how to represent name and value of enumerator ?
     // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L50
-    _create_scripted_enum: unsafe extern "fastcall" fn(
+    _create_scripted_enum: unsafe extern "C" fn(
         this: *const RttiSystem,
         name: CName,
         size: i8,
@@ -398,23 +390,20 @@ struct RttiSystemVft {
     // FIXME: signature is wrong, but how to represent name and bit ?
     // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L54
     _create_scripted_bitfield:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
-    _initialize_script_runtime: unsafe extern "fastcall" fn(this: *const RttiSystem),
-    register_script_name: unsafe extern "fastcall" fn(
-        this: *const RttiSystem,
-        native_name: CName,
-        script_name: CName,
-    ),
+        unsafe extern "C" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
+    _initialize_script_runtime: unsafe extern "C" fn(this: *const RttiSystem),
+    register_script_name:
+        unsafe extern "C" fn(this: *const RttiSystem, native_name: CName, script_name: CName),
     get_class_by_script_name:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *const Class,
+        unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *const Class,
     get_enum_by_script_name:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: CName) -> *const Enum,
+        unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *const Enum,
     // FIXME: crashes when used, signature is probably wrong
     _convert_native_to_script_name:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
+        unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
     // FIXME: crashes when used, signature is probably wrong
     _convert_script_to_native_name:
-        unsafe extern "fastcall" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
+        unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
 /// A helper struct to set up RTTI registration callbacks.
