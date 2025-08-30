@@ -27,6 +27,11 @@ impl Type {
     }
 
     #[inline]
+    pub(crate) unsafe fn from_raw<'a>(raw: *const red::CBaseRTTIType) -> Option<&'a Self> {
+        unsafe { raw.cast::<Self>().as_ref() }
+    }
+
+    #[inline]
     pub fn name(&self) -> CName {
         // calling Type with unk8 == 0 crashes the game
         if self.0.unk8 == 0 {

@@ -1,9 +1,11 @@
 use std::marker::PhantomData;
+use std::{mem, ptr};
 
 use const_combine::bounded::const_combine as combine;
 
-use crate::NativeRepr;
 use crate::raw::root::RED4ext as red;
+use crate::types::{CName, Type};
+use crate::{FromRepr, IntoRepr, NativeRepr, RttiSystem};
 
 // temporary module, we should split it up into separate files
 
@@ -40,6 +42,64 @@ pub struct MessageResourcePath(red::MessageResourcePath);
 
 #[repr(transparent)]
 pub struct Variant(red::Variant);
+
+impl Variant {
+    pub fn new<A: IntoRepr>(val: A) -> Option<Self> {
+        let mut this = Self::default();
+        let rtti = RttiSystem::get();
+        let typ = rtti.get_type(CName::new(A::Repr::NAME))?;
+        // Variant owns the repr, so we need to prevent the compiler from dropping it.
+        let mut repr = mem::ManuallyDrop::new(val.into_repr());
+        if !unsafe { this.0.Fill(typ.as_raw(), ptr::from_mut(&mut repr).cast()) } {
+            return None;
+        }
+        Some(this)
+    }
+
+    #[inline]
+    pub fn type_(&self) -> Option<&Type> {
+        unsafe { Type::from_raw(self.0.type_) }
+    }
+
+    pub fn try_clone<A>(&mut self) -> Option<A>
+    where
+        A: FromRepr,
+        A::Repr: Clone,
+    {
+        let repr = unsafe { self.try_access::<A>()?.as_ref() }?;
+        Some(A::from_repr(repr.clone()))
+    }
+
+    pub fn try_take<A: FromRepr>(&mut self) -> Option<A> {
+        let repr = self.try_access::<A>()?;
+        let value = unsafe { repr.read() };
+        // We use ptr::write to prevent the compiler from dropping the Variant.
+        // Otherwise we would have a double free of the repr.
+        unsafe { ptr::write(self, Self::default()) }
+        Some(A::from_repr(value))
+    }
+
+    fn try_access<A: FromRepr>(&mut self) -> Option<*const A::Repr> {
+        let typ = unsafe { Type::from_raw(self.0.type_) }?;
+        if typ.name() == CName::new(A::Repr::NAME) {
+            Some(unsafe { self.0.GetDataPtr() }.cast::<A::Repr>())
+        } else {
+            None
+        }
+    }
+}
+
+impl Default for Variant {
+    fn default() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
+impl Drop for Variant {
+    fn drop(&mut self) {
+        unsafe { self.0.Free() }
+    }
+}
 
 #[derive(Debug)]
 #[repr(transparent)]
