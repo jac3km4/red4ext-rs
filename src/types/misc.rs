@@ -61,6 +61,17 @@ impl Variant {
         unsafe { Type::from_raw(self.0.type_) }
     }
 
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        let typ = unsafe { Type::from_raw(self.0.type_) }?;
+        let size = typ.size() as usize;
+        let data_ptr = unsafe { self.0.GetDataPtr() } as *const u8;
+        if data_ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { std::slice::from_raw_parts(data_ptr, size) })
+        }
+    }
+
     pub fn try_clone<A>(&self) -> Option<A>
     where
         A: FromRepr,
