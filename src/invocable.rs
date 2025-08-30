@@ -134,7 +134,7 @@ macro_rules! impl_global_invocable_with_ref {
                 R: IntoRepr
             {
                 const FN_TYPE: FunctionType = FunctionType {
-                    args: &[$(CName::new($types::Repr::NAME),)*],
+                    args: &[CName::new(<ScriptRef<'_, This>>::NAME), $(CName::new($types::Repr::NAME),)*],
                     ret: CName::new(R::Repr::NAME)
                 };
 
