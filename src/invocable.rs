@@ -9,7 +9,7 @@ use crate::class::ClassKind;
 use crate::repr::{FromRepr, IntoRepr, NativeRepr};
 use crate::types::{
     CName, Class, Function, FunctionFlags, FunctionHandler, GlobalFunction, IScriptable, Method,
-    PoolRef, Ref, StackArg, StackFrame, StaticMethod,
+    PoolRef, Ref, ScriptRef, StackArg, StackFrame, StaticMethod,
 };
 use crate::{ScriptClass, VoidPtr};
 
@@ -86,9 +86,9 @@ macro_rules! impl_global_invocable {
         $(
             #[allow(non_snake_case, unused_variables)]
             #[sealed]
-            impl<$($types,)* R, FN> GlobalInvocable<($($types,)*), R::Repr> for FN
+            impl<$($types,)* R, Func> GlobalInvocable<fn($($types,)*), R::Repr> for Func
             where
-                FN: Fn($($types,)*) -> R,
+                Func: Fn($($types,)*) -> R,
                 $($types: FromRepr, $types::Repr: Default,)*
                 R: IntoRepr
             {
@@ -121,6 +121,47 @@ impl_global_invocable!(
     (A, B, C, D, E, F, G)
 );
 
+macro_rules! impl_global_invocable_with_ref {
+    ($( ($( $types:ident ),*) ),*) => {
+        $(
+            #[allow(non_snake_case, unused_variables)]
+            #[sealed]
+            impl<This, $($types,)* R, Func> GlobalInvocable<for<'a> fn(ScriptRef<'a, This>, $($types,)*), R::Repr> for Func
+            where
+                This: NativeRepr,
+                Func: for<'a> Fn(ScriptRef<'a, This>, $($types,)*) -> R,
+                $($types: FromRepr, $types::Repr: Default,)*
+                R: IntoRepr
+            {
+                const FN_TYPE: FunctionType = FunctionType {
+                    args: &[$(CName::new($types::Repr::NAME),)*],
+                    ret: CName::new(R::Repr::NAME)
+                };
+
+                #[inline]
+                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
+                    let this = unsafe { frame.get_arg() };
+                    $(let $types = unsafe { frame.get_arg::<$types>() };)*
+                    let res = self(this, $($types,)*);
+                    if let Some(ret) = ret {
+                        unsafe { ret.as_mut_ptr().write(res.into_repr()) };
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_global_invocable_with_ref!(
+    (),
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F)
+);
+
 /// A trait for functions that can be exported as class methods.
 #[sealed]
 pub trait MethodInvocable<Ctx, A, R> {
@@ -134,7 +175,7 @@ macro_rules! impl_method_invocable {
         $(
             #[allow(non_snake_case, unused_variables)]
             #[sealed]
-            impl<Ctx, $($types,)* R, FN> MethodInvocable<Ctx, ($($types,)*), R::Repr> for FN
+            impl<Ctx, $($types,)* R, FN> MethodInvocable<Ctx, fn($($types,)*), R::Repr> for FN
             where
                 FN: Fn(&Ctx, $($types,)*) -> R,
                 $($types: FromRepr, $types::Repr: Default,)*

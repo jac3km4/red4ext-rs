@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use std::{iter, ptr};
+use std::{iter, mem, ptr};
 
 use super::{CName, Function, IScriptable, Instr, OPCODE_SIZE, Type, ValueContainer};
 use crate::raw::root::RED4ext as red;
@@ -80,11 +80,10 @@ impl StackFrame {
     pub unsafe fn get_arg<T>(&mut self) -> T
     where
         T: FromRepr,
-        T::Repr: Default,
     {
-        let mut repr = T::Repr::default();
-        unsafe { self.read_arg(&mut repr as *mut T::Repr as VoidPtr) };
-        T::from_repr(repr)
+        let mut repr = mem::MaybeUninit::uninit();
+        unsafe { self.read_arg(ptr::from_mut(&mut repr).cast()) };
+        T::from_repr(unsafe { repr.assume_init() })
     }
 
     unsafe fn read_arg(&mut self, ptr: VoidPtr) {
