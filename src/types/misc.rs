@@ -61,7 +61,7 @@ impl Variant {
         unsafe { Type::from_raw(self.0.type_) }
     }
 
-    pub fn try_clone<A>(&mut self) -> Option<A>
+    pub fn try_clone<A>(&self) -> Option<A>
     where
         A: FromRepr,
         A::Repr: Clone,
@@ -79,7 +79,7 @@ impl Variant {
         Some(A::from_repr(value))
     }
 
-    fn try_access<A: FromRepr>(&mut self) -> Option<*const A::Repr> {
+    fn try_access<A: FromRepr>(&self) -> Option<*const A::Repr> {
         let typ = unsafe { Type::from_raw(self.0.type_) }?;
         if typ.name() == CName::new(A::Repr::NAME) {
             Some(unsafe { self.0.GetDataPtr() }.cast::<A::Repr>())
