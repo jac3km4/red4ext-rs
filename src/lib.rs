@@ -581,9 +581,11 @@ macro_rules! hooks {
             static mut DETOUR: Option<unsafe extern "C" fn($($arg: $ty),*, cb: unsafe extern "C" fn($($arg: $ty),*) -> $ret) -> $ret> = None;
 
             unsafe extern "C" fn internal($($arg: $ty),*) -> $ret {
-                let target = unsafe { TARGET.expect("target function should be set") };
-                let detour = unsafe { DETOUR.expect("detour function should be set") };
-                detour($($arg,)* target)
+                unsafe {
+                    let target = TARGET.expect("target function should be set");
+                    let detour = DETOUR.expect("detour function should be set");
+                    detour($($arg,)* target)
+                }
             }
 
             static mut HOOK: $crate::Hook<
