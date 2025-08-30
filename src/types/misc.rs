@@ -106,6 +106,13 @@ impl Default for Variant {
     }
 }
 
+impl Clone for Variant {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(unsafe { red::Variant::new4(&self.0) })
+    }
+}
+
 impl Drop for Variant {
     fn drop(&mut self) {
         unsafe { self.0.Free() }
