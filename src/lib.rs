@@ -639,6 +639,8 @@ impl_fn_ptr!(A, B, C, D, E);
 impl_fn_ptr!(A, B, C, D, E, F);
 impl_fn_ptr!(A, B, C, D, E, F, G);
 impl_fn_ptr!(A, B, C, D, E, F, G, H);
+impl_fn_ptr!(A, B, C, D, E, F, G, H, I);
+impl_fn_ptr!(A, B, C, D, E, F, G, H, I, J);
 
 /// A callback function to be called when a state is entered, updated, or exited.
 pub type StateHandler = unsafe extern "C" fn(app: &GameApp);
