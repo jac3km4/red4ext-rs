@@ -81,7 +81,7 @@ impl StackFrame {
     where
         T: FromRepr,
     {
-        let mut repr = mem::MaybeUninit::uninit();
+        let mut repr = mem::MaybeUninit::zeroed();
         unsafe { self.read_arg(ptr::from_mut(&mut repr).cast()) };
         T::from_repr(unsafe { repr.assume_init() })
     }
