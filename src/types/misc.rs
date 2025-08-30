@@ -58,12 +58,11 @@ impl Variant {
 
     #[inline]
     pub fn type_(&self) -> Option<&Type> {
-        unsafe { Type::from_raw(self.0.type_) }
+        unsafe { Type::from_raw(self.0.GetType()) }
     }
 
     pub fn as_bytes(&self) -> Option<&[u8]> {
-        let typ = unsafe { Type::from_raw(self.0.type_) }?;
-        let size = typ.size() as usize;
+        let size = self.type_()?.size() as usize;
         let data_ptr = unsafe { self.0.GetDataPtr() } as *const u8;
         if data_ptr.is_null() {
             None
@@ -91,8 +90,7 @@ impl Variant {
     }
 
     fn try_access<A: FromRepr>(&self) -> Option<*const A::Repr> {
-        let typ = unsafe { Type::from_raw(self.0.type_) }?;
-        if typ.name() == CName::new(A::Repr::NAME) {
+        if self.type_()?.name() == CName::new(A::Repr::NAME) {
             Some(unsafe { self.0.GetDataPtr() }.cast::<A::Repr>())
         } else {
             None
