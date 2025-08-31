@@ -71,27 +71,18 @@ impl Variant {
         }
     }
 
-    pub fn try_clone<A>(&self) -> Option<A>
-    where
-        A: FromRepr,
-        A::Repr: Clone,
-    {
-        let repr = unsafe { self.try_access::<A>()?.as_ref() }?;
-        Some(A::from_repr(repr.clone()))
-    }
-
     pub fn try_take<A: FromRepr>(&mut self) -> Option<A> {
-        let repr = self.try_access::<A>()?;
-        let value = unsafe { repr.read() };
+        let repr = self.try_access::<A::Repr>()?;
+        let value = unsafe { ptr::read(repr) };
         // We use ptr::write to prevent the compiler from dropping the Variant.
         // Otherwise we would have a double free of the repr.
         unsafe { ptr::write(self, Self::default()) }
         Some(A::from_repr(value))
     }
 
-    fn try_access<A: FromRepr>(&self) -> Option<*const A::Repr> {
-        if self.type_()?.name() == CName::new(A::Repr::NAME) {
-            Some(unsafe { self.0.GetDataPtr() }.cast::<A::Repr>())
+    pub fn try_access<A: NativeRepr>(&self) -> Option<&A> {
+        if self.type_()?.name() == CName::new(A::NAME) {
+            unsafe { self.0.GetDataPtr().cast::<A>().as_ref() }
         } else {
             None
         }
