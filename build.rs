@@ -14,7 +14,13 @@ fn main() {
     println!("cargo:rustc-link-lib=user32");
     println!("cargo:rustc-link-lib=RED4ext.SDK");
 
-    let bindings = bindgen::Builder::default()
+    let allowlist = include_str!("deps/allowlist.txt")
+        .split('\n')
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect::<Vec<_>>();
+
+    let builder = bindgen::Builder::default()
         .clang_arg("-std=c++20")
         .clang_arg(format!("-I{}", red4ext_include_dir.display()))
         .header("deps/wrapper.hpp")
@@ -24,17 +30,17 @@ fn main() {
         .enable_cxx_namespaces()
         .wrap_static_fns(true)
         .vtable_generation(true)
+        .generate_comments(false)
+        .layout_tests(false)
         // std types get generated incorrectly for some reason, so they need to be opaque
         .opaque_type("std::(vector|string|filesystem).*")
-        .allowlist_item("RED4ext::[^:]+")
-        .allowlist_item("RED4ext::(Detail|ent)::.+")
-        .allowlist_item("RED4ext::Memory::(Vault|IAllocator)")
-        .allowlist_item("versioning::.+")
-        // callback handlers generate incorrect Rust code
-        .blocklist_item("RED4ext::(Detail::)?CallbackHandler.*")
-        .generate_comments(false)
-        .generate()
-        .expect("Unable to generate bindings");
+        .allowlist_item("versioning::.+");
+
+    let builder = allowlist
+        .iter()
+        .fold(builder, |b, line| b.allowlist_item(line));
+
+    let bindings = builder.generate().expect("Unable to generate bindings");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
