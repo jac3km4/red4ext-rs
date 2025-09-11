@@ -16,7 +16,7 @@ fn main() {
 
     let allowlist = include_str!("deps/allowlist.txt")
         .split('\n')
-        .map(|line| line.trim())
+        .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .collect::<Vec<_>>();
 
@@ -38,7 +38,7 @@ fn main() {
 
     let builder = allowlist
         .iter()
-        .fold(builder, |b, line| b.allowlist_item(line));
+        .fold(builder, bindgen::Builder::allowlist_item);
 
     let bindings = builder.generate().expect("Unable to generate bindings");
 
