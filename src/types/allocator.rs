@@ -4,6 +4,7 @@ use std::{mem, ops, ptr};
 use once_cell::race::OnceNonZeroUsize;
 use sealed::sealed;
 
+use super::refs::RefCount;
 use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
@@ -45,7 +46,7 @@ impl IAllocator {
 
 /// A reference to a value stored in a pool.
 #[derive(Debug)]
-pub struct PoolRef<T: Poolable>(*mut T);
+pub struct PoolRef<T: Poolable>(pub(super) *mut T);
 
 impl<T: Poolable> PoolRef<mem::MaybeUninit<T>> {
     #[inline]
@@ -109,6 +110,11 @@ impl Poolable for Property {
 #[sealed]
 impl Poolable for IScriptable {
     type Pool = ScriptPool;
+}
+
+#[sealed]
+impl Poolable for RefCount {
+    type Pool = RefCountPool;
 }
 
 #[sealed]
@@ -191,6 +197,15 @@ pub struct ScriptPool;
 #[sealed]
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
+}
+
+/// A pool for scripts values.
+#[derive(Debug)]
+pub struct RefCountPool;
+
+#[sealed]
+impl Pool for RefCountPool {
+    const NAME: &'static str = "PoolRefCount";
 }
 
 pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
