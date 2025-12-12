@@ -126,6 +126,20 @@ impl<T: ScriptClass> Clone for Ref<T> {
     }
 }
 
+impl<T: ScriptClass> PartialEq for Ref<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: ScriptClass> PartialEq<WeakRef<T>> for Ref<T> {
+    #[inline]
+    fn eq(&self, other: &WeakRef<T>) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
@@ -172,6 +186,20 @@ impl<T: ScriptClass> Drop for WeakRef<T> {
     #[inline]
     fn drop(&mut self) {
         self.0.dec_weak();
+    }
+}
+
+impl<T: ScriptClass> PartialEq for WeakRef<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: ScriptClass> PartialEq<Ref<T>> for WeakRef<T> {
+    #[inline]
+    fn eq(&self, other: &Ref<T>) -> bool {
+        self.0 == other.0
     }
 }
 
@@ -263,6 +291,13 @@ impl<T> Clone for BaseRef<T> {
             refCount: self.0.refCount,
             ..Default::default()
         })
+    }
+}
+
+impl<T> PartialEq for BaseRef<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
     }
 }
 
