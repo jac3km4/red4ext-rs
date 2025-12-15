@@ -7,6 +7,7 @@ use crate::class::{NativeType, ScriptClass};
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
+use crate::types::PtrEq;
 use crate::{ClassKind, VoidPtr};
 
 /// A reference counted shared pointer to a script class.
@@ -126,17 +127,21 @@ impl<T: ScriptClass> Clone for Ref<T> {
     }
 }
 
-impl<T: ScriptClass> PartialEq for Ref<T> {
+impl<T: ScriptClass> PtrEq for Ref<T> {
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
     }
 }
 
-impl<T: ScriptClass> PartialEq<WeakRef<T>> for Ref<T> {
+impl<T: ScriptClass> PtrEq<WeakRef<T>> for Ref<T> {
     #[inline]
-    fn eq(&self, other: &WeakRef<T>) -> bool {
-        self.0 == other.0
+    fn ptr_eq(&self, other: &WeakRef<T>) -> bool {
+        other
+            .clone()
+            .upgrade()
+            .map(|x| x.ptr_eq(self))
+            .unwrap_or(false)
     }
 }
 
@@ -189,17 +194,20 @@ impl<T: ScriptClass> Drop for WeakRef<T> {
     }
 }
 
-impl<T: ScriptClass> PartialEq for WeakRef<T> {
+impl<T: ScriptClass> PtrEq for WeakRef<T> {
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
     }
 }
 
-impl<T: ScriptClass> PartialEq<Ref<T>> for WeakRef<T> {
+impl<T: ScriptClass> PtrEq<Ref<T>> for WeakRef<T> {
     #[inline]
-    fn eq(&self, other: &Ref<T>) -> bool {
-        self.0 == other.0
+    fn ptr_eq(&self, other: &Ref<T>) -> bool {
+        self.clone()
+            .upgrade()
+            .map(|x| x.ptr_eq(other))
+            .unwrap_or(false)
     }
 }
 
@@ -294,10 +302,10 @@ impl<T> Clone for BaseRef<T> {
     }
 }
 
-impl<T> PartialEq for BaseRef<T> {
+impl<T> PtrEq for BaseRef<T> {
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
     }
 }
 
