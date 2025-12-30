@@ -137,11 +137,7 @@ impl<T: ScriptClass> PtrEq for Ref<T> {
 impl<T: ScriptClass> PtrEq<WeakRef<T>> for Ref<T> {
     #[inline]
     fn ptr_eq(&self, other: &WeakRef<T>) -> bool {
-        other
-            .clone()
-            .upgrade()
-            .map(|x| x.ptr_eq(self))
-            .unwrap_or(false)
+        self.0.0.ptr_eq(&other.0.0)
     }
 }
 
@@ -204,10 +200,7 @@ impl<T: ScriptClass> PtrEq for WeakRef<T> {
 impl<T: ScriptClass> PtrEq<Ref<T>> for WeakRef<T> {
     #[inline]
     fn ptr_eq(&self, other: &Ref<T>) -> bool {
-        self.clone()
-            .upgrade()
-            .map(|x| x.ptr_eq(other))
-            .unwrap_or(false)
+        self.0.0.ptr_eq(&other.0.0)
     }
 }
 
