@@ -58,3 +58,10 @@ where
 {
     fn ptr_eq(&self, other: &Rhs) -> bool;
 }
+
+impl<T> PtrEq for crate::red::SharedPtrBase<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &crate::red::SharedPtrBase<T>) -> bool {
+        std::ptr::eq(self.instance, other.instance)
+    }
+}
