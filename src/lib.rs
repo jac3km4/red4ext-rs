@@ -20,6 +20,9 @@ mod raw;
 mod repr;
 mod systems;
 
+#[cfg(feature = "tracing")]
+mod tracing;
+
 /// A module encapsulating various types defined in the RED4ext SDK.
 pub mod types;
 
@@ -137,6 +140,23 @@ where
             log::set_max_level(log::LevelFilter::Trace);
         }
 
+        #[cfg(feature = "tracing")]
+        {
+            use ::tracing::subscriber::with_default;
+            use tracing_subscriber::Registry;
+            use tracing_subscriber::fmt::layer;
+            use tracing_subscriber::layer::SubscriberExt;
+
+            use crate::tracing::RedsFormatter;
+
+            let layer = layer().with_writer(Self::env()).event_format(RedsFormatter);
+            let registry = Registry::default().with(layer);
+            with_default(registry, || {
+                Self::on_init(Self::env());
+            })
+        }
+
+        #[cfg(not(feature = "tracing"))]
         Self::on_init(Self::env());
     }
 }
