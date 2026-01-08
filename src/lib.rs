@@ -142,24 +142,26 @@ where
 
         #[cfg(feature = "tracing")]
         {
-            use ::tracing::subscriber::with_default;
-            use tracing_subscriber::Registry;
-            use tracing_subscriber::fmt::layer;
-            use tracing_subscriber::layer::SubscriberExt;
-
-            use crate::tracing::RedsFormatter;
-
-            let layer = layer().with_writer(Self::env()).event_format(RedsFormatter);
-            let registry = Registry::default().with(layer);
-            with_default(registry, || {
-                Self::on_init(Self::env());
-            })
+            let dispatch = DISPATCH.get_or_init(|| build_dispatch::<P>());
+            ::tracing::dispatcher::set_global_default(dispatch.clone()).ok();
         }
 
-        #[cfg(not(feature = "tracing"))]
         Self::on_init(Self::env());
     }
 }
+
+#[cfg(feature = "tracing")]
+fn build_dispatch<P: PluginOps>() -> ::tracing::Dispatch {
+    use ::tracing_subscriber::layer::SubscriberExt;
+    let layer = ::tracing_subscriber::fmt::layer()
+        .with_writer(P::env())
+        .event_format(crate::tracing::RedsFormatter);
+    let registry = ::tracing_subscriber::Registry::default().with(layer);
+    ::tracing::Dispatch::new(registry)
+}
+
+#[cfg(feature = "tracing")]
+static DISPATCH: OnceLock<::tracing::Dispatch> = OnceLock::new();
 
 /// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
 /// not be loaded unless you call this macro.
