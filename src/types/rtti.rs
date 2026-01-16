@@ -10,6 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
+use crate::types::PtrEq;
 use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
 /// A handler for function calls.
@@ -1449,6 +1450,12 @@ impl ISerializable {
     }
 }
 
+impl PtrEq for ISerializable {
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ref_._base._base.ptr_eq(&other.0.ref_._base._base)
+    }
+}
+
 unsafe impl ScriptClass for ISerializable {
     type Kind = class_kind::Native;
 
@@ -1459,6 +1466,14 @@ unsafe impl ScriptClass for ISerializable {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IScriptable(red::IScriptable);
+
+impl<T: AsRef<IScriptable>, U: AsRef<IScriptable>> PtrEq<U> for T {
+    fn ptr_eq(&self, other: &U) -> bool {
+        self.as_ref()
+            .as_serializable()
+            .ptr_eq(other.as_ref().as_serializable())
+    }
+}
 
 impl IScriptable {
     #[inline]
