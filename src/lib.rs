@@ -175,10 +175,10 @@ macro_rules! export_plugin_symbols {
                     $crate::internal::EMainReason::Load => {
                         <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
                         $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
-                    },
+                    }
                     $crate::internal::EMainReason::Unload => {
                         <$trait as $crate::PluginOps>::exit($crate::SdkEnv::new(handle, sdk));
-                    },
+                    }
                 }
             }
 
