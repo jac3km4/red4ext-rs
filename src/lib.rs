@@ -179,6 +179,7 @@ macro_rules! export_plugin_symbols {
                     $crate::internal::EMainReason::Unload => {
                         <$trait as $crate::PluginOps>::exit($crate::SdkEnv::new(handle, sdk));
                     }
+                    _ => {}
                 }
             }
 
