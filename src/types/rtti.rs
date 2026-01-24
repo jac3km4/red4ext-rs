@@ -541,11 +541,11 @@ impl<T> NativeClass<T> {
         let vft = class.as_raw()._base.vtable_ as *mut usize;
         let vft = unsafe { slice::from_raw_parts(vft, VFT_SIZE) };
         let mut vft = vft.to_vec();
-        vft[IS_EQUAL_SLOT] = Self::is_equal as _;
-        vft[ASSIGN_SLOT] = Self::assign as _;
-        vft[CONSTRUCT_SLOT] = Self::construct as _;
-        vft[DESTRUCT_SLOT] = Self::destruct as _;
-        vft[ALLOC_SLOT] = Self::alloc as _;
+        vft[IS_EQUAL_SLOT] = Self::is_equal as *const () as _;
+        vft[ASSIGN_SLOT] = Self::assign as *const () as _;
+        vft[CONSTRUCT_SLOT] = Self::construct as *const () as _;
+        vft[DESTRUCT_SLOT] = Self::destruct as *const () as _;
+        vft[ALLOC_SLOT] = Self::alloc as *const () as _;
 
         class.0._base.vtable_ = vft.leak().as_ptr() as _;
 
