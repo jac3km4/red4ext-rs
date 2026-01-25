@@ -86,6 +86,17 @@ pub trait Plugin {
     fn on_exit(_env: &SdkEnv) {}
 }
 
+/// Execution result of the callback function called when a state is entered, updated or exited.
+/// It can be executed across multiple frames.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum StateHandlerResult {
+    // StateHandler hasn't finished initializing
+    Running = 0,
+    // StateHandler has finished executing
+    Finished = 1,
+}
+
 /// A set of useful operations that can be performed on a plugin.
 #[sealed]
 pub trait PluginOps: Plugin {
@@ -377,7 +388,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{GameApp, SdkEnv, StateListener, StateType};
+    /// use red4ext_rs::{GameApp, SdkEnv, StateHandlerResult, StateListener, StateType};
     ///
     /// fn add_state_listener(env: &SdkEnv) {
     ///     let listener = StateListener::default()
@@ -386,12 +397,14 @@ impl SdkEnv {
     ///     env.add_listener(StateType::Running, listener);
     /// }
     ///
-    /// unsafe extern "C" fn on_enter(app: &GameApp) {
+    /// unsafe extern "C" fn on_enter(app: &GameApp) -> StateHandlerResult {
     ///     // do something here...
+    ///     StateHandlerResult::Finished
     /// }
     ///
-    /// unsafe extern "C" fn on_exit(app: &GameApp) {
+    /// unsafe extern "C" fn on_exit(app: &GameApp) -> StateHandlerResult {
     ///     // do something here...
+    ///     StateHandlerResult::Finished
     /// }
     /// ```
     #[inline]
@@ -656,7 +669,7 @@ impl_fn_ptr!(A, B, C, D, E, F, G, H, I);
 impl_fn_ptr!(A, B, C, D, E, F, G, H, I, J);
 
 /// A callback function to be called when a state is entered, updated, or exited.
-pub type StateHandler = unsafe extern "C" fn(app: &GameApp);
+pub type StateHandler = unsafe extern "C" fn(app: &GameApp) -> StateHandlerResult;
 
 /// A wrapper around the game application instance.
 #[repr(transparent)]
