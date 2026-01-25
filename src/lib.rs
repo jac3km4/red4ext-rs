@@ -86,14 +86,14 @@ pub trait Plugin {
     fn on_exit(_env: &SdkEnv) {}
 }
 
-/// Execution result of the callback function called when a state is entered, updated or exited.
-/// It can be executed across multiple frames.
+/// [StateHandler] execution result,
+/// which can be executed across multiple frames.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum StateHandlerResult {
-    // StateHandler hasn't finished initializing
+    /// [StateHandler] hasn't finished executing (and will called again next frame)
     Running = 0,
-    // StateHandler has finished executing
+    /// [StateHandler] has finished executing (and lifecycle can carry on to next step)
     Finished = 1,
 }
 
