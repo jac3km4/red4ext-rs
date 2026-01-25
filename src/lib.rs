@@ -181,7 +181,7 @@ macro_rules! export_plugin_symbols {
                 handle: $crate::internal::PluginHandle,
                 reason: $crate::internal::EMainReason::Type,
                 sdk: $crate::internal::Sdk,
-            ) {
+            ) -> bool {
                 match reason {
                     $crate::internal::EMainReason::Load => {
                         <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
@@ -192,6 +192,7 @@ macro_rules! export_plugin_symbols {
                     }
                     _ => {}
                 }
+                true
             }
 
             #[unsafe(no_mangle)]
