@@ -93,7 +93,7 @@ pub trait Plugin {
 pub enum StateHandlerResult {
     /// [StateHandler] hasn't finished executing (and will called again next frame).
     Running = 0,
-    /// [StateHandler] has finished executing (and lifecycle can carry on to next step)
+    /// [StateHandler] has finished executing (and lifecycle can carry on to next step).
     Finished = 1,
 }
 
