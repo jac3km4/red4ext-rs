@@ -91,7 +91,7 @@ pub trait Plugin {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum StateHandlerResult {
-    /// [StateHandler] hasn't finished executing (and will called again next frame).
+    /// [StateHandler] hasn't finished executing (and will be called again next frame).
     Running = 0,
     /// [StateHandler] has finished executing (and lifecycle can carry on to next step).
     Finished = 1,
