@@ -81,9 +81,14 @@ pub trait Plugin {
         ExportNil
     }
 
-    /// A function that is called when the plugin is initialized.
-    fn on_init(_env: &SdkEnv) {}
-    fn on_exit(_env: &SdkEnv) {}
+    /// A function that is called when the plugin is loaded.
+    ///
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    fn on_load(_env: &SdkEnv) {}
+    /// A function that is called when the plugin is unloaded.
+    ///
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    fn on_unload(_env: &SdkEnv) {}
 }
 
 /// [StateHandler] execution result,
@@ -109,9 +114,9 @@ pub trait PluginOps: Plugin {
     #[doc(hidden)]
     fn info() -> PluginInfo;
     #[doc(hidden)]
-    fn init(env: SdkEnv);
+    fn load(env: SdkEnv);
     #[doc(hidden)]
-    fn exit(env: SdkEnv);
+    fn unload(env: SdkEnv);
 }
 
 #[sealed]
@@ -140,7 +145,7 @@ where
         )
     }
 
-    fn init(env: SdkEnv) {
+    fn load(env: SdkEnv) {
         Self::env_lock()
             .set(Box::new(env))
             .expect("plugin environment should not be initialized");
@@ -151,11 +156,11 @@ where
             log::set_max_level(log::LevelFilter::Trace);
         }
 
-        Self::on_init(Self::env());
+        Self::on_load(Self::env());
     }
 
-    fn exit(env: SdkEnv) {
-        Self::on_exit(&env);
+    fn unload(env: SdkEnv) {
+        Self::on_unload(&env);
     }
 }
 
@@ -679,6 +684,8 @@ pub struct GameApp(red::CGameApplication);
 /// A listener for state changes in the game application.
 /// The listener can be attached to a specific state type using the [`SdkEnv::add_listener`]
 /// method.
+///
+/// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct StateListener(red::GameState);
@@ -686,6 +693,9 @@ pub struct StateListener(red::GameState);
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
     /// Sets a callback to be called when the state is entered.
+    ///
+    /// Called immediately after the state is activated.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -695,6 +705,8 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is updated.
+    ///
+    /// Called every frame. This function can contain more complex code.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -704,6 +716,9 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is exited.
+    ///
+    /// Called when the state is ending.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
         Self(red::GameState {
