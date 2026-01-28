@@ -20,6 +20,9 @@ mod raw;
 mod repr;
 mod systems;
 
+#[cfg(feature = "tracing")]
+mod tracing;
+
 /// A module encapsulating various types defined in the RED4ext SDK.
 pub mod types;
 
@@ -156,6 +159,12 @@ where
             log::set_max_level(log::LevelFilter::Trace);
         }
 
+        #[cfg(feature = "tracing")]
+        {
+            let dispatch = DISPATCH.get_or_init(|| build_dispatch::<P>());
+            ::tracing::dispatcher::set_global_default(dispatch.clone()).ok();
+        }
+
         Self::on_load(Self::env());
     }
 
@@ -163,6 +172,19 @@ where
         Self::on_unload(&env);
     }
 }
+
+#[cfg(feature = "tracing")]
+fn build_dispatch<P: PluginOps>() -> ::tracing::Dispatch {
+    use ::tracing_subscriber::layer::SubscriberExt;
+    let layer = ::tracing_subscriber::fmt::layer()
+        .with_writer(P::env())
+        .event_format(crate::tracing::RedsFormatter);
+    let registry = ::tracing_subscriber::Registry::default().with(layer);
+    ::tracing::Dispatch::new(registry)
+}
+
+#[cfg(feature = "tracing")]
+static DISPATCH: OnceLock<::tracing::Dispatch> = OnceLock::new();
 
 /// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
 /// not be loaded unless you call this macro.
