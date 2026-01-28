@@ -81,8 +81,9 @@ pub trait Plugin {
         ExportNil
     }
 
-    /// A function that is called when the plugin is initialized.
+    /// A function that is called when the plugin is loaded.
     fn on_load(_env: &SdkEnv) {}
+    /// A function that is called when the plugin is unloaded.
     fn on_unload(_env: &SdkEnv) {}
 }
 
