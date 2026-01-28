@@ -189,11 +189,11 @@ macro_rules! export_plugin_symbols {
             ) -> bool {
                 match reason {
                     $crate::internal::EMainReason::Load => {
-                        <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
+                        <$trait as $crate::PluginOps>::load($crate::SdkEnv::new(handle, sdk));
                         $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
                     }
                     $crate::internal::EMainReason::Unload => {
-                        <$trait as $crate::PluginOps>::exit($crate::SdkEnv::new(handle, sdk));
+                        <$trait as $crate::PluginOps>::unload($crate::SdkEnv::new(handle, sdk));
                     }
                     _ => {}
                 }
