@@ -82,8 +82,8 @@ pub trait Plugin {
     }
 
     /// A function that is called when the plugin is initialized.
-    fn on_init(_env: &SdkEnv) {}
-    fn on_exit(_env: &SdkEnv) {}
+    fn on_load(_env: &SdkEnv) {}
+    fn on_unload(_env: &SdkEnv) {}
 }
 
 /// [StateHandler] execution result,
@@ -109,9 +109,9 @@ pub trait PluginOps: Plugin {
     #[doc(hidden)]
     fn info() -> PluginInfo;
     #[doc(hidden)]
-    fn init(env: SdkEnv);
+    fn load(env: SdkEnv);
     #[doc(hidden)]
-    fn exit(env: SdkEnv);
+    fn unload(env: SdkEnv);
 }
 
 #[sealed]
@@ -140,7 +140,7 @@ where
         )
     }
 
-    fn init(env: SdkEnv) {
+    fn load(env: SdkEnv) {
         Self::env_lock()
             .set(Box::new(env))
             .expect("plugin environment should not be initialized");
@@ -151,11 +151,11 @@ where
             log::set_max_level(log::LevelFilter::Trace);
         }
 
-        Self::on_init(Self::env());
+        Self::on_load(Self::env());
     }
 
-    fn exit(env: SdkEnv) {
-        Self::on_exit(&env);
+    fn unload(env: SdkEnv) {
+        Self::on_unload(&env);
     }
 }
 
