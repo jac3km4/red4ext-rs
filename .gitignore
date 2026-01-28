@@ -1,4 +1,5 @@
 /target
 /.vscode
-/Cargo.lock
 /.zed
+/.vs
+/Cargo.lock

@@ -7,6 +7,7 @@ use crate::class::{NativeType, ScriptClass};
 use crate::raw::root::RED4ext as red;
 use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
+use crate::types::PtrEq;
 use crate::{ClassKind, VoidPtr};
 
 /// A reference counted shared pointer to a script class.
@@ -126,6 +127,20 @@ impl<T: ScriptClass> Clone for Ref<T> {
     }
 }
 
+impl<T: ScriptClass> PtrEq for Ref<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
+    }
+}
+
+impl<T: ScriptClass> PtrEq<WeakRef<T>> for Ref<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &WeakRef<T>) -> bool {
+        self.0.0.ptr_eq(&other.0.0)
+    }
+}
+
 impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
@@ -172,6 +187,20 @@ impl<T: ScriptClass> Drop for WeakRef<T> {
     #[inline]
     fn drop(&mut self) {
         self.0.dec_weak();
+    }
+}
+
+impl<T: ScriptClass> PtrEq for WeakRef<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
+    }
+}
+
+impl<T: ScriptClass> PtrEq<Ref<T>> for WeakRef<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &Ref<T>) -> bool {
+        self.0.0.ptr_eq(&other.0.0)
     }
 }
 
@@ -263,6 +292,13 @@ impl<T> Clone for BaseRef<T> {
             refCount: self.0.refCount,
             ..Default::default()
         })
+    }
+}
+
+impl<T> PtrEq for BaseRef<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ptr_eq(&other.0)
     }
 }
 

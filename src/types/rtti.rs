@@ -10,6 +10,7 @@ use super::{
 use crate::invocable::{Args, InvokeError};
 use crate::raw::root::RED4ext as red;
 use crate::repr::{FromRepr, NativeRepr};
+use crate::types::PtrEq;
 use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
 /// A handler for function calls.
@@ -540,11 +541,11 @@ impl<T> NativeClass<T> {
         let vft = class.as_raw()._base.vtable_ as *mut usize;
         let vft = unsafe { slice::from_raw_parts(vft, VFT_SIZE) };
         let mut vft = vft.to_vec();
-        vft[IS_EQUAL_SLOT] = Self::is_equal as _;
-        vft[ASSIGN_SLOT] = Self::assign as _;
-        vft[CONSTRUCT_SLOT] = Self::construct as _;
-        vft[DESTRUCT_SLOT] = Self::destruct as _;
-        vft[ALLOC_SLOT] = Self::alloc as _;
+        vft[IS_EQUAL_SLOT] = Self::is_equal as *const () as _;
+        vft[ASSIGN_SLOT] = Self::assign as *const () as _;
+        vft[CONSTRUCT_SLOT] = Self::construct as *const () as _;
+        vft[DESTRUCT_SLOT] = Self::destruct as *const () as _;
+        vft[ALLOC_SLOT] = Self::alloc as *const () as _;
 
         class.0._base.vtable_ = vft.leak().as_ptr() as _;
 
@@ -1449,6 +1450,12 @@ impl ISerializable {
     }
 }
 
+impl PtrEq for ISerializable {
+    fn ptr_eq(&self, other: &Self) -> bool {
+        self.0.ref_._base._base.ptr_eq(&other.0.ref_._base._base)
+    }
+}
+
 unsafe impl ScriptClass for ISerializable {
     type Kind = class_kind::Native;
 
@@ -1459,6 +1466,14 @@ unsafe impl ScriptClass for ISerializable {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IScriptable(red::IScriptable);
+
+impl<T: AsRef<IScriptable>, U: AsRef<IScriptable>> PtrEq<U> for T {
+    fn ptr_eq(&self, other: &U) -> bool {
+        self.as_ref()
+            .as_serializable()
+            .ptr_eq(other.as_ref().as_serializable())
+    }
+}
 
 impl IScriptable {
     #[inline]

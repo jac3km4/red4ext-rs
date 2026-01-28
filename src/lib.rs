@@ -84,8 +84,25 @@ pub trait Plugin {
         ExportNil
     }
 
-    /// A function that is called when the plugin is initialized.
-    fn on_init(_env: &SdkEnv) {}
+    /// A function that is called when the plugin is loaded.
+    ///
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    fn on_load(_env: &SdkEnv) {}
+    /// A function that is called when the plugin is unloaded.
+    ///
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    fn on_unload(_env: &SdkEnv) {}
+}
+
+/// [StateHandler] execution result,
+/// which can be executed across multiple frames.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum StateHandlerResult {
+    /// [StateHandler] hasn't finished executing (and will be called again next frame).
+    Running = 0,
+    /// [StateHandler] has finished executing (and lifecycle can carry on to next step).
+    Finished = 1,
 }
 
 /// A set of useful operations that can be performed on a plugin.
@@ -100,7 +117,9 @@ pub trait PluginOps: Plugin {
     #[doc(hidden)]
     fn info() -> PluginInfo;
     #[doc(hidden)]
-    fn init(env: SdkEnv);
+    fn load(env: SdkEnv);
+    #[doc(hidden)]
+    fn unload(env: SdkEnv);
 }
 
 #[sealed]
@@ -129,7 +148,7 @@ where
         )
     }
 
-    fn init(env: SdkEnv) {
+    fn load(env: SdkEnv) {
         Self::env_lock()
             .set(Box::new(env))
             .expect("plugin environment should not be initialized");
@@ -146,7 +165,11 @@ where
             ::tracing::dispatcher::set_global_default(dispatch.clone()).ok();
         }
 
-        Self::on_init(Self::env());
+        Self::on_load(Self::env());
+    }
+
+    fn unload(env: SdkEnv) {
+        Self::on_unload(&env);
     }
 }
 
@@ -185,11 +208,18 @@ macro_rules! export_plugin_symbols {
                 handle: $crate::internal::PluginHandle,
                 reason: $crate::internal::EMainReason::Type,
                 sdk: $crate::internal::Sdk,
-            ) {
-                if reason == $crate::internal::EMainReason::Load {
-                    <$trait as $crate::PluginOps>::init($crate::SdkEnv::new(handle, sdk));
-                    $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+            ) -> bool {
+                match reason {
+                    $crate::internal::EMainReason::Load => {
+                        <$trait as $crate::PluginOps>::load($crate::SdkEnv::new(handle, sdk));
+                        $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+                    }
+                    $crate::internal::EMainReason::Unload => {
+                        <$trait as $crate::PluginOps>::unload($crate::SdkEnv::new(handle, sdk));
+                    }
+                    _ => {}
                 }
+                true
             }
 
             #[unsafe(no_mangle)]
@@ -386,7 +416,7 @@ impl SdkEnv {
     ///
     /// # Example
     /// ```rust
-    /// use red4ext_rs::{GameApp, SdkEnv, StateListener, StateType};
+    /// use red4ext_rs::{GameApp, SdkEnv, StateHandlerResult, StateListener, StateType};
     ///
     /// fn add_state_listener(env: &SdkEnv) {
     ///     let listener = StateListener::default()
@@ -395,12 +425,14 @@ impl SdkEnv {
     ///     env.add_listener(StateType::Running, listener);
     /// }
     ///
-    /// unsafe extern "C" fn on_enter(app: &GameApp) {
+    /// unsafe extern "C" fn on_enter(app: &GameApp) -> StateHandlerResult {
     ///     // do something here...
+    ///     StateHandlerResult::Finished
     /// }
     ///
-    /// unsafe extern "C" fn on_exit(app: &GameApp) {
+    /// unsafe extern "C" fn on_exit(app: &GameApp) -> StateHandlerResult {
     ///     // do something here...
+    ///     StateHandlerResult::Finished
     /// }
     /// ```
     #[inline]
@@ -665,7 +697,7 @@ impl_fn_ptr!(A, B, C, D, E, F, G, H, I);
 impl_fn_ptr!(A, B, C, D, E, F, G, H, I, J);
 
 /// A callback function to be called when a state is entered, updated, or exited.
-pub type StateHandler = unsafe extern "C" fn(app: &GameApp);
+pub type StateHandler = unsafe extern "C" fn(app: &GameApp) -> StateHandlerResult;
 
 /// A wrapper around the game application instance.
 #[repr(transparent)]
@@ -674,6 +706,8 @@ pub struct GameApp(red::CGameApplication);
 /// A listener for state changes in the game application.
 /// The listener can be attached to a specific state type using the [`SdkEnv::add_listener`]
 /// method.
+///
+/// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct StateListener(red::GameState);
@@ -681,6 +715,9 @@ pub struct StateListener(red::GameState);
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
     /// Sets a callback to be called when the state is entered.
+    ///
+    /// Called immediately after the state is activated.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -690,6 +727,8 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is updated.
+    ///
+    /// Called every frame. This function can contain more complex code.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -699,6 +738,9 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is exited.
+    ///
+    /// Called when the state is ending.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
         Self(red::GameState {
