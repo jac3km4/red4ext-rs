@@ -82,8 +82,12 @@ pub trait Plugin {
     }
 
     /// A function that is called when the plugin is loaded.
+    /// 
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
     fn on_load(_env: &SdkEnv) {}
     /// A function that is called when the plugin is unloaded.
+    /// 
+    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
     fn on_unload(_env: &SdkEnv) {}
 }
 
@@ -680,6 +684,8 @@ pub struct GameApp(red::CGameApplication);
 /// A listener for state changes in the game application.
 /// The listener can be attached to a specific state type using the [`SdkEnv::add_listener`]
 /// method.
+/// 
+/// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct StateListener(red::GameState);
@@ -687,6 +693,9 @@ pub struct StateListener(red::GameState);
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
     /// Sets a callback to be called when the state is entered.
+    /// 
+    /// Called immediately after the state is activated.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -696,6 +705,8 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is updated.
+    /// 
+    /// Called every frame. This function can contain more complex code.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
         Self(red::GameState {
@@ -705,6 +716,9 @@ impl StateListener {
     }
 
     /// Sets a callback to be called when the state is exited.
+    /// 
+    /// Called when the state is ending.
+    /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
         Self(red::GameState {
