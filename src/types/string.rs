@@ -39,6 +39,13 @@ impl ops::Deref for RedString {
     }
 }
 
+impl From<&red::CString> for RedString {
+    #[inline]
+    fn from(value: &red::CString) -> Self {
+        Self(unsafe { red::CString::new5(value) })
+    }
+}
+
 impl From<&CStr> for RedString {
     #[inline]
     fn from(value: &CStr) -> Self {
