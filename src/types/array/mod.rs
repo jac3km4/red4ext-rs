@@ -7,6 +7,9 @@ use super::IAllocator;
 use crate::VoidPtr;
 use crate::raw::root::RED4ext as red;
 
+mod r#static;
+pub use r#static::StaticArray;
+
 /// A dynamically sized array.
 #[repr(transparent)]
 pub struct RedArray<T>(red::DynArray<T>);
