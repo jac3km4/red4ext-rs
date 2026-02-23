@@ -131,7 +131,57 @@ impl AsRef<IScriptable> for IUpdatableSystem {
 }
 
 #[repr(C)]
+pub struct IGameSystem {
+    base: IUpdatableSystem,
+    game_instance: *mut NativeGameInstance,
+}
+
+unsafe impl ScriptClass for IGameSystem {
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "gameIGameSystem";
+}
+
+impl IGameSystem {
+    #[inline]
+    pub fn vft(&self) -> &IGameSystemVft {
+        unsafe { &*(mem::transmute::<&IUpdatableSystemVft, &IGameSystemVft>(self.base.vft())) }
+    }
+}
+
+impl AsRef<IScriptable> for IGameSystem {
+    fn as_ref(&self) -> &IScriptable {
+        unsafe { mem::transmute(&self.base.0) }
+    }
+}
+
+#[repr(C)]
 pub struct IUpdatableSystemVft {
     base: IScriptableVft,
     on_register_updates: unsafe extern "C" fn(this: VoidPtr, registrar: VoidPtr),
+}
+
+#[repr(C)]
+pub struct IGameSystemVft {
+    base: IUpdatableSystemVft,
+    on_world_attached: VoidPtr,
+    on_before_world_detach: VoidPtr,
+    on_world_detached: VoidPtr,
+    on_after_world_detach: VoidPtr,
+    on_before_game_save: VoidPtr,
+    on_game_save: VoidPtr,
+    on_after_game_save: VoidPtr,
+    on_game_load: VoidPtr,
+    on_game_restored: VoidPtr,
+    on_game_prepared: VoidPtr,
+    on_game_paused: VoidPtr,
+    on_game_resumed: VoidPtr,
+    is_saving_locked: VoidPtr,
+    on_streaming_world_loaded: VoidPtr,
+    sub_180: VoidPtr,
+    sub_188: VoidPtr,
+    sub_190: VoidPtr,
+    sub_198: VoidPtr,
+    on_initialize: VoidPtr,
+    on_uninitialize: VoidPtr,
 }
