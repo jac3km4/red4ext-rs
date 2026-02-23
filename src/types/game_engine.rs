@@ -120,7 +120,7 @@ unsafe impl ScriptClass for IUpdatableSystem {
 impl IUpdatableSystem {
     #[inline]
     pub fn vft(&self) -> &IUpdatableSystemVft {
-        unsafe { &*(mem::transmute::<&IScriptableVft, &IUpdatableSystemVft>(self.0.vft())) }
+        unsafe { mem::transmute::<&IScriptableVft, &IUpdatableSystemVft>(self.0.vft()) }
     }
 }
 
@@ -145,7 +145,7 @@ unsafe impl ScriptClass for IGameSystem {
 impl IGameSystem {
     #[inline]
     pub fn vft(&self) -> &IGameSystemVft {
-        unsafe { &*(mem::transmute::<&IUpdatableSystemVft, &IGameSystemVft>(self.base.vft())) }
+        unsafe { mem::transmute::<&IUpdatableSystemVft, &IGameSystemVft>(self.base.vft()) }
     }
 }
 
