@@ -1500,6 +1500,11 @@ impl IScriptable {
     pub fn set_native_type(&mut self, class: &Class) {
         self.0.nativeType = class.as_raw() as *const _ as *mut red::CClass;
     }
+
+    #[inline]
+    pub fn vft(&self) -> &IScriptableVft {
+        unsafe { &*(self.0._base.vtable_ as *const IScriptableVft) }
+    }
 }
 
 impl Default for IScriptable {
@@ -1599,6 +1604,7 @@ struct FunctionVft {
     destruct: unsafe extern "C" fn(this: &mut Function),
     get_parent: unsafe extern "C" fn(this: &Function) -> *mut Class,
 }
+
 #[repr(C)]
 pub struct ISerializableVft {
     get_native_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
@@ -1630,3 +1636,13 @@ pub struct ISerializableVft {
     can_be_destructed: unsafe extern "C" fn(this: VoidPtr) -> bool,
 }
 
+#[repr(C)]
+pub struct IScriptableVft {
+    base: ISerializableVft,
+    sub_d8: VoidPtr,
+    sub_e0: VoidPtr,
+    sub_e8: VoidPtr,
+    sub_f0: VoidPtr,
+    sub_f8: VoidPtr,
+    sub_100: VoidPtr,
+}
