@@ -4,6 +4,7 @@ use super::{IScriptable, Ref, Type};
 use crate::class::{ScriptClass, class_kind};
 use crate::raw::root::RED4ext as red;
 use crate::types::WeakRef;
+use crate::types::rtti::IScriptableVft;
 use crate::{NativeRepr, VoidPtr};
 
 /// Scripted game instance.
@@ -105,4 +106,32 @@ impl AsRef<IScriptable> for ScriptableSystem {
     fn as_ref(&self) -> &IScriptable {
         unsafe { mem::transmute(&self.0._base._base) }
     }
+}
+
+#[repr(transparent)]
+pub struct IUpdatableSystem(IScriptable);
+
+unsafe impl ScriptClass for IUpdatableSystem {
+    type Kind = class_kind::Native;
+
+    const NAME: &'static str = "IUpdatableSystem";
+}
+
+impl IUpdatableSystem {
+    #[inline]
+    pub fn vft(&self) -> &IUpdatableSystemVft {
+        unsafe { &*(mem::transmute::<&IScriptableVft, &IUpdatableSystemVft>(self.0.vft())) }
+    }
+}
+
+impl AsRef<IScriptable> for IUpdatableSystem {
+    fn as_ref(&self) -> &IScriptable {
+        unsafe { mem::transmute(&self.0) }
+    }
+}
+
+#[repr(C)]
+pub struct IUpdatableSystemVft {
+    base: IScriptableVft,
+    on_register_updates: unsafe extern "C" fn(this: VoidPtr, registrar: VoidPtr),
 }
