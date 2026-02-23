@@ -1448,6 +1448,11 @@ impl ISerializable {
             .clone()
         })
     }
+
+    #[inline]
+    pub fn vft(&self) -> &ISerializableVft {
+        unsafe { &*(self.0.vtable_ as *const ISerializableVft) }
+    }
 }
 
 impl PtrEq for ISerializable {
@@ -1594,3 +1599,34 @@ struct FunctionVft {
     destruct: unsafe extern "C" fn(this: &mut Function),
     get_parent: unsafe extern "C" fn(this: &Function) -> *mut Class,
 }
+#[repr(C)]
+pub struct ISerializableVft {
+    get_native_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
+    get_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
+    get_allocator: unsafe extern "C" fn(this: &ISerializable) -> *mut IAllocator,
+    destroy: unsafe extern "C" fn(this: *mut ISerializable),
+    sub_20: VoidPtr,
+    post_load: VoidPtr,
+    sub_30: VoidPtr,
+    sub_38: VoidPtr,
+    sub_40: VoidPtr,
+    sub_48: VoidPtr,
+    sub_50: VoidPtr,
+    sub_58: VoidPtr,
+    sub_60: VoidPtr,
+    sub_68: VoidPtr,
+    sub_70: VoidPtr,
+    sub_78: VoidPtr,
+    sub_80: VoidPtr,
+    sub_88: VoidPtr,
+    sub_90: VoidPtr,
+    sub_98: VoidPtr,
+    sub_a0: VoidPtr,
+    sub_a8: VoidPtr,
+    sub_b0: VoidPtr,
+    sub_b8: VoidPtr,
+    sub_c0: VoidPtr,
+    sub_c8: VoidPtr,
+    can_be_destructed: unsafe extern "C" fn(this: VoidPtr) -> bool,
+}
+
