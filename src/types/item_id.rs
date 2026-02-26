@@ -55,15 +55,6 @@ impl fmt::Debug for ItemId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Seed(u32);
-
-impl Default for Seed {
-    fn default() -> Self {
-        Self(DEFAULT_ITEM_ID_RNG_SEED)
-    }
-}
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq)]
 #[repr(u8)]
 pub enum GamedataItemStructure {

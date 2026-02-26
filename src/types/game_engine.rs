@@ -62,11 +62,9 @@ impl Drop for NativeGameInstance {
 
 #[repr(C)]
 pub struct GameInstanceVft {
-    destroy: unsafe extern "fastcall" fn(this: *mut NativeGameInstance),
-    get_system: unsafe extern "fastcall" fn(
-        this: *const NativeGameInstance,
-        ty: &Type,
-    ) -> *mut red::IScriptable,
+    destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
+    get_system:
+        unsafe extern "C" fn(this: *const NativeGameInstance, ty: &Type) -> *mut red::IScriptable,
     _unk10: VoidPtr,
     _unk18: VoidPtr,
     _unk20: VoidPtr,

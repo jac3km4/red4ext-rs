@@ -51,3 +51,17 @@ pub use misc::{
     Curve, DataBuffer, DateTime, DeferredDataBuffer, EditorObjectId, Guid, LocalizationString,
     MessageResourcePath, MultiChannelCurve, ResourceRef, SharedDataBuffer, StaticArray, Variant,
 };
+
+pub trait PtrEq<Rhs = Self>
+where
+    Rhs: ?Sized,
+{
+    fn ptr_eq(&self, other: &Rhs) -> bool;
+}
+
+impl<T> PtrEq for crate::red::SharedPtrBase<T> {
+    #[inline]
+    fn ptr_eq(&self, other: &crate::red::SharedPtrBase<T>) -> bool {
+        std::ptr::eq(self.instance, other.instance)
+    }
+}

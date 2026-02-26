@@ -1,4 +1,5 @@
 use std::ffi::{CStr, CString};
+use std::hash::{Hash, Hasher};
 use std::{fmt, ops, ptr};
 
 use crate::raw::root::RED4ext as red;
@@ -104,5 +105,35 @@ impl Drop for RedString {
     #[inline]
     fn drop(&mut self) {
         unsafe { self.0.destruct() }
+    }
+}
+
+impl PartialEq for RedString {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for RedString {}
+
+impl PartialOrd for RedString {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for RedString {
+    #[inline]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl Hash for RedString {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
     }
 }
