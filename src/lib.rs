@@ -203,7 +203,7 @@ macro_rules! export_plugin_symbols {
             #[unsafe(no_mangle)]
             #[allow(non_snake_case, unused_variables)]
             extern "C" fn Supports() -> u32 {
-                ::std::convert::Into::into(<$trait as $crate::Plugin>::API_VERSION)
+                ::std::convert::Into::into(<$trait as $crate::Plugin>::RED4EXT_API_VERSION_1)
             }
 
             extern "C" fn on_register() {
