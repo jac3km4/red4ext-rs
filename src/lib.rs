@@ -53,7 +53,7 @@ pub mod addr_hashes {
 
 #[doc(hidden)]
 pub mod internal {
-    pub use crate::red::{EMainReason, PluginHandle, PluginInfo, Sdk};
+    pub use crate::red::v1::{EMainReason, PluginHandle, PluginInfo, Sdk};
 }
 
 #[doc(hidden)]
@@ -343,13 +343,13 @@ macro_rules! log_internal {
 /// implementation.
 #[derive(Debug)]
 pub struct SdkEnv {
-    handle: red::PluginHandle,
-    sdk: red::Sdk,
+    handle: red::v1::PluginHandle,
+    sdk: red::v1::Sdk,
 }
 
 impl SdkEnv {
     #[doc(hidden)]
-    pub fn new(handle: red::PluginHandle, sdk: red::Sdk) -> Self {
+    pub fn new(handle: red::v1::PluginHandle, sdk: red::v1::Sdk) -> Self {
         Self { handle, sdk }
     }
 
@@ -499,7 +499,7 @@ impl log::Log for SdkEnv {
 
 /// A version number in the semantic versioning format.
 #[derive(Debug)]
-pub struct SemVer(red::SemVer);
+pub struct SemVer(red::v1::SemVer);
 
 impl SemVer {
     /// Creates a new semantic version.
@@ -511,11 +511,11 @@ impl SemVer {
     /// Creates a new exact semantic version.
     #[inline]
     pub const fn exact(major: u8, minor: u16, patch: u32, type_: u32, number: u32) -> Self {
-        Self(red::SemVer {
+        Self(red::v1::SemVer {
             major,
             minor,
             patch,
-            prerelease: red::v0::SemVer_PrereleaseInfo { type_, number },
+            prerelease: red::v1::SemVer_PrereleaseInfo { type_, number },
         })
     }
 }
@@ -548,11 +548,11 @@ impl IntoRepr for SemVer {
 
 /// A version number representing the game's version.
 #[derive(Debug)]
-pub struct RuntimeVersion(red::FileVer);
+pub struct RuntimeVersion(red::v1::FileVer);
 
 impl RuntimeVersion {
     /// A special version number that indicates the plugin is compatible with any game version.
-    pub const RUNTIME_INDEPENDENT: Self = Self(red::FileVer {
+    pub const RUNTIME_INDEPENDENT: Self = Self(red::v1::FileVer {
         major: versioning::RUNTIME_INDEPENDENT,
         minor: versioning::RUNTIME_INDEPENDENT,
         build: versioning::RUNTIME_INDEPENDENT,
@@ -688,7 +688,7 @@ pub struct GameApp(red::CGameApplication);
 /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
 #[derive(Debug, Default)]
 #[repr(transparent)]
-pub struct StateListener(red::GameState);
+pub struct StateListener(red::v1::GameState);
 
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
@@ -698,7 +698,7 @@ impl StateListener {
     /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
-        Self(red::GameState {
+        Self(red::v1::GameState {
             OnEnter: Some(unsafe { mem::transmute(cb) }),
             ..self.0
         })
@@ -709,7 +709,7 @@ impl StateListener {
     /// Called every frame. This function can contain more complex code.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
-        Self(red::GameState {
+        Self(red::v1::GameState {
             OnUpdate: Some(unsafe { mem::transmute(cb) }),
             ..self.0
         })
@@ -721,7 +721,7 @@ impl StateListener {
     /// This function is called once by the game, so be careful what you want to do here.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
-        Self(red::GameState {
+        Self(red::v1::GameState {
             OnExit: Some(unsafe { mem::transmute(cb) }),
             ..self.0
         })
@@ -742,7 +742,7 @@ pub enum StateType {
 #[derive(Debug)]
 #[doc(hidden)]
 #[repr(transparent)]
-pub struct PluginInfo(red::PluginInfo);
+pub struct PluginInfo(red::v1::PluginInfo);
 
 impl PluginInfo {
     #[doc(hidden)]
@@ -754,7 +754,7 @@ impl PluginInfo {
         version: SemVer,
         runtime: RuntimeVersion,
     ) -> Self {
-        Self(red::PluginInfo {
+        Self(red::v1::PluginInfo {
             name: name.as_ptr(),
             author: author.as_ptr(),
             sdk: sdk.0.0,
@@ -765,7 +765,7 @@ impl PluginInfo {
 
     #[doc(hidden)]
     #[inline]
-    pub fn into_raw(self) -> red::PluginInfo {
+    pub fn into_raw(self) -> red::v1::PluginInfo {
         self.0
     }
 }
