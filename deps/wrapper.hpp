@@ -1,4 +1,5 @@
 #include <RED4ext/RED4ext.hpp>
+#include <RED4ext/Callback.hpp>
 #include <RED4ext/Scripting/Natives/entEntityID.hpp>
 #include <RED4ext/Scripting/Natives/GameTime.hpp>
 #include <RED4ext/Scripting/Natives/ScriptGameInstance.hpp>
