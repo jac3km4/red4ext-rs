@@ -414,10 +414,8 @@ impl RttiRegistrator {
         register: Option<unsafe extern "C" fn()>,
         post_register: Option<unsafe extern "C" fn()>,
     ) {
-        let rtti = RttiSystem::get();
         unsafe {
-            (rtti.vft().add_register_callback)(&*rtti, register);
-            (rtti.vft().add_post_register_callback)(&*rtti, post_register);
+            crate::raw::root::Red4extRs::RTTIRegistrator::Add(register, post_register);
         }
     }
 }
