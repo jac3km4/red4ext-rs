@@ -23,6 +23,7 @@ fn main() {
     let builder = bindgen::Builder::default()
         .clang_arg("-std=c++20")
         .clang_arg(format!("-I{}", red4ext_include_dir.display()))
+        .clang_arg("-DRED4EXT_STATIC_LIB")
         .headers(["deps/wrapper.hpp", "deps/glue.hpp"])
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
@@ -58,5 +59,6 @@ fn main() {
         .std("c++20")
         .file(Path::new("deps/glue.cpp"))
         .include(red4ext_include_dir.clone())
+        .define("RED4EXT_STATIC_LIB", None)
         .compile("red4ext_glue");
 }
