@@ -58,3 +58,4 @@ RED4ext::Variant
 RED4ext::WeakHandle
 RED4ext::v1::EMainReason
 RED4ext::OpcodeHandlers
+Red4extRs::RTTIRegistrator
