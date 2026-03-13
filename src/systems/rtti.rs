@@ -365,12 +365,10 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, function: *const GlobalFunction),
     _sub_b0: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_b8: unsafe extern "C" fn(this: *const RttiSystem),
-    // FIXME: crashes when used, signature is probably wrong
-    _add_register_callback:
-        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
-    // FIXME: crashes when used, signature is probably wrong
-    _add_post_register_callback:
-        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
+    add_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: red::RTTIRegistrator_CallbackFunc),
+    add_post_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: red::RTTIRegistrator_CallbackFunc),
     _sub_d0: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_d8: unsafe extern "C" fn(this: *const RttiSystem),
     _create_scripted_class: unsafe extern "C" fn(
@@ -416,6 +414,8 @@ impl RttiRegistrator {
         register: Option<unsafe extern "C" fn()>,
         post_register: Option<unsafe extern "C" fn()>,
     ) {
-        unsafe { red::RTTIRegistrator::Add(register, post_register, false) };
+        unsafe {
+            crate::raw::root::Red4extRs::RTTIRegistrator::Add(register, post_register);
+        }
     }
 }

@@ -17,6 +17,7 @@ log = { version = "0.4", optional = true }
 
 [build-dependencies]
 bindgen = { version = "0.72", features = ["experimental"] }
+cc = "1.2.56"
 cmake = "0.1"
 
 [features]

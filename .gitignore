@@ -3,3 +3,5 @@
 /.zed
 /.vs
 /Cargo.lock
+.clangd
+compile_commands.json

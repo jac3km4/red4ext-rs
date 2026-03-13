@@ -25,7 +25,7 @@ RED4ext::ent::EntityID
 RED4ext::ERTTIType::.+
 RED4ext::FileVer
 RED4ext::GameInstance
-RED4ext::GameState
+RED4ext::v1::GameState
 RED4ext::GameTime
 RED4ext::HashMap.*
 RED4ext::IScriptable
@@ -36,8 +36,8 @@ RED4ext::Memory::IAllocator
 RED4ext::Memory::Vault
 RED4ext::MessageResourcePath
 RED4ext::NodeRef
-RED4ext::PluginHandle
-RED4ext::PluginInfo
+RED4ext::v1::PluginHandle
+RED4ext::v1::PluginInfo
 RED4ext::RaRef
 RED4ext::RefCnt
 RED4ext::ResourcePath
@@ -47,7 +47,7 @@ RED4ext::RTTIRegistrator
 RED4ext::ScriptableSystem
 RED4ext::ScriptGameInstance
 RED4ext::ScriptRef
-RED4ext::Sdk
+RED4ext::v1::Sdk
 RED4ext::SemVer
 RED4ext::SharedDataBuffer
 RED4ext::SharedPtrBase
@@ -56,5 +56,6 @@ RED4ext::TweakDBID
 RED4ext::UniversalRelocBase
 RED4ext::Variant
 RED4ext::WeakHandle
-RED4ext::EMainReason
+RED4ext::v1::EMainReason
 RED4ext::OpcodeHandlers
+Red4extRs::RTTIRegistrator
