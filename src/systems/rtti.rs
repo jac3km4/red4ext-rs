@@ -4,7 +4,7 @@ use crate::raw::root::RED4ext as red;
 use crate::types::{
     Bitfield, CName, Class, ClassFlags, ClassHandle, Enum, Function, GameEngine, GlobalFunction,
     PoolRef, RedArray, RedHashMap, Ref, RwSpinLockReadGuard, RwSpinLockWriteGuard,
-    ScriptableSystem, Type,
+    ScriptableSystem, Type, VoidFunctionPointerCallback,
 };
 
 /// The RTTI system containing information about all types in the game.
@@ -365,12 +365,10 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, function: *const GlobalFunction),
     _sub_b0: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_b8: unsafe extern "C" fn(this: *const RttiSystem),
-    // FIXME: crashes when used, signature is probably wrong
-    _add_register_callback:
-        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
-    // FIXME: crashes when used, signature is probably wrong
-    _add_post_register_callback:
-        unsafe extern "C" fn(this: *const RttiSystem, function: unsafe extern "C" fn() -> ()),
+    add_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: VoidFunctionPointerCallback),
+    add_post_register_callback:
+        unsafe extern "C" fn(this: *const RttiSystem, function: VoidFunctionPointerCallback),
     _sub_d0: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_d8: unsafe extern "C" fn(this: *const RttiSystem),
     _create_scripted_class: unsafe extern "C" fn(
@@ -412,10 +410,23 @@ pub struct RttiRegistrator;
 
 impl RttiRegistrator {
     /// Add a new RTTI registration callback.
-    pub fn add(
-        register: Option<unsafe extern "C" fn()>,
-        post_register: Option<unsafe extern "C" fn()>,
-    ) {
-        unsafe { red::RTTIRegistrator::Add(register, post_register, false) };
+    pub fn add(register: Option<extern "C" fn()>, post_register: Option<extern "C" fn()>) {
+        let rtti = RttiSystem::get();
+        if let Some(register) = register {
+            unsafe {
+                (rtti.vft().add_register_callback)(
+                    &*rtti,
+                    VoidFunctionPointerCallback::new(register),
+                )
+            };
+        }
+        if let Some(post_register) = post_register {
+            unsafe {
+                (rtti.vft().add_post_register_callback)(
+                    &*rtti,
+                    VoidFunctionPointerCallback::new(post_register),
+                );
+            }
+        }
     }
 }
