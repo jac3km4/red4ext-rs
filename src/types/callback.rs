@@ -42,11 +42,11 @@ unsafe impl<A, R> Callable<A, R> for extern "C" fn(A) -> R {
         self(arg)
     }
 
-    extern "C" fn copy(target: &mut Self, source: &Self) -> () {
+    extern "C" fn copy(target: &mut Self, source: &Self) {
         *target = *source;
     }
 
-    extern "C" fn move_(target: &mut Self, source: &mut Self) -> () {
+    extern "C" fn move_(target: &mut Self, source: &mut Self) {
         *target = *source;
     }
 
@@ -58,11 +58,11 @@ unsafe impl<R> Callable<ffi::c_void, R> for extern "C" fn() -> R {
         self()
     }
 
-    extern "C" fn copy(target: &mut Self, source: &Self) -> () {
+    extern "C" fn copy(target: &mut Self, source: &Self) {
         *target = *source;
     }
 
-    extern "C" fn move_(target: &mut Self, source: &mut Self) -> () {
+    extern "C" fn move_(target: &mut Self, source: &mut Self) {
         *target = *source;
     }
 
