@@ -1,5 +1,7 @@
-use crate::{raw::root::RED4ext as red, types::RedString};
 use std::mem;
+
+use crate::raw::root::RED4ext as red;
+use crate::types::RedString;
 
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
