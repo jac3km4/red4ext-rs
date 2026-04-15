@@ -2,6 +2,7 @@ mod allocator;
 pub mod array;
 mod buffer;
 mod bytecode;
+mod callback;
 mod cname;
 mod cruid;
 mod curve;
@@ -25,10 +26,14 @@ pub use buffer::{DataBuffer, DeferredDataBuffer, SharedDataBuffer};
 pub use bytecode::{
     CALL_INSTR_SIZE, Instr, InvokeStatic, InvokeVirtual, OPCODE_SIZE, OpcodeHandler,
 };
+pub use callback::{Callback, VoidFunctionPointerCallback};
 pub use cname::{CName, CNamePool};
 pub use cruid::Cruid;
 pub use curve::{Curve, MultiChannelCurve};
-pub use game_engine::{GameEngine, GameInstance, NativeGameInstance, ScriptableSystem};
+pub use game_engine::{
+    GameEngine, GameInstance, IGameSystem, IGameSystemVft, IUpdatableSystem, IUpdatableSystemVft,
+    NativeGameInstance, ScriptableSystem,
+};
 pub use hash::{Hash, RedHashMap};
 pub use id::{
     EditorObjectId, EntityId, GameEItemIdFlag, GamedataItemStructure, Guid, ItemId, TweakDbId,
