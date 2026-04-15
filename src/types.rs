@@ -9,6 +9,7 @@ mod curve;
 mod game_engine;
 mod hash;
 mod id;
+mod l12n;
 mod node_ref;
 mod opt;
 mod refs;
@@ -38,6 +39,7 @@ pub use hash::{Hash, RedHashMap};
 pub use id::{
     EditorObjectId, EntityId, GameEItemIdFlag, GamedataItemStructure, Guid, ItemId, TweakDbId,
 };
+pub use l12n::LocalizationString;
 pub use node_ref::*;
 pub use opt::Opt;
 pub use refs::{Ref, ScriptRef, WeakRef};
