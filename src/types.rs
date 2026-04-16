@@ -1,5 +1,5 @@
 mod allocator;
-pub mod array;
+mod array;
 mod buffer;
 mod bytecode;
 mod callback;
