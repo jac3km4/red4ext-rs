@@ -26,16 +26,8 @@ impl LocalizationString {
 
 impl fmt::Display for LocalizationString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.0.unk00 == 0 {
-            return write!(f, "{}", unsafe {
-                mem::transmute::<&red::CString, &RedString>(&self.0.unk08)
-            });
-        }
-        write!(
-            f,
-            "{}{}",
-            str::from_utf8(&self.0.unk00.to_ne_bytes()).unwrap_or(""),
-            unsafe { mem::transmute::<&red::CString, &RedString>(&self.0.unk08) }
-        )
+        write!(f, "{}", unsafe {
+            mem::transmute::<&red::CString, &RedString>(&self.0.unk08)
+        })
     }
 }
