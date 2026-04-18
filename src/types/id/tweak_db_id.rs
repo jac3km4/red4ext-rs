@@ -1,8 +1,9 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use const_crc32::{crc32, crc32_seed};
 
+use crate::InvokeError;
 use crate::raw::root::RED4ext as red;
 
 #[derive(Default, Clone, Copy)]
@@ -76,6 +77,32 @@ impl TweakDbId {
     pub(super) const fn to_inner(self) -> red::TweakDBID {
         self.0
     }
+
+    /// Available post RTTI registration.
+    ///
+    /// see [TDBID.ToStringDEBUG](https://nativedb.red4ext.com/gamedataTDBIDHelper#ToStringDEBUG)
+    #[cfg(not(test))]
+    pub fn to_string_debug(&self) -> Result<String, crate::InvokeError> {
+        const CLS_NAME: &str = "gamedataTDBIDHelper";
+        const FUN_NAME: &str = "ToStringDEBUG";
+        const FUN_CNAME: crate::types::CName = crate::types::CName::new(FUN_NAME);
+        let rtti = crate::RttiSystem::get();
+        let class = rtti
+            .get_class(crate::types::CName::new(CLS_NAME))
+            .ok_or(InvokeError::ClassNotFound(CLS_NAME))?;
+        let method = class
+            .methods()
+            .iter()
+            .find(|x| x.as_function().name() == FUN_CNAME)
+            .ok_or(InvokeError::FunctionNotFound(FUN_NAME))?;
+        let mut out = crate::types::RedString::new();
+        let out_ptr = &raw mut out;
+        let out_ptr = unsafe { &*out_ptr.cast::<crate::types::IScriptable>() };
+        method
+            .as_function()
+            .execute::<_, crate::types::RedString>(Some(out_ptr), (*self,))
+            .map(|x| x.to_string())
+    }
 }
 
 impl Debug for TweakDbId {
@@ -83,6 +110,15 @@ impl Debug for TweakDbId {
         f.debug_tuple("TweakDbId")
             .field(&unsafe { self.0.__bindgen_anon_1.value })
             .finish()
+    }
+}
+
+impl Display for TweakDbId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Ok(id) = self.to_string_debug() {
+            return write!(f, "{id}");
+        }
+        std::fmt::Result::Ok(())
     }
 }
 
