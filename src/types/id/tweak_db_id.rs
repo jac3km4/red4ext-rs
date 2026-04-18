@@ -113,6 +113,7 @@ impl Debug for TweakDbId {
     }
 }
 
+#[cfg(not(test))]
 impl Display for TweakDbId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Ok(id) = self.to_string_debug() {
