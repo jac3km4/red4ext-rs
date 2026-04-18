@@ -77,30 +77,12 @@ impl TweakDbId {
         self.0
     }
 
-    /// Available post RTTI registration.
+    /// Available post RTTI registration and only in-game.
     ///
     /// see [TDBID.ToStringDEBUG](https://nativedb.red4ext.com/gamedataTDBIDHelper#ToStringDEBUG)
-    #[cfg(not(test))]
+    #[inline]
     pub fn to_string_debug(&self) -> Result<String, crate::InvokeError> {
-        const CLS_NAME: &str = "gamedataTDBIDHelper";
-        const FUN_NAME: &str = "ToStringDEBUG";
-        const FUN_CNAME: crate::types::CName = crate::types::CName::new(FUN_NAME);
-        let rtti = crate::RttiSystem::get();
-        let class = rtti
-            .get_class(crate::types::CName::new(CLS_NAME))
-            .ok_or(crate::InvokeError::ClassNotFound(CLS_NAME))?;
-        let method = class
-            .methods()
-            .iter()
-            .find(|x| x.as_function().name() == FUN_CNAME)
-            .ok_or(crate::InvokeError::FunctionNotFound(FUN_NAME))?;
-        let mut out = crate::types::RedString::new();
-        let out_ptr = &raw mut out;
-        let out_ptr = unsafe { &*out_ptr.cast::<crate::types::IScriptable>() };
-        method
-            .as_function()
-            .execute::<_, crate::types::RedString>(Some(out_ptr), (*self,))
-            .map(|x| x.to_string())
+        tdbid_to_string_debug(self)
     }
 }
 
@@ -160,6 +142,38 @@ impl Hash for TweakDbId {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         u64::from(*self).hash(state);
     }
+}
+
+#[doc(hidden)]
+#[cfg(test)]
+fn tdbid_to_string_debug(_: &TweakDbId) -> Result<String, crate::InvokeError> {
+    Err(crate::InvokeError::UnsupportedContext(
+        "requires RTTI in-game",
+    ))
+}
+
+#[doc(hidden)]
+#[cfg(not(test))]
+fn tdbid_to_string_debug(id: &TweakDbId) -> Result<String, crate::InvokeError> {
+    const CLS_NAME: &str = "gamedataTDBIDHelper";
+    const FUN_NAME: &str = "ToStringDEBUG";
+    const FUN_CNAME: crate::types::CName = crate::types::CName::new(FUN_NAME);
+    let rtti = crate::RttiSystem::get();
+    let class = rtti
+        .get_class(crate::types::CName::new(CLS_NAME))
+        .ok_or(crate::InvokeError::ClassNotFound(CLS_NAME))?;
+    let method = class
+        .methods()
+        .iter()
+        .find(|x| x.as_function().name() == FUN_CNAME)
+        .ok_or(crate::InvokeError::FunctionNotFound(FUN_NAME))?;
+    let mut out = crate::types::RedString::new();
+    let out_ptr = &raw mut out;
+    let out_ptr = unsafe { &*out_ptr.cast::<crate::types::IScriptable>() };
+    method
+        .as_function()
+        .execute::<_, crate::types::RedString>(Some(out_ptr), (*id,))
+        .map(|x| x.to_string())
 }
 
 #[cfg(test)]
