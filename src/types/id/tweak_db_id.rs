@@ -112,18 +112,11 @@ impl Debug for TweakDbId {
     }
 }
 
-#[cfg(test)]
 impl std::fmt::Display for TweakDbId {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Result::Ok(())
-    }
-}
-
-#[cfg(not(test))]
-impl std::fmt::Display for TweakDbId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[cfg(not(test))]
         if let Ok(id) = self.to_string_debug() {
-            return write!(f, "{id}");
+            return write!(_f, "{id}");
         }
         std::fmt::Result::Ok(())
     }
