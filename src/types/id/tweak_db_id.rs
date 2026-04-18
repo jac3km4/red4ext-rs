@@ -1,9 +1,8 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::hash::Hash;
 
 use const_crc32::{crc32, crc32_seed};
 
-use crate::InvokeError;
 use crate::raw::root::RED4ext as red;
 
 #[derive(Default, Clone, Copy)]
@@ -89,12 +88,12 @@ impl TweakDbId {
         let rtti = crate::RttiSystem::get();
         let class = rtti
             .get_class(crate::types::CName::new(CLS_NAME))
-            .ok_or(InvokeError::ClassNotFound(CLS_NAME))?;
+            .ok_or(crate::InvokeError::ClassNotFound(CLS_NAME))?;
         let method = class
             .methods()
             .iter()
             .find(|x| x.as_function().name() == FUN_CNAME)
-            .ok_or(InvokeError::FunctionNotFound(FUN_NAME))?;
+            .ok_or(crate::InvokeError::FunctionNotFound(FUN_NAME))?;
         let mut out = crate::types::RedString::new();
         let out_ptr = &raw mut out;
         let out_ptr = unsafe { &*out_ptr.cast::<crate::types::IScriptable>() };
@@ -114,7 +113,7 @@ impl Debug for TweakDbId {
 }
 
 #[cfg(not(test))]
-impl Display for TweakDbId {
+impl std::fmt::Display for TweakDbId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Ok(id) = self.to_string_debug() {
             return write!(f, "{id}");
