@@ -164,6 +164,14 @@ macro_rules! res_ref {
     };
 }
 
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct ResourceRef<T>(red::ResourceReference<T>);
+
+#[derive(Debug, Default, Copy, Clone)]
+#[repr(transparent)]
+pub struct MessageResourcePath(red::MessageResourcePath);
+
 #[cfg(test)]
 mod tests {
     use super::{ResRef, encode_path};
