@@ -80,8 +80,24 @@ impl<T> RedArray<T> {
         self.realloc(expected.max(self.capacity() + self.capacity() / 2));
     }
 
+    /// Removes the last element from a vector and returns it, or [`None`] if it is empty.
+    #[inline]
+    pub fn pop(&mut self) -> Option<T> {
+        if self.is_empty() {
+            None
+        } else {
+            self.0.size -= 1;
+            unsafe { Some(ptr::read(self.0.entries.add(self.len() as usize))) }
+        }
+    }
+
     /// Returns an iterator over the elements of the array.
     pub fn iter(&self) -> slice::Iter<'_, T> {
+        self.into_iter()
+    }
+
+    /// Returns an iterator that allows modifying each value.
+    pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
         self.into_iter()
     }
 
@@ -155,6 +171,16 @@ impl<'a, T> IntoIterator for &'a RedArray<T> {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         <[T]>::iter(self)
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut RedArray<T> {
+    type IntoIter = slice::IterMut<'a, T>;
+    type Item = &'a mut T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        <[T]>::iter_mut(self)
     }
 }
 
