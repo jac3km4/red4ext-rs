@@ -80,11 +80,52 @@ impl<T> RedArray<T> {
         self.realloc(expected.max(self.capacity() + self.capacity() / 2));
     }
 
+    /// Removes the last element from a array and returns it, or `None` if it
+    /// is empty.
+    #[inline]
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len() == 0 {
+            return None;
+        }
+        let len = self.len();
+        self.0.size -= 1;
+        Some(unsafe { ptr::read(self.0.entries.add((len - 1) as usize)) })
+    }
+
+    /// Inserts an element at position `index` within the array, shifting all
+    /// elements after it to the right.
+    pub fn insert(&mut self, index: u32, element: T) {
+        let len = self.len();
+        assert!(index <= len);
+        self.reserve(1);
+        unsafe {
+            let p = self.0.entries.add(index as usize);
+            ptr::copy(p, p.add(1), (len - index) as usize);
+            ptr::write(p, element);
+        }
+        self.0.size += 1;
+    }
+
+    /// Removes and returns the element at position `index` within the array,
+    /// shifting all elements after it to the left.
+    pub fn remove(&mut self, index: u32) -> T {
+        let len = self.len();
+        assert!(index < len);
+        unsafe {
+            let p = self.0.entries.add(index as usize);
+            let ret = ptr::read(p);
+            ptr::copy(p.add(1), p, (len - index - 1) as usize);
+            self.0.size -= 1;
+            ret
+        }
+    }
+
     /// Returns an iterator over the elements of the array.
     pub fn iter(&self) -> slice::Iter<'_, T> {
         self.into_iter()
     }
 
+    /// Reallocates the array to the specified capacity.
     fn realloc(&mut self, cap: u32) {
         let size = mem::size_of::<T>();
         let align = mem::align_of::<T>().max(8);
@@ -158,6 +199,16 @@ impl<'a, T> IntoIterator for &'a RedArray<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a mut RedArray<T> {
+    type IntoIter = slice::IterMut<'a, T>;
+    type Item = &'a mut T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        <[T]>::iter_mut(self)
+    }
+}
+
 impl<T> IntoIterator for RedArray<T> {
     type IntoIter = IntoIter<T>;
     type Item = T;
@@ -212,6 +263,7 @@ impl<T> Drop for RedArray<T> {
     }
 }
 
+/// An iterator that moves out of a `RedArray`.
 #[derive(Debug)]
 pub struct IntoIter<T> {
     array: red::DynArray<T>,
@@ -233,6 +285,7 @@ impl<T> Iterator for IntoIter<T> {
         }
     }
 
+    /// Returns the bounds on the remaining length of the iterator.
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let len = unsafe { self.end.offset_from(self.ptr) } as usize;
@@ -270,6 +323,7 @@ impl<T> Drop for IntoIter<T> {
     }
 }
 
+/// Helper function to retrieve the allocator for a `DynArray`.
 fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
     if arr.capacity == 0 {
         &arr.entries as *const _ as *mut _
