@@ -144,7 +144,8 @@ impl<K, V> RedHashMap<K, V> {
             current_index: INVALID_INDEX,
             indexes: self.indexes(),
             nodes: self.nodes(),
-        }.map(|(k, _)| k)
+        }
+        .map(|(k, _)| k)
     }
 
     /// Returns an iterator visiting all values in arbitrary order.
@@ -154,7 +155,8 @@ impl<K, V> RedHashMap<K, V> {
             current_index: INVALID_INDEX,
             indexes: self.indexes(),
             nodes: self.nodes(),
-        }.map(|(_, v)| v)
+        }
+        .map(|(_, v)| v)
     }
 
     /// Returns the number of elements in the map.
@@ -398,6 +400,8 @@ impl<K, V> IntoIterator for RedHashMap<K, V> {
                     size: nodes.size,
                     nextIdx: nodes.nextIdx,
                     stride: nodes.stride,
+                    _phantom_0: std::marker::PhantomData,
+                    _phantom_1: std::marker::PhantomData,
                 },
                 indexTable: if map.capacity() > 0 {
                     map.0.indexTable
@@ -407,6 +411,8 @@ impl<K, V> IntoIterator for RedHashMap<K, V> {
                 capacity: map.capacity(),
                 size: map.size(),
                 allocator: ptr::null_mut(),
+                _phantom_0: std::marker::PhantomData,
+                _phantom_1: std::marker::PhantomData,
             },
             indexes: if map.capacity() > 0 {
                 unsafe { slice::from_raw_parts_mut(map.0.indexTable, map.capacity() as _) }
@@ -457,7 +463,7 @@ pub struct Iter<'a, K, V> {
     nodes: &'a [red::HashMap_Node<K, V>],
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
