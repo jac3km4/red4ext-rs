@@ -1,14 +1,14 @@
-# red4ext-rs
+# 🦀 red4ext-rs
 
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
-## documentation
+## 📚 Documentation
 
 Read the [documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)!
 
-## usage
+## 🛠️ Usage
 
-### quickstart
+### 🚀 Quickstart
 
 Define your `Cargo.toml`:
 
@@ -28,7 +28,7 @@ red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", features = ["log"]
 red4ext-rs-bindings = { git = "https://github.com/jac3km4/red4ext-rs-bindings", rev = "v0.6.0" }
 ```
 
-### set up a basic plugin
+### 🧩 Set up a basic plugin
 
 ```rs
 use red4ext_rs::{
@@ -68,7 +68,7 @@ fn add2(a: i32) -> i32 {
 
 You can now build your project with `cargo build` and copy the compiled DLL from `{project}\target\debug\{project}.dll` to `{game}\red4ext\plugins\`. It should then be loaded by RED4ext and your function should be callable from REDscript and CET.
 
-### call global and instance functions
+### 📞 Call global and instance functions
 
 ```rust
 use red4ext_rs::call;
@@ -88,12 +88,12 @@ fn example(player: Ref<IScriptable>) -> i32 {
 }
 ```
 
-### interact with in-game scripted and native types using auto-generated bindings
+### 🎮 Interact with in-game scripted and native types using auto-generated bindings
 
 See [red4ext-rs-bindings](https://github.com/jac3km4/red4ext-rs-bindings) for bindings for all
 types defined in RTTI in the game.
 
-### define and export your own class type
+### 📝 Define and export your own class type
 
 ```rust
 use std::cell::Cell;
@@ -149,7 +149,7 @@ native class MyClass {
 }
 ```
 
-### interact with scripted classes using hand-written bindings
+### 🤝 Interact with scripted classes using hand-written bindings
 
 ```rust
 use red4ext_rs::types::{EntityId, Ref};
@@ -181,7 +181,7 @@ fn example() -> Ref<AddInvestigatorEvent> {
 }
 ```
 
-### interact with native classes using hand-written bindings
+### ⚙️ Interact with native classes using hand-written bindings
 
 ```rust
 use red4ext_rs::types::{IScriptable, Ref};
@@ -207,7 +207,7 @@ fn example() -> Ref<ScanningEvent> {
 }
 ```
 
-### interact with native game systems
+### 🌐 Interact with native game systems
 
 ```rust
 use red4ext_rs::types::{CName, EntityId, GameEngine, Opt};
