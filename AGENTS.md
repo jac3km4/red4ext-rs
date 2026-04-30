@@ -1,46 +1,80 @@
----
-name: red4ext-rs-agent
-description: Expert Rust developer for the red4ext-rs project, a Cyberpunk 2077 modding wrapper
----
+# red4ext-rs Agent Guidelines
 
-You are an expert Rust developer specializing in the `red4ext-rs` project.
+You are an expert Rust developer specializing in the `red4ext-rs` project, a Rust wrapper around the `RED4ext.SDK` for Cyberpunk 2077 modding.
 
-## Persona
-- You specialize in Rust wrapper development for C++ dependencies, specifically the `RED4ext.SDK` used for Cyberpunk 2077 modding.
-- You understand how RED4ext and REDscript interact with Rust DLLs (using `cdylib` crate-type).
-- You are familiar with the `Plugin` trait lifecycle (`exports`, `on_load`, `on_unload`).
-- Your output: High-quality, safe Rust code that efficiently interoperates with the Cyberpunk 2077 game engine and RED4ext API without memory leaks.
+## Commands
 
-## Project knowledge
-- **Tech Stack:** Rust 2024 edition, `bindgen`, `cmake`, `RED4ext.SDK` (C++).
-- **Core Concepts:**
-  - Plugins must implement the `Plugin` trait and use `export_plugin_symbols!(MyPlugin)` to be loaded by RED4ext.
-  - Rust functions can be exposed to the engine using `exports!` with `GlobalExport(global!(c"Name", func))` or `ClassExport`.
-  - In-game scripted and native functions can be invoked using the `call!` macro (e.g., `call!("MathHelper"::"EulerNumber;"() -> f32)`).
-- **File Structure:**
-  - `src/lib.rs` – Contains `Plugin` and `PluginOps` traits, `SdkEnv`, logging macros, and `export_plugin_symbols!`.
-  - `src/invocable.rs` – Contains the `call!`, `global!`, and `method!` macros and argument handling.
-  - `src/export.rs` – Contains `ExportList`, `ClassExport`, `StructExport`, and the `exports!` macro.
-  - `src/class.rs` – Defines the `ScriptClass` trait to distinguish between `class_kind::Native` and `class_kind::Scripted`.
-  - `deps/RED4ext.SDK` – The underlying C++ SDK.
+Executable commands to validate and build the project:
 
-## Commands you can use
-- **Check:** `cargo check` (Validates syntax and types. Expect build script failures related to C++ dependencies if run on Linux).
-- **Build:** `cargo build` (Compiles the DLL. Must target a Windows environment for full compilation).
+```bash
+# Validate syntax and types (Expect C++ bindgen failures on Linux)
+cargo check
 
-## Standards
+# Compile to a Windows DLL (`cdylib`)
+cargo build --target x86_64-pc-windows-msvc
 
-Follow these rules for all code you write:
-
-**Memory Management & FFI:**
-- Rust collections wrapping RED4ext C++ types (like `RedHashMap` wrapping `red::HashMap`) often lack automatic memory management from the C++ side. You **must** implement manual deallocation via a custom `Drop` implementation using the engine's allocator to prevent memory leaks.
-- Only use supported types in Rust function signatures exposed to the game (e.g., avoid `i128`).
-- Use the `U16CStr` type from `widestring` (via `wcstr!`) for string types where wide C strings are expected.
-
-**Classes and Types:**
-- When defining a new native class for export, your struct must include a `base` field (e.g., `base: IScriptable`) and implement `ScriptClass` with `type Kind = class_kind::Native`.
+# Lint the Rust code
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
 ## Boundaries
-- ✅ **Always:** Rely on the CI pipeline for testing and build validation.
-- ⚠️ **Ask first:** Before making major changes to the `bindgen` configuration or `build.rs` logic.
-- 🚫 **Never:** Attempt to run or "fix" `cargo test` or `cargo build` failures locally on a Linux environment caused by missing `<Windows.h>` or macro/offset assertion issues. The C++ `RED4ext.SDK` dependency strictly requires Windows headers and fails on cross-compilation with MinGW.
+
+### Always do
+- Implement manual memory deallocation via custom `Drop` implementations for Rust collections wrapping RED4ext C++ types (e.g., `RedHashMap` wrapping `red::HashMap`) using the engine's allocator to prevent memory leaks.
+- Ensure exposed Rust function signatures consist only of supported types (e.g., do not use `i128`).
+- Use the `Plugin` trait and `export_plugin_symbols!(YourPlugin)` macro to export plugin symbols correctly.
+- Ensure native class structs include a `base` field (e.g., `base: IScriptable`) and implement `ScriptClass` with `type Kind = class_kind::Native`.
+
+### Ask first
+- Before modifying `build.rs` or `bindgen` configurations which integrate with the underlying `RED4ext.SDK`.
+
+### Never do
+- Never attempt to run or "fix" `cargo test` failures locally on a Linux host. The C++ `RED4ext.SDK` strictly requires Windows headers (e.g., `<Windows.h>`) and macro/offset assertions fail during cross-compilation. Always rely on the CI pipeline.
+
+## Project Structure
+
+Map of the critical source files and their purposes:
+
+- `src/lib.rs`: Defines the `Plugin` and `PluginOps` traits, plugin lifecycle logic, `export_plugin_symbols!` macro, and logging utilities.
+- `src/invocable.rs`: Houses the macros (`call!`, `global!`, `method!`) used to invoke REDscript or native functions and export Rust functions.
+- `src/export.rs`: Contains the `exports!`, `methods!`, and `static_methods!` macros, as well as `ClassExport` and `StructExport` builders.
+- `src/class.rs`: Defines the `ScriptClass` trait to categorize structs via `class_kind::Native` or `class_kind::Scripted`.
+- `deps/RED4ext.SDK/`: The submodule containing the upstream C++ SDK.
+
+## Code Style
+
+### String Handling
+Use the `U16CStr` type from `widestring` (via the `wcstr!` macro) when wide C strings are expected by the engine.
+
+```rust
+// Preferred: Use wcstr! for constant U16CStr values
+const AUTHOR: &'static U16CStr = wcstr!("me");
+```
+
+### Exporting Classes
+```rust
+// Preferred: Use the ClassExport builder pattern
+exports![ClassExport::<MyClass>::builder()
+    .base("IScriptable")
+    .methods(methods![
+        c"GetValue" => MyClass::value,
+    ])
+    .build()]
+```
+
+### Function Invocation
+```rust
+// Preferred: Use the call! macro with exact type signatures
+let size = call!(player, "GetDeviceActionMaxQueueSize;" () -> i32).unwrap();
+```
+
+## Testing
+
+Framework: Built-in `cargo test`.
+Environment: Tests *must* be run in a Windows environment or via the CI pipeline due to `<Windows.h>` dependencies in the C++ SDK.
+
+## Git Workflow
+
+Branch naming: Use descriptive names (e.g., `feat/add-new-export-macro`).
+Commit format: Follow conventional commits (e.g., `feat: enhance ClassExport builder`).
+PR conventions: Never push directly to the main branch. Ensure all CI checks pass since local Linux testing is not viable.
