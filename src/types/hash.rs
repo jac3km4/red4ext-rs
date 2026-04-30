@@ -73,23 +73,23 @@ impl<K, V> RedHashMap<K, V> {
         let mut prev = INVALID_INDEX;
 
         while cur != INVALID_INDEX {
-            let node = self.nodes().get(cur as usize)?;
+            let node = unsafe { &mut *self.0.nodeList.nodes.add(cur as usize) };
             if hash == node.hashedKey {
                 let next = node.next;
                 if prev == INVALID_INDEX {
                     self.indexes_mut()[index_pos] = next;
                 } else {
-                    self.nodes_mut()[prev as usize].next = next;
+                    unsafe { &mut *self.0.nodeList.nodes.add(prev as usize) }.next = next;
                 }
 
                 self.0.size -= 1;
-                let old_node = &mut self.nodes_mut()[cur as usize];
-                old_node.next = self.0.nodeList.nextIdx;
+                let next_idx = self.0.nodeList.nextIdx;
                 self.0.nodeList.nextIdx = cur;
+                node.next = next_idx;
 
                 unsafe {
-                    ptr::drop_in_place(&mut old_node.key);
-                    return Some(ptr::read(&old_node.value));
+                    ptr::drop_in_place(&mut node.key);
+                    return Some(ptr::read(&node.value));
                 }
             }
             prev = cur;
@@ -106,7 +106,7 @@ impl<K, V> RedHashMap<K, V> {
         }
 
         let (nodes, indexes) = self.split_mut();
-        for idx in indexes {
+        for idx in indexes.iter_mut() {
             let mut cur = *idx;
             while cur != INVALID_INDEX {
                 let node = unsafe { &mut *nodes.nodes.add(cur as usize) };
@@ -121,6 +121,7 @@ impl<K, V> RedHashMap<K, V> {
             }
             *idx = INVALID_INDEX;
         }
+
         self.0.size = 0;
     }
 
@@ -202,9 +203,9 @@ impl<K, V> RedHashMap<K, V> {
             .indexes()
             .get((hash.checked_rem(self.capacity()))? as usize)?;
         while cur != INVALID_INDEX {
-            let node = self.nodes_mut().get(cur as usize)?;
+            let node = unsafe { &mut *self.0.nodeList.nodes.add(cur as usize) };
             if node.hashedKey == hash {
-                return Some(&mut self.nodes_mut().get_mut(cur as usize)?.value);
+                return Some(&mut node.value);
             }
             cur = node.next;
         }
@@ -220,7 +221,10 @@ impl<K, V> RedHashMap<K, V> {
             nodes: mem,
             capacity: new_capacity,
             stride: mem::size_of::<red::HashMap_Node<K, V>>() as _,
-            ..Default::default()
+            size: 0,
+            nextIdx: INVALID_INDEX,
+            _phantom_0: std::marker::PhantomData,
+            _phantom_1: std::marker::PhantomData,
         };
 
         let index_table = unsafe {
@@ -410,7 +414,7 @@ impl<K, V> IntoIterator for RedHashMap<K, V> {
                 },
                 capacity: map.capacity(),
                 size: map.size(),
-                allocator: ptr::null_mut(),
+                allocator: ptr::null_mut() as *mut red::Memory::IAllocator,
                 _phantom_0: std::marker::PhantomData,
                 _phantom_1: std::marker::PhantomData,
             },
@@ -436,11 +440,10 @@ impl<K, V> Drop for RedHashMap<K, V> {
             return;
         }
 
-        let (nodes, indexes) = self.split_mut();
-        for idx in indexes {
+        for idx in self.indexes() {
             let mut cur = *idx;
             while cur != INVALID_INDEX {
-                let node = unsafe { &mut *nodes.nodes.add(cur as usize) };
+                let node = unsafe { &mut *self.0.nodeList.nodes.add(cur as usize) };
                 let next = node.next;
                 unsafe {
                     ptr::drop_in_place(&mut node.key);
@@ -451,7 +454,7 @@ impl<K, V> Drop for RedHashMap<K, V> {
         }
 
         unsafe {
-            self.allocator().free(nodes.nodes);
+            self.allocator().free(self.0.nodeList.nodes);
         }
     }
 }
