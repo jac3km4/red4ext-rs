@@ -4,8 +4,8 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use crate::fnv1a64;
-use crate::raw::root::RED4ext as red;
+use crate::raw::root::RED4ext::{self as red};
+use crate::{NativeRepr, fnv1a64};
 
 pub const MAX_LENGTH: usize = 216;
 
@@ -101,6 +101,10 @@ impl Clone for ResRef {
             resource: self.0.resource,
         })
     }
+}
+
+unsafe impl NativeRepr for ResRef {
+    const NAME: &'static str = "redResourceReferenceScriptToken";
 }
 
 fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
