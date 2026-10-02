@@ -24,7 +24,7 @@ fn main() {
         .clang_arg("-std=c++20")
         .clang_arg(format!("-I{}", red4ext_include_dir.display()))
         .header("deps/wrapper.hpp")
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .parse_callbacks(Box::new(Callbacks::default()))
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
         .derive_default(true)
         .enable_cxx_namespaces()
@@ -52,4 +52,37 @@ fn main() {
         "cargo:warning=Generated bindings: {}",
         out_path.join("bindings.rs").display()
     );
+}
+
+#[derive(Debug, Default)]
+struct Callbacks(bindgen::CargoCallbacks);
+
+impl bindgen::callbacks::ParseCallbacks for Callbacks {
+    fn add_derives(&self, info: &bindgen::callbacks::DeriveInfo<'_>) -> Vec<String> {
+        if [
+            "CClass",
+            "CBaseFunction",
+            "CGlobalFunction",
+            "CClassFunction",
+            "CClassStaticFunction",
+        ]
+        .contains(&info.name)
+        {
+            vec!["Debug".to_string()]
+        } else {
+            vec![]
+        }
+    }
+
+    fn header_file(&self, filename: &str) {
+        self.0.header_file(filename);
+    }
+
+    fn include_file(&self, filename: &str) {
+        self.0.include_file(filename);
+    }
+
+    fn read_env_var(&self, key: &str) {
+        self.0.read_env_var(key);
+    }
 }
