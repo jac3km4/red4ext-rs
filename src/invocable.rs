@@ -56,6 +56,9 @@ pub enum InvokeError {
     ExecutionFailed(&'static str),
     #[error("the 'this' pointer for class '{0}' was null")]
     NullReceiver(&'static str),
+    #[cfg(test)]
+    #[cfg_attr(test, error("unsupported in this context: {0}"))]
+    UnsupportedContext(&'static str),
 }
 
 impl InvokeError {
