@@ -235,7 +235,7 @@ impl<T> BaseRef<T> {
         };
 
         cnt.strong()
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
                 (x != 0).then(|| x + 1)
             })
             .is_ok()
