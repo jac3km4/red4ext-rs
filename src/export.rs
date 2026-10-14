@@ -99,6 +99,18 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             let class = rtti_ro
                 .get_class(CName::new(C::NAME))
                 .expect("class should exist");
+            // macOS: the conversion below calls `Function::add_param` / `set_return_type`, which ask the game's `GetType` for the parameter
+            // types, and `GetType` of a composite name that is not registered yet (an array or static array type, for example) creates
+            // the type and registers it under the exclusive types lock. The shared guard this block holds would never be released
+            // (B2 report, Mac `GetType` 0x21927A8 -> 0x2192F00 -> `RegisterType` 0x21920B4: lock byte 0 to 0x80 while this thread has +1 on it),
+            // so the registration would hang. A class is never freed, so the guard is released before the conversion.
+            #[cfg(target_os = "macos")]
+            let class = {
+                let class: *const crate::types::Class = class;
+                drop(rtti_ro);
+                // SAFETY: registered classes live as long as the RTTI system.
+                unsafe { &*class }
+            };
             let converted_methods = self
                 .methods
                 .iter()
@@ -203,6 +215,14 @@ impl<C: Default + Clone + NativeRepr> Exportable for StructExport<C> {
             let class = rtti_ro
                 .get_class(CName::new(C::NAME))
                 .expect("class should exist");
+            // macOS: the shared guard is released before the conversion, see `ClassExport::post_register`.
+            #[cfg(target_os = "macos")]
+            let class = {
+                let class: *const crate::types::Class = class;
+                drop(rtti_ro);
+                // SAFETY: registered classes live as long as the RTTI system.
+                unsafe { &*class }
+            };
             self.static_methods
                 .iter()
                 .map(|m| m.to_rtti_static_method(class))
