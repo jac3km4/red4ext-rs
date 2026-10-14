@@ -1,18 +1,40 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn main() {
-    let red4ext_dir = Path::new("deps/RED4ext.SDK");
+    // `cfg!(target_os)` in a build script is the host, so the target comes from cargo's environment.
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+
+    let red4ext_dir = if target_os == "macos" {
+        // macOS: the pinned deps/RED4ext.SDK is upstream and has no macOS support (it includes Windows.h
+        // everywhere), so the SDK comes from a RED4ext.SDK-macos checkout (branch mac-rs). Evidence: B1 report E0.
+        println!("cargo:rerun-if-env-changed=RED4EXT_SDK_DIR");
+        match env::var_os("RED4EXT_SDK_DIR") {
+            Some(dir) => PathBuf::from(dir),
+            None => panic!(
+                "RED4EXT_SDK_DIR is not set: on macOS red4ext-rs needs a RED4ext.SDK-macos checkout \
+                 (branch mac-rs), e.g. RED4EXT_SDK_DIR=$HOME/repos/cp2077-mac/RED4ext.SDK-macos-rs"
+            ),
+        }
+    } else {
+        PathBuf::from("deps/RED4ext.SDK")
+    };
     let red4ext_include_dir = red4ext_dir.join("include");
 
-    let red4ext_target = cmake::Config::new(red4ext_dir).profile("Release").build();
+    let red4ext_target = cmake::Config::new(&red4ext_dir).profile("Release").build();
 
     println!(
         "cargo:rustc-link-search=native={}",
         red4ext_target.join("lib").display()
     );
-    println!("cargo:rustc-link-lib=user32");
+    if target_os == "windows" {
+        println!("cargo:rustc-link-lib=user32");
+    }
     println!("cargo:rustc-link-lib=RED4ext.SDK");
+    if target_os == "macos" {
+        // The SDK static lib is C++ and needs the libc++ runtime (__cxa_*, __gxx_personality_v0). B1 report E5.
+        println!("cargo:rustc-link-lib=c++");
+    }
 
     let allowlist = include_str!("deps/allowlist.txt")
         .split('\n')
