@@ -34,6 +34,19 @@ fn main() {
     if target_os == "macos" {
         // The SDK static lib is C++ and needs the libc++ runtime (__cxa_*, __gxx_personality_v0). B1 report E5.
         println!("cargo:rustc-link-lib=c++");
+
+        // The Mac SDK header routes nine hashes to plugin-provided tweakxl_* symbols (memory vault, RTTI id counters, CClass
+        // virtual slots). B1 report E5 lists them as the only undefined symbols left in the link.
+        println!("cargo:rerun-if-changed=deps/macos/MacVault.cpp");
+        cc::Build::new()
+            .cpp(true)
+            .cpp_link_stdlib(None)
+            .std("c++20")
+            .include(&red4ext_include_dir)
+            .define("RED4EXT_STATIC_LIB", None)
+            .warnings(false)
+            .file("deps/macos/MacVault.cpp")
+            .compile("r4e_mac_vault");
     }
 
     let allowlist = include_str!("deps/allowlist.txt")

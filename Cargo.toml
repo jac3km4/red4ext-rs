@@ -20,6 +20,7 @@ widestring = "1"
 [build-dependencies]
 bindgen = { version = "0.73", features = ["experimental"] }
 cmake = "0.1"
+cc = "1" # only used on macOS, for deps/macos/MacVault.cpp
 
 [features]
 default = []
