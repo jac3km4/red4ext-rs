@@ -1668,9 +1668,11 @@ pub struct ISerializableVft {
     get_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
     get_allocator: unsafe extern "C" fn(this: &ISerializable) -> *mut IAllocator,
     destroy: unsafe extern "C" fn(this: *mut ISerializable),
-    /// macOS: D0 (deleting destructor) takes the next slot; everything below is 8 bytes higher than on Windows. Evidence: the SDK's
-    /// Apple branches use "Windows + 8" for these slots, and the game's IsSavingLocked is slot 0x178 on Mac against 0x170 on Windows
-    /// (Codeware macos/MacR16b.cpp, checked by its self-test). Not decoded from a live ISerializable vtable here.
+    /// macOS: D0 (deleting destructor) takes the next slot; everything below is 8 bytes higher than on Windows. Evidence: a live Mac
+    /// vtable of an IScriptable-derived class (vptr 0x6E8F870): 0x18 D1, 0x20 D0, and the functions Codeware's R19 rows matched to
+    /// Windows one by one sit at exactly Windows + 8: ISerializable_sub_30 (0x2186078) at 0x38, sub_40 (0x2185F34) at 0x48, sub_78
+    /// (0x21862CC) at 0x80, sub_A0 (0x2186230) at 0xA8, sub_C0 (0x2186208) at 0xC8, IScriptable_sub_D8 (0x2238918) at 0xE0. The game's
+    /// IsSavingLocked is slot 0x178 on Mac against 0x170 on Windows (Codeware macos/MacR16b.cpp, checked by its self-test).
     #[cfg(target_os = "macos")]
     _destroy_deleting: unsafe extern "C" fn(this: *mut ISerializable),
     sub_20: VoidPtr,
