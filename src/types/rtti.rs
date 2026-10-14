@@ -34,9 +34,25 @@ impl Type {
 
     #[inline]
     pub fn name(&self) -> CName {
-        // calling Type with unk8 == 0 crashes the game
-        if self.0.unk8 == 0 {
-            return CName::undefined();
+        #[cfg(not(target_os = "macos"))]
+        {
+            // calling Type with unk8 == 0 crashes the game
+            if self.0.unk8 == 0 {
+                return CName::undefined();
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            // unk8 (CBaseRTTIType +0x08) is 0 for every Mac type, so the Windows guard would turn every name into None. Evidence:
+            // the base constructor 0x21AFCAC that every type constructor calls (59 call sites: CClass 0x2196F40, CEnum 0x21A33E0,
+            // handle 0x21AD5F8, array 0x21A5368, ...) is `adrp x8,0x6ffd000; add x8,x8,#0xf40; stp x8,xzr,[x0]`, RegisterType (0x2192004) does not store
+            // it, and boot 2 logged "kind Class ... vtable name None, field name PlayerPuppet" (the guard fired on PlayerPuppet).
+            // GetName of every Mac kind is one load of a field of `this` (+0x10, +0x18 or +0x20) or a constant CName (Fundamental, Simple,
+            // CName types), so a constructed type cannot crash it. The only way to crash is a missing vtable (zeroed memory), so the guard
+            // checks the vptr. The result comes back in x0 (`ldr x0,[x0,#0x18]; ret`), which is what the binding declares.
+            if self.0.vtable_.is_null() {
+                return CName::undefined();
+            }
         }
         CName::from_raw(unsafe { (self.vft().tail.CBaseRTTIType_GetName)(&self.0) })
     }
