@@ -1074,6 +1074,7 @@ impl Method {
         handler: VoidPtr,
         flags: FunctionFlags,
     ) {
+        #[cfg(not(target_os = "macos"))]
         unsafe {
             let ctor = crate::fn_from_hash!(
                 CClassFunction_ctor,
@@ -1087,6 +1088,25 @@ impl Method {
                 )
             );
             ctor(ptr, class, full_name, short_name, handler, flags.0);
+        };
+        // macOS: the handler is a pointer to member function, so it takes two registers: x4 = function, x5 = adjustment (0), and the
+        // flags move to w6. Evidence: Mac CClassFunction ctor 0x2173760 (`mov x20,x5; mov x21,x4; orr w24,w6,#1`; x5 is passed on to
+        // 0x21fd4c8); the game's own registration code does `mov x5,#0; mov w6,#0` before `bl 0x2173860`, a one-instruction thunk to it.
+        #[cfg(target_os = "macos")]
+        unsafe {
+            let ctor = crate::fn_from_hash!(
+                CClassFunction_ctor,
+                unsafe extern "C" fn(
+                    *mut Method,
+                    *const Class,
+                    CName,
+                    CName,
+                    VoidPtr,
+                    usize,
+                    red::CBaseFunction_Flags,
+                )
+            );
+            ctor(ptr, class, full_name, short_name, handler, 0, flags.0);
         };
     }
 

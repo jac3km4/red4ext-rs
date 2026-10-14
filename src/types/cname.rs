@@ -113,6 +113,7 @@ impl Hash for CName {
 pub struct CNamePool(red::CNamePool);
 
 impl CNamePool {
+    #[cfg(not(target_os = "macos"))]
     pub fn add_cstr(str: &CStr) -> CName {
         unsafe {
             let add_cstr = crate::fn_from_hash!(
@@ -122,6 +123,20 @@ impl CNamePool {
             let mut cname = CName::default();
             add_cstr(&mut cname, str.as_ptr());
             cname
+        }
+    }
+
+    /// macOS: the game function (RVA 0x3452DDC) is `uint64_t(const char*)`, the hash comes back in x0 and there is no out pointer.
+    /// Evidence: `rx m 0x3452ddc` moves x0 into x1 as the string, hashes it (FNV-1a 64 basis 0xCBF29CE484222325) and returns x19, the
+    /// hash, in x0; the Windows twin (0x28A65C) takes rcx = out, rdx = string and returns the out pointer.
+    #[cfg(target_os = "macos")]
+    pub fn add_cstr(str: &CStr) -> CName {
+        unsafe {
+            let add_cstr = crate::fn_from_hash!(
+                CNamePool_AddCstr,
+                unsafe extern "C" fn(*const ffi::c_char) -> u64
+            );
+            CName::from(add_cstr(str.as_ptr()))
         }
     }
 }
