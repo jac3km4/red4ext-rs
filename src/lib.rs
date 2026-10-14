@@ -173,9 +173,18 @@ where
 
 /// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
 /// not be loaded unless you call this macro.
+///
+/// On macOS the macro takes a second argument, the name of one more exported function that runs
+/// the plugin's RTTI registration (`register` then `post_register`, once): the private macOS loader
+/// calls `<plugin>_registerNatives` by name, because the Mac game never runs RTTI register callbacks.
+/// The argument is ignored on every other platform, so the one-argument form keeps working there.
+///
+/// ```ignore
+/// red4ext_rs::export_plugin_symbols!(MyPlugin, myplugin_registerNatives);
+/// ```
 #[macro_export]
 macro_rules! export_plugin_symbols {
-    ($trait:ty) => {
+    ($trait:ty $(, $natives:ident)? $(,)?) => {
         // The exports will not work in tests, so they are disabled here.
         #[cfg(not(test))]
         mod __api {
@@ -197,7 +206,13 @@ macro_rules! export_plugin_symbols {
                 match reason {
                     $crate::internal::EMainReason::Load => {
                         <$trait as $crate::PluginOps>::load($crate::SdkEnv::new(handle, sdk));
+                        #[cfg(not(target_os = "macos"))]
                         $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
+                        // macOS: the Mac game never runs the register callbacks, so only a post-register callback is added (the public
+                        // loader runs those). It calls the same once-guarded function as `<plugin>_registerNatives`, so the
+                        // registration runs once whichever loader gets there first.
+                        #[cfg(target_os = "macos")]
+                        $crate::RttiRegistrator::add(None, Some(on_post_register_once));
                     }
                     $crate::internal::EMainReason::Unload => {
                         <$trait as $crate::PluginOps>::unload($crate::SdkEnv::new(handle, sdk));
@@ -222,6 +237,31 @@ macro_rules! export_plugin_symbols {
                 let exports = <$trait as $crate::Plugin>::exports();
                 $crate::Exportable::post_register(&exports);
             }
+
+            // macOS: register, then post-register, once. Called from `<plugin>_registerNatives` and from the post-register callback.
+            #[cfg(target_os = "macos")]
+            fn register_natives_once() {
+                static ONCE: ::std::sync::Once = ::std::sync::Once::new();
+                ONCE.call_once(|| {
+                    on_register();
+                    on_post_register();
+                });
+            }
+
+            #[cfg(target_os = "macos")]
+            extern "C" fn on_post_register_once() {
+                register_natives_once();
+            }
+
+            // macOS: the entry point of the private loader (frida-modded.js calls `<plugin>_registerNatives` once, at InitScripts).
+            $(
+                #[cfg(target_os = "macos")]
+                #[unsafe(no_mangle)]
+                #[allow(non_snake_case, unused_variables)]
+                pub extern "C" fn $natives() {
+                    register_natives_once();
+                }
+            )?
         }
     };
 }
