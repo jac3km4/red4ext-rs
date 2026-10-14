@@ -11,7 +11,14 @@ pub use export::{
 use raw::root::{RED4ext as red, versioning};
 use sealed::sealed;
 use types::StaticArray;
-pub use widestring::{U16CStr, widecstr as wcstr};
+// macOS: wchar_t is 32 bits there (the generated `PluginInfo.name` / `author` are `*const u32`), so the plugin name type follows
+// it. `wcstr!` (widestring's `widecstr!`) already picks the 32 bit string type outside Windows, so callers compile unchanged.
+// Evidence: B1 report E1b, "expected `*const u32`, found `*const u16`".
+#[cfg(not(target_os = "macos"))]
+pub use widestring::U16CStr;
+#[cfg(target_os = "macos")]
+pub use widestring::U32CStr as U16CStr;
+pub use widestring::widecstr as wcstr;
 
 mod class;
 mod export;
