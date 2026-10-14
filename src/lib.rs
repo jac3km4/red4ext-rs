@@ -61,6 +61,22 @@ pub mod addr_hashes {
 #[doc(hidden)]
 pub mod internal {
     pub use crate::red::v1::{EMainReason, PluginHandle, PluginInfo, Sdk};
+
+    /// macOS: true when the loader that called `Main` is the private one (it exports `RED4ext_GumSelfTest`; jackmaxwil's
+    /// loader exports only `RED4ext_ResolveAddress`, `nm -gU` on both). The private loader loads plugins from its dylib
+    /// constructor (`RED4extInit` calls `App::Startup`, RVA 0xE33DC of the installed RED4ext.dylib), which runs before the
+    /// game's static initializers: the pools and the RTTI system do not exist yet. Calling `CRTTISystem::Get` there would
+    /// construct the whole RTTI system (a function-local static, game RVA 0x2188E8C) too early. jackmaxwil's loader says
+    /// the same and loads plugins from the game's `main` instead (`src/dll/Hooks/WinMain.cpp` lines 12 to 16).
+    #[cfg(target_os = "macos")]
+    pub fn is_private_loader() -> bool {
+        unsafe extern "C" {
+            fn dlsym(handle: *mut std::ffi::c_void, symbol: *const std::ffi::c_char) -> *mut std::ffi::c_void;
+        }
+        // RTLD_DEFAULT on Apple platforms: search every image of the process that was loaded at launch.
+        const RTLD_DEFAULT: *mut std::ffi::c_void = -2isize as *mut std::ffi::c_void;
+        unsafe { !dlsym(RTLD_DEFAULT, c"RED4ext_GumSelfTest".as_ptr()).is_null() }
+    }
 }
 
 #[doc(hidden)]
@@ -210,9 +226,13 @@ macro_rules! export_plugin_symbols {
                         $crate::RttiRegistrator::add(Some(on_register), Some(on_post_register));
                         // macOS: the Mac game never runs the register callbacks, so only a post-register callback is added (the public
                         // loader runs those). It calls the same once-guarded function as `<plugin>_registerNatives`, so the
-                        // registration runs once whichever loader gets there first.
+                        // registration runs once whichever loader gets there first. Not under the private loader: it calls `Main` from
+                        // its dylib constructor, before the game's pools and RTTI system exist, and `<plugin>_registerNatives` is its
+                        // route (see `internal::is_private_loader`).
                         #[cfg(target_os = "macos")]
-                        $crate::RttiRegistrator::add(None, Some(on_post_register_once));
+                        if !$crate::internal::is_private_loader() {
+                            $crate::RttiRegistrator::add(None, Some(on_post_register_once));
+                        }
                     }
                     $crate::internal::EMainReason::Unload => {
                         <$trait as $crate::PluginOps>::unload($crate::SdkEnv::new(handle, sdk));
