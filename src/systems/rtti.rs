@@ -328,8 +328,16 @@ struct RttiSystemVft {
     get_class: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Class,
     get_enum: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Enum,
     get_bitfield: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Bitfield,
+    // macOS: GetFunction (the search over `funcs` at +0xA0) is slot 0x28 and the unnamed slot (the search over `funcsByHash` at +0xD0) is
+    // slot 0x30, the other way round from Windows. Evidence: Mac CRTTISystem vtable (vptr 0x6FFBD70): slot 0x28 -> 0x2194FB0
+    // `ldr w8,[x0,#0xa8]` and hashes a CName, slot 0x30 -> 0x2195024 `ldr w8,[x0,#0xd8]` and hashes with FNV-1a 32 (0x811C9DC5).
+    // The destructor is the last virtual (D1 0x138, D0 0x140), so no other slot moves. Same finding as the SDK branch
+    // pr/rttisystem-getfunction-slot (44c6c1830).
+    #[cfg(not(target_os = "macos"))]
     _sub_28: unsafe extern "C" fn(this: *const RttiSystem),
     get_function: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Function,
+    #[cfg(target_os = "macos")]
+    _sub_28: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_38: unsafe extern "C" fn(this: *const RttiSystem),
     get_native_types: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Type>),
     get_global_functions:

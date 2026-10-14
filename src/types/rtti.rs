@@ -526,12 +526,35 @@ impl<T> NativeClass<T> {
     where
         T: Default + Clone,
     {
+        #[cfg(not(target_os = "macos"))]
         const VFT_SIZE: usize = 30;
+        #[cfg(not(target_os = "macos"))]
         const IS_EQUAL_SLOT: usize = 9;
+        #[cfg(not(target_os = "macos"))]
         const ASSIGN_SLOT: usize = 10;
+        #[cfg(not(target_os = "macos"))]
         const CONSTRUCT_SLOT: usize = 27;
+        #[cfg(not(target_os = "macos"))]
         const DESTRUCT_SLOT: usize = 28;
+        #[cfg(not(target_os = "macos"))]
         const ALLOC_SLOT: usize = 29;
+
+        // macOS: every slot after the destructor is one higher (D1 and D0 take two slots). Evidence: decoded Mac CClass vtable
+        // (RVA 0x7001020): slot 0x50 `b 0x2197fe4` (the TTypedClass_IsEqual row), slot 0x58 (Assign), slot 0x40 `ldr x2,[x8,#0xe0]; br x2`
+        // and 0x48 `...#0xe8` (Construct and Destruct forward to ConstructCls 0xE0 and DestructCls 0xE8), AllocMemory 0xF0, and
+        // slot 0xF8 is zero (end of the table).
+        #[cfg(target_os = "macos")]
+        const VFT_SIZE: usize = 31;
+        #[cfg(target_os = "macos")]
+        const IS_EQUAL_SLOT: usize = 10;
+        #[cfg(target_os = "macos")]
+        const ASSIGN_SLOT: usize = 11;
+        #[cfg(target_os = "macos")]
+        const CONSTRUCT_SLOT: usize = 28;
+        #[cfg(target_os = "macos")]
+        const DESTRUCT_SLOT: usize = 29;
+        #[cfg(target_os = "macos")]
+        const ALLOC_SLOT: usize = 30;
 
         let mut class = Class::new_native(name, mem::size_of::<T>() as u32);
         if let Some(base) = base {
@@ -1583,7 +1606,14 @@ impl ValuePtr {
 
 #[repr(C)]
 struct TypeVft {
+    /// Windows (MSVC): the scalar deleting destructor. macOS (Itanium): D1, the complete object destructor, which destroys in place.
     destroy: unsafe extern "C" fn(this: *mut Type),
+    /// macOS: D0, the deleting destructor, has its own slot right after D1, so everything after it is 8 bytes higher.
+    /// bindgen leaves the destructor out of `CBaseRTTIType__bindgen_vtable`, which therefore starts at GetName.
+    /// Evidence: Mac CClass vtable (RVA 0x7001020): slot 0x00 `b 0x219721c` (D1), slot 0x08 `bl 0x219721c; b 0x4a3dbf4` (D0 = delete),
+    /// slot 0x10 `ldr x0,[x0,#0x18]; ret` (GetName), slot 0x28 `mov w0,#2; ret` (GetType == Class).
+    #[cfg(target_os = "macos")]
+    _destroy_deleting: unsafe extern "C" fn(this: *mut Type),
     tail: red::CBaseRTTIType__bindgen_vtable,
 }
 
@@ -1601,7 +1631,14 @@ struct ArrayTypeVft {
 #[repr(C)]
 struct FunctionVft {
     get_allocator: unsafe extern "C" fn(this: &Function) -> *mut IAllocator,
+    /// Windows: the scalar deleting destructor. macOS: D1 (in place), the call the `Drop` impls mean.
     destruct: unsafe extern "C" fn(this: &mut Function),
+    /// macOS: D0 (deleting destructor). Without this slot `get_parent` lands on D0 and would delete the function.
+    /// Evidence: Mac CGlobalFunction vtable (vptr 0x6FFACC8, set at the end of the ctor 0x21739E8) and CClassFunction vtable (vptr
+    /// 0x6FFAC88, ctor 0x2173760): slot 0x00 `b 0x2178364` (GetAllocator), 0x08 `b 0x2172010` (D1), 0x10 `bl 0x2172010; b 0x4a3dbf4`
+    /// (D0), 0x18 `mov x0,#0; ret` for a global and `ldr x0,[x0,#0xb0]; ret` for a method (GetParent).
+    #[cfg(target_os = "macos")]
+    _destruct_deleting: unsafe extern "C" fn(this: &mut Function),
     get_parent: unsafe extern "C" fn(this: &Function) -> *mut Class,
 }
 
@@ -1611,6 +1648,11 @@ pub struct ISerializableVft {
     get_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
     get_allocator: unsafe extern "C" fn(this: &ISerializable) -> *mut IAllocator,
     destroy: unsafe extern "C" fn(this: *mut ISerializable),
+    /// macOS: D0 (deleting destructor) takes the next slot; everything below is 8 bytes higher than on Windows. Evidence: the SDK's
+    /// Apple branches use "Windows + 8" for these slots, and the game's IsSavingLocked is slot 0x178 on Mac against 0x170 on Windows
+    /// (Codeware macos/MacR16b.cpp, checked by its self-test). Not decoded from a live ISerializable vtable here.
+    #[cfg(target_os = "macos")]
+    _destroy_deleting: unsafe extern "C" fn(this: *mut ISerializable),
     sub_20: VoidPtr,
     post_load: VoidPtr,
     sub_30: VoidPtr,
