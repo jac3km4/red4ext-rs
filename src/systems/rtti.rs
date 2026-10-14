@@ -7,6 +7,25 @@ use crate::types::{
     ScriptableSystem, Type, VoidFunctionPointerCallback,
 };
 
+/// The lock that guards the RTTI type maps.
+///
+/// macOS: it is at `CRTTISystem` +0x220, not at +0x208 where the Windows layout of the SDK header puts `typesLock`. The two mutexes
+/// around it are 0x40 bytes (pthread) on Mac against 0x28 on Windows, which moves everything after `unk1E0` by 0x18. Evidence: Mac
+/// `CRTTISystem::RegisterType` (vtable slot 0x80, 0x2192004) does `add x21,x20,#0x220; bl 0x20c0` (the byte lock function the SDK's
+/// Apple `SharedSpinLock` protocol is written against) and releases with `ldclralb ...,[x21]` (clears bit 7); `AddRegisterCallback`
+/// (slot 0xC0, 0x2192548) locks a mutex at +0x228, the Windows `rttiRegistratorMutex` (0x210) plus 0x18.
+#[inline]
+unsafe fn types_lock<'a>(rtti: *mut red::CRTTISystem) -> &'a red::SharedSpinLock {
+    #[cfg(not(target_os = "macos"))]
+    unsafe {
+        &(*rtti).typesLock
+    }
+    #[cfg(target_os = "macos")]
+    unsafe {
+        &*rtti.cast::<u8>().add(0x220).cast::<red::SharedSpinLock>()
+    }
+}
+
 /// The RTTI system containing information about all types in the game.
 ///
 /// # Example
@@ -31,7 +50,7 @@ impl RttiSystem {
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = &(*rtti).typesLock;
+            let lock = types_lock(rtti);
             RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
         }
     }
@@ -244,7 +263,7 @@ impl RttiSystemMut {
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = &(*rtti).typesLock;
+            let lock = types_lock(rtti);
             RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
         }
     }
