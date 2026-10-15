@@ -71,7 +71,10 @@ pub mod internal {
     #[cfg(target_os = "macos")]
     pub fn is_private_loader() -> bool {
         unsafe extern "C" {
-            fn dlsym(handle: *mut std::ffi::c_void, symbol: *const std::ffi::c_char) -> *mut std::ffi::c_void;
+            fn dlsym(
+                handle: *mut std::ffi::c_void,
+                symbol: *const std::ffi::c_char,
+            ) -> *mut std::ffi::c_void;
         }
         // RTLD_DEFAULT on Apple platforms: search every image of the process that was loaded at launch.
         const RTLD_DEFAULT: *mut std::ffi::c_void = -2isize as *mut std::ffi::c_void;
