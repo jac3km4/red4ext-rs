@@ -19,9 +19,9 @@ impl<T> RedArray<T> {
     #[inline]
     pub const fn new() -> Self {
         Self(red::DynArray {
-            entries: ptr::null_mut(),
-            size: 0,
-            capacity: 0,
+            m_entries: ptr::null_mut(),
+            m_size: 0,
+            m_capacity: 0,
             _phantom_0: PhantomData,
         })
     }
@@ -37,7 +37,7 @@ impl<T> RedArray<T> {
     /// Returns the number of elements in the array.
     #[inline]
     pub fn len(&self) -> u32 {
-        self.0.size
+        self.0.m_size
     }
 
     /// Returns `true` if the array contains no elements.
@@ -49,7 +49,7 @@ impl<T> RedArray<T> {
     /// Returns the number of elements the array can hold without reallocating.
     #[inline]
     pub fn capacity(&self) -> u32 {
-        self.0.capacity
+        self.0.m_capacity
     }
 
     /// Clears the array, removing all values.
@@ -57,7 +57,7 @@ impl<T> RedArray<T> {
     pub fn clear(&mut self) {
         let elems: *mut [T] = &mut **self;
         unsafe { ptr::drop_in_place(elems) }
-        self.0.size = 0;
+        self.0.m_size = 0;
     }
 
     /// Adds an element to the end of the array.
@@ -66,9 +66,9 @@ impl<T> RedArray<T> {
         let len = self.len();
         self.reserve(1);
         unsafe {
-            ptr::write(self.0.entries.add(len as usize), value);
+            ptr::write(self.0.m_entries.add(len as usize), value);
         }
-        self.0.size = len + 1;
+        self.0.m_size = len + 1;
     }
 
     /// Reserve capacity for at least `additional` more elements to be inserted.
@@ -115,8 +115,8 @@ impl<T> ops::Deref for RedArray<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        if !self.0.entries.is_null() {
-            unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) }
+        if !self.0.m_entries.is_null() {
+            unsafe { slice::from_raw_parts(self.0.m_entries, self.len() as _) }
         } else {
             Default::default()
         }
@@ -126,8 +126,8 @@ impl<T> ops::Deref for RedArray<T> {
 impl<T> ops::DerefMut for RedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [T] {
-        if !self.0.entries.is_null() {
-            unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) }
+        if !self.0.m_entries.is_null() {
+            unsafe { slice::from_raw_parts_mut(self.0.m_entries, self.len() as _) }
         } else {
             Default::default()
         }
@@ -167,13 +167,13 @@ impl<T> IntoIterator for RedArray<T> {
         let me = mem::ManuallyDrop::new(self);
         IntoIter {
             array: red::DynArray {
-                entries: me.0.entries,
-                size: me.len(),
-                capacity: me.capacity(),
+                m_entries: me.0.m_entries,
+                m_size: me.len(),
+                m_capacity: me.capacity(),
                 ..Default::default()
             },
-            ptr: me.0.entries,
-            end: unsafe { me.0.entries.add(me.len() as _) },
+            ptr: me.0.m_entries,
+            end: unsafe { me.0.m_entries.add(me.len() as _) },
         }
     }
 }
@@ -207,7 +207,7 @@ impl<T> Drop for RedArray<T> {
         let elems: *mut [T] = &mut **self;
         unsafe {
             ptr::drop_in_place(elems);
-            (*get_allocator(&self.0)).free(self.0.entries);
+            (*get_allocator(&self.0)).free(self.0.m_entries);
         };
     }
 }
@@ -259,22 +259,22 @@ impl<T> FusedIterator for IntoIter<T> {}
 impl<T> Drop for IntoIter<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.array.capacity == 0 {
+        if self.array.m_capacity == 0 {
             return;
         }
         unsafe {
             let elems = slice::from_raw_parts_mut(self.ptr, self.len());
             ptr::drop_in_place(elems);
-            (*get_allocator(&self.array)).free(self.array.entries);
+            (*get_allocator(&self.array)).free(self.array.m_entries);
         };
     }
 }
 
 fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
-    if arr.capacity == 0 {
-        &arr.entries as *const _ as *mut _
+    if arr.m_capacity == 0 {
+        &arr.m_entries as *const _ as *mut _
     } else {
-        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
+        let end = unsafe { arr.m_entries.add(arr.m_capacity as _) } as usize;
         let aligned = end.next_multiple_of(mem::size_of::<usize>());
         aligned as _
     }
