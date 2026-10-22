@@ -39,27 +39,27 @@ impl Type {
         if self.0.unk8.is_null() {
             return CName::undefined();
         }
-        CName::from_raw(unsafe { (self.vft().tail.CBaseRTTIType_GetName)(&self.0) })
+        CName::from_raw(unsafe { (self.vft().tail.IType_GetName)(&self.0) })
     }
 
     #[inline]
     pub fn size(&self) -> u32 {
-        unsafe { (self.vft().tail.CBaseRTTIType_GetSize)(&self.0) }
+        unsafe { (self.vft().tail.IType_GetSize)(&self.0) }
     }
 
     #[inline]
     pub fn alignment(&self) -> u32 {
-        unsafe { (self.vft().tail.CBaseRTTIType_GetAlignment)(&self.0) }
+        unsafe { (self.vft().tail.IType_GetAlignment)(&self.0) }
     }
 
     #[inline]
     pub fn kind(&self) -> TypeKind {
-        unsafe { mem::transmute((self.vft().tail.CBaseRTTIType_GetType)(&self.0)) }
+        unsafe { mem::transmute((self.vft().tail.IType_GetType)(&self.0)) }
     }
 
     #[inline]
     pub fn allocator(&self) -> &IAllocator {
-        unsafe { &*((self.vft().tail.CBaseRTTIType_GetAllocator)(&self.0).cast::<IAllocator>()) }
+        unsafe { &*((self.vft().tail.IType_GetAllocator)(&self.0).cast::<IAllocator>()) }
     }
 
     #[inline]
@@ -115,7 +115,7 @@ impl Type {
     pub unsafe fn to_string(&self, value: ValuePtr) -> RedString {
         let mut str = RedString::new();
         unsafe {
-            (self.vft().tail.CBaseRTTIType_ToString)(
+            (self.vft().tail.IType_ToString)(
                 &self.0,
                 value.0,
                 &mut str as *mut _ as *mut red::CString,
@@ -134,23 +134,23 @@ impl Type {
 #[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TypeKind {
-    Name = red::ERTTIType::Name,
-    Fundamental = red::ERTTIType::Fundamental,
-    Class = red::ERTTIType::Class,
-    Array = red::ERTTIType::Array,
-    Simple = red::ERTTIType::Simple,
-    Enum = red::ERTTIType::Enum,
-    StaticArray = red::ERTTIType::StaticArray,
-    NativeArray = red::ERTTIType::NativeArray,
-    Pointer = red::ERTTIType::Pointer,
-    Ref = red::ERTTIType::Handle,
-    WeakRef = red::ERTTIType::WeakHandle,
-    ResourceRef = red::ERTTIType::ResourceReference,
-    RaRef = red::ERTTIType::ResourceAsyncReference,
-    BitField = red::ERTTIType::BitField,
-    Curve = red::ERTTIType::LegacySingleChannelCurve,
-    ScriptRef = red::ERTTIType::ScriptReference,
-    FixedArray = red::ERTTIType::FixedArray,
+    Name = red::rtti::ERTTIType::Name,
+    Fundamental = red::rtti::ERTTIType::Fundamental,
+    Class = red::rtti::ERTTIType::Class,
+    Array = red::rtti::ERTTIType::Array,
+    Simple = red::rtti::ERTTIType::Simple,
+    Enum = red::rtti::ERTTIType::Enum,
+    StaticArray = red::rtti::ERTTIType::StaticArray,
+    NativeArray = red::rtti::ERTTIType::NativeArray,
+    Pointer = red::rtti::ERTTIType::Pointer,
+    Ref = red::rtti::ERTTIType::Handle,
+    WeakRef = red::rtti::ERTTIType::WeakHandle,
+    ResourceRef = red::rtti::ERTTIType::ResourceReference,
+    RaRef = red::rtti::ERTTIType::ResourceAsyncReference,
+    BitField = red::rtti::ERTTIType::BitField,
+    Curve = red::rtti::ERTTIType::LegacySingleChannelCurve,
+    ScriptRef = red::rtti::ERTTIType::ScriptReference,
+    FixedArray = red::rtti::ERTTIType::FixedArray,
 }
 
 impl TypeKind {
@@ -1615,7 +1615,7 @@ impl ValuePtr {
 #[repr(C)]
 struct TypeVft {
     destroy: unsafe extern "C" fn(this: *mut Type),
-    tail: red::CBaseRTTIType__bindgen_vtable,
+    tail: red::rtti::IType__bindgen_vtable,
 }
 
 #[repr(C)]
