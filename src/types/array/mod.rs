@@ -19,9 +19,9 @@ impl<T> RedArray<T> {
     #[inline]
     pub const fn new() -> Self {
         Self(red::DynArray {
-            entries: ptr::null_mut(),
-            size: 0,
-            capacity: 0,
+            m_entries: ptr::null_mut(),
+            m_size: 0,
+            m_capacity: 0,
             _phantom_0: PhantomData,
         })
     }
@@ -37,7 +37,7 @@ impl<T> RedArray<T> {
     /// Returns the number of elements in the array.
     #[inline]
     pub fn len(&self) -> u32 {
-        self.0.size
+        self.0.m_size
     }
 
     /// Returns `true` if the array contains no elements.
@@ -49,14 +49,14 @@ impl<T> RedArray<T> {
     /// Returns the number of elements the array can hold without reallocating.
     #[inline]
     pub fn capacity(&self) -> u32 {
-        self.0.capacity
+        self.0.m_capacity
     }
 
     /// Clears the array, removing all values.
     #[inline]
     pub fn clear(&mut self) {
         let elems: *mut [T] = &mut **self;
-        self.0.size = 0;
+        self.0.m_size = 0;
         unsafe { ptr::drop_in_place(elems) }
     }
 
@@ -66,9 +66,9 @@ impl<T> RedArray<T> {
         let len = self.len();
         self.reserve(1);
         unsafe {
-            ptr::write(self.0.entries.add(len as usize), value);
+            ptr::write(self.0.m_entries.add(len as usize), value);
         }
-        self.0.size = len + 1;
+        self.0.m_size = len + 1;
     }
 
     /// Reserve capacity for at least `additional` more elements to be inserted.
@@ -115,8 +115,8 @@ impl<T> ops::Deref for RedArray<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        if self.0.capacity != 0 && !self.is_empty() {
-            unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) }
+        if self.0.m_capacity != 0 && !self.is_empty() {
+            unsafe { slice::from_raw_parts(self.0.m_entries, self.len() as _) }
         } else {
             Default::default()
         }
@@ -126,8 +126,8 @@ impl<T> ops::Deref for RedArray<T> {
 impl<T> ops::DerefMut for RedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [T] {
-        if self.0.capacity != 0 && !self.is_empty() {
-            unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) }
+        if self.0.m_capacity != 0 && !self.is_empty() {
+            unsafe { slice::from_raw_parts_mut(self.0.m_entries, self.len() as _) }
         } else {
             Default::default()
         }
@@ -169,13 +169,13 @@ impl<T> IntoIterator for RedArray<T> {
         let ptr = if me.is_empty() {
             ptr::NonNull::<T>::dangling().as_ptr()
         } else {
-            me.0.entries
+            me.0.m_entries
         };
         IntoIter {
             array: red::DynArray {
-                entries: me.0.entries,
-                size: me.len(),
-                capacity: me.capacity(),
+                m_entries: me.0.m_entries,
+                m_size: me.len(),
+                m_capacity: me.capacity(),
                 ..Default::default()
             },
             ptr,
@@ -213,7 +213,7 @@ impl<T> Drop for RedArray<T> {
         let elems: *mut [T] = &mut **self;
         unsafe {
             ptr::drop_in_place(elems);
-            (*get_allocator(&self.0)).free(self.0.entries);
+            (*get_allocator(&self.0)).free(self.0.m_entries);
         };
     }
 }
@@ -269,18 +269,18 @@ impl<T> Drop for IntoIter<T> {
             let elems = ptr::slice_from_raw_parts_mut(self.ptr, self.remaining);
             self.remaining = 0;
             ptr::drop_in_place(elems);
-            if self.array.capacity != 0 {
-                (*get_allocator(&self.array)).free(self.array.entries);
+            if self.array.m_capacity != 0 {
+                (*get_allocator(&self.array)).free(self.array.m_entries);
             }
         };
     }
 }
 
 fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
-    if arr.capacity == 0 {
-        &arr.entries as *const _ as *mut _
+    if arr.m_capacity == 0 {
+        &arr.m_entries as *const _ as *mut _
     } else {
-        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
+        let end = unsafe { arr.m_entries.add(arr.m_capacity as _) } as usize;
         let aligned = end.next_multiple_of(mem::size_of::<usize>());
         aligned as _
     }
@@ -302,7 +302,7 @@ mod tests {
         }
         let mut array = RedArray::<Aligned>::new();
         // A non-null, deliberately unaligned stand-in for an SDK allocator vtable.
-        array.0.entries = ptr::without_provenance_mut(1);
+        array.0.m_entries = ptr::without_provenance_mut(1);
         assert!(array.as_ref().is_empty());
         assert!(array.as_mut().is_empty());
         array.clear();
@@ -397,9 +397,9 @@ mod tests {
         ]);
         // Borrow stack storage without transferring its allocation to the engine.
         let mut array = RedArray(red::DynArray {
-            entries: storage.as_mut_ptr(),
-            size: 2,
-            capacity: 2,
+            m_entries: storage.as_mut_ptr(),
+            m_size: 2,
+            m_capacity: 2,
             ..Default::default()
         });
         assert!(catch_unwind(AssertUnwindSafe(|| array.clear())).is_err());
@@ -407,8 +407,8 @@ mod tests {
         assert_eq!(drops.get(), 2);
         array.clear();
         // Detach the borrowed allocation before testing array drop.
-        array.0.entries = ptr::null_mut();
-        array.0.capacity = 0;
+        array.0.m_entries = ptr::null_mut();
+        array.0.m_capacity = 0;
         drop(array);
         assert_eq!(drops.get(), 2);
     }
