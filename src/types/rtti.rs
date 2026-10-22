@@ -35,7 +35,7 @@ impl Type {
     #[inline]
     pub fn name(&self) -> CName {
         // calling Type with unk8 == 0 crashes the game
-        if self.0.unk8 == std::ptr::null_mut() {
+        if self.0.unk8.is_null() {
             return CName::undefined();
         }
         CName::from_raw(unsafe { (self.vft().tail.IType_GetName)(&self.0) })
