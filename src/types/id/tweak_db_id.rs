@@ -90,7 +90,7 @@ impl Debug for TweakDbId {
 
 impl PartialEq for TweakDbId {
     fn eq(&self, other: &Self) -> bool {
-        u64::from(*self).eq(&u64::from(*other))
+        self.hash() == other.hash() && self.len() == other.len()
     }
 }
 
@@ -104,7 +104,7 @@ impl PartialOrd for TweakDbId {
 
 impl Ord for TweakDbId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        u64::from(*self).cmp(&u64::from(*other))
+        (self.hash(), self.len()).cmp(&(other.hash(), other.len()))
     }
 }
 
@@ -124,7 +124,8 @@ impl From<TweakDbId> for u64 {
 
 impl Hash for TweakDbId {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        u64::from(*self).hash(state);
+        self.hash().hash(state);
+        self.len().hash(state);
     }
 }
 
@@ -152,6 +153,21 @@ mod tests {
             u64::from(TweakDbId::new("Items.FirstAidWhiffV0")),
             90_628_141_458
         );
+    }
+
+    #[test]
+    fn identity_ignores_offset() {
+        use std::collections::{BTreeSet, HashSet};
+
+        let original = TweakDbId::new("Items.FirstAidWhiffV0");
+        let modified = original.with_tdb_offset(128);
+        assert_ne!(u64::from(original), u64::from(modified));
+        assert_eq!(original, modified);
+        assert_eq!(HashSet::from([original, modified]).len(), 1);
+        assert_eq!(BTreeSet::from([original, modified]).len(), 1);
+        // Hash takes precedence over length, unlike the packed u64 ordering.
+        assert!(TweakDbId::new_with(1, 255, [0; 3]) < TweakDbId::new_with(2, 0, [0; 3]));
+        assert!(TweakDbId::new_with(1, 1, [0; 3]) < TweakDbId::new_with(1, 2, [0; 3]));
     }
 
     #[test]
