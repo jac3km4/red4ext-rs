@@ -161,16 +161,22 @@ unsafe fn pool_free<T: Poolable>(memory: *mut T) {
     }
 }
 
+/// Internal per-pool vault cache; its contents cannot be set by callers.
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct VaultCache(OnceNonZeroUsize);
+
 /// A trait for different types of pools.
 #[sealed]
 pub trait Pool {
     const NAME: &'static str;
 
     #[doc(hidden)]
-    fn vault_cache() -> &'static OnceNonZeroUsize;
+    fn vault_cache() -> &'static VaultCache;
 
     fn vault() -> *mut red::Memory::Vault {
         Self::vault_cache()
+            .0
             .get_or_try_init(|| {
                 NonZeroUsize::new(unsafe { vault_get(fnv1a32(Self::NAME)) as _ }).ok_or(())
             })
@@ -187,8 +193,8 @@ pub struct FunctionPool;
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
 
-    fn vault_cache() -> &'static OnceNonZeroUsize {
-        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+    fn vault_cache() -> &'static VaultCache {
+        static VAULT: VaultCache = VaultCache(OnceNonZeroUsize::new());
         &VAULT
     }
 }
@@ -201,8 +207,8 @@ pub struct PropertyPool;
 impl Pool for PropertyPool {
     const NAME: &'static str = "PoolRTTIProperty";
 
-    fn vault_cache() -> &'static OnceNonZeroUsize {
-        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+    fn vault_cache() -> &'static VaultCache {
+        static VAULT: VaultCache = VaultCache(OnceNonZeroUsize::new());
         &VAULT
     }
 }
@@ -215,8 +221,8 @@ pub struct ScriptPool;
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
 
-    fn vault_cache() -> &'static OnceNonZeroUsize {
-        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+    fn vault_cache() -> &'static VaultCache {
+        static VAULT: VaultCache = VaultCache(OnceNonZeroUsize::new());
         &VAULT
     }
 }
