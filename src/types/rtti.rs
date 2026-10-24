@@ -868,8 +868,9 @@ impl Function {
     }
 
     #[inline]
-    pub fn set_return_type(&mut self, typ: CName) {
-        unsafe { self.0.SetReturnType(typ.to_raw()) };
+    #[must_use]
+    pub fn set_return_type(&mut self, typ: CName) -> bool {
+        unsafe { self.0.SetReturnType(typ.to_raw()) }
     }
 
     /// Executes with a tuple of [`NativeRepr`] arguments and a matching return type.
