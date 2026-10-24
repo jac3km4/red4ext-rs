@@ -98,13 +98,8 @@ impl GameEngine {
     }
 
     pub fn game_instance(&self) -> &NativeGameInstance {
-        // macOS: the CGameFramework pointer is at engine +0x338 (the SDK header's `unk338`), not at +0x308 where the Windows layout
-        // keeps `framework`; the object itself matches the SDK (`gameInstance` at +0x10). Evidence: Codeware macos/MacEngine.cpp:61-66
-        // (R18d: found by scanning the engine for the pointer the GameInstance job works on; its self-test at MacEngine.cpp:583 checks
-        // that framework->gameInstance is the GameInstance the constructor hook saw). Not re-derived statically here.
-        #[cfg(target_os = "macos")]
-        let framework = self.0.unk338 as *const red::CGameEngine_CGameFramework;
-        #[cfg(not(target_os = "macos"))]
+        // macOS 2.5: the SDK's Mac CGameEngine declares `framework` at its Mac offset (+0x378; 2.3.1 read the pointer at +0x338
+        // through `unk338`), so both platforms read the same field.
         let framework = self.0.framework;
         unsafe { &*((*framework).gameInstance as *const NativeGameInstance) }
     }
