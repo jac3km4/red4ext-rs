@@ -8,7 +8,7 @@ use crate::raw::root::RED4ext as red;
 /// SDK [TweakDBID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 /// Creating an ID hashes a name; it does not create or look up a database record.
 #[derive(Default, Clone, Copy)]
-#[repr(C, align(4))]
+#[repr(transparent)]
 pub struct TweakDbId(red::TweakDBID);
 
 impl TweakDbId {
@@ -131,6 +131,16 @@ impl Hash for TweakDbId {
 #[cfg(test)]
 mod tests {
     use super::TweakDbId;
+
+    #[test]
+    fn sdk_layout() {
+        assert_eq!(std::mem::size_of::<TweakDbId>(), 8);
+        assert_eq!(std::mem::align_of::<TweakDbId>(), 1);
+        assert_eq!(
+            std::mem::align_of::<TweakDbId>(),
+            std::mem::align_of::<crate::raw::root::RED4ext::TweakDBID>()
+        );
+    }
 
     #[test]
     fn conversion() {
