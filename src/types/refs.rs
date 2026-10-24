@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
+use std::mem;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::{mem, ptr};
 
 use super::{CName, ISerializable, Type};
 use crate::class::{NativeType, ScriptClass};
@@ -147,8 +147,15 @@ impl<T: ScriptClass> Drop for Ref<T> {
     #[inline]
     fn drop(&mut self) {
         if self.0.dec_strong() && !self.0.0.instance.is_null() {
-            let ptr = self.0.0.instance.cast::<NativeType<T>>();
-            unsafe { ptr::drop_in_place(ptr) }
+            // Use dynamic SDK dispatch, not the handle's static Rust type. The
+            // native bridge honors CanBeDestructed and captures the allocator
+            // before virtual destruction. Rust exports install instance dispatch
+            // so engine-owned final handles also destroy their Rust fields.
+            unsafe {
+                crate::raw::root::red4ext_rs_destroy_handle_instance(
+                    self.0.0.instance.cast::<red::ISerializable>(),
+                );
+            }
         }
     }
 }
@@ -324,6 +331,8 @@ impl RefCount {
 
 #[cfg(test)]
 mod count_tests {
+    use std::ptr;
+
     use super::*;
 
     fn with_count(strong: u32, weak: u32) -> (Box<red::RefCnt>, BaseRef<()>) {
