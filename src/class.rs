@@ -16,6 +16,14 @@ pub unsafe trait ScriptClass: Sized {
 }
 
 /// A trait for distinguishing between native and scripted classes.
+///
+/// Arbitrary scriptable instances cannot be projected safely:
+/// ```compile_fail
+/// use red4ext_rs::{ClassKind, class_kind, types::IScriptable};
+/// fn arbitrary(instance: &IScriptable) -> &u64 {
+///     <class_kind::Scripted as ClassKind<u64>>::fields(instance)
+/// }
+/// ```
 #[sealed]
 pub trait ClassKind<T> {
     type NativeType;
