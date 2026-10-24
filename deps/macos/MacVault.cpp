@@ -81,13 +81,13 @@ struct PoolOps
 // _ZN3red6memory16PoolStorageProxyINS_<name>EE{8AllocateEy, 15AllocateAlignedEyj, 10ReallocateERNS0_5BlockEy,
 // 17ReallocateAlignedERNS0_5BlockEyj, 4FreeERNS0_5BlockE}.
 PoolOps g_pools[] = {
-    {"8PoolRTTI", kTagRtti, {0x2177D04, 0x2177E28, 0x2177F68, 0x21780B4, 0x217819C}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"16PoolRTTIFunction", kTagFunction, {0x217844C, 0x2178570, 0x21786B0, 0x21787FC, 0x21788E4}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"16PoolRTTIProperty", kTagProperty, {0x2178B94, 0x2178CB8, 0x2178DF8, 0x2178F44, 0x217902C}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"10PoolScript", kTagScript, {0x344DCAC, 0x344DDD0, 0x344DF10, 0x344E05C, 0x344E144}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"10PoolEngine", kTagEngine, {0x1F8F8, 0x1FA1C, 0x1FB5C, 0x1FCA8, 0x1FD90}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"12PoolRefCount", kTagRefCount, {0x20040, 0x20164, 0x202A4, 0x203F0, 0x204D8}, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"11PoolDefault", kTagDefault, {0x2263C, 0x22808, 0x229DC, 0x22BC8, 0x22CB0}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"8PoolRTTI", kTagRtti, {0x10A1FA4, 0x10A20C0, 0x10A21EC, 0x10A2324, 0x10A2408}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"16PoolRTTIFunction", kTagFunction, {0x10A268C, 0x10A27A8, 0x10A28D4, 0x10A2A0C, 0x10A2AF0}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"16PoolRTTIProperty", kTagProperty, {0x10A2D74, 0x10A2E90, 0x10A2FBC, 0x10A30F4, 0x10A31D8}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"10PoolScript", kTagScript, {0x4E33A00, 0x4E33B1C, 0x4E33C48, 0x4E33D80, 0x4E33E64}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"10PoolEngine", kTagEngine, {0x1F7D4, 0x1F8F0, 0x1FA1C, 0x1FB54, 0x1FC38}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"12PoolRefCount", kTagRefCount, {0x1FEBC, 0x1FFD8, 0x20104, 0x2023C, 0x20320}, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"11PoolDefault", kTagDefault, {0x222DC, 0x224A4, 0x22674, 0x22848, 0x2292C}, nullptr, nullptr, nullptr, nullptr, nullptr},
 };
 
 const char* kPoolSuffixes[5] = {
