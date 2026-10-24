@@ -179,7 +179,7 @@ impl<T> IntoIterator for RedArray<T> {
                 ..Default::default()
             },
             ptr,
-            end: unsafe { ptr.add(me.len() as _) },
+            remaining: me.len() as usize,
         }
     }
 }
@@ -222,7 +222,7 @@ impl<T> Drop for RedArray<T> {
 pub struct IntoIter<T> {
     array: red::DynArray<T>,
     ptr: *mut T,
-    end: *mut T,
+    remaining: usize,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -230,9 +230,10 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.ptr == self.end {
+        if self.remaining == 0 {
             None
         } else {
+            self.remaining -= 1;
             let old = self.ptr;
             self.ptr = unsafe { old.add(1) };
             Some(unsafe { ptr::read(old) })
@@ -241,19 +242,18 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = unsafe { self.end.offset_from(self.ptr) } as usize;
-        (len, Some(len))
+        (self.remaining, Some(self.remaining))
     }
 }
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.ptr == self.end {
+        if self.remaining == 0 {
             None
         } else {
-            self.end = unsafe { self.end.sub(1) };
-            Some(unsafe { ptr::read(self.end) })
+            self.remaining -= 1;
+            Some(unsafe { ptr::read(self.ptr.add(self.remaining)) })
         }
     }
 }
@@ -265,13 +265,13 @@ impl<T> FusedIterator for IntoIter<T> {}
 impl<T> Drop for IntoIter<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.array.capacity == 0 {
-            return;
-        }
         unsafe {
-            let elems = slice::from_raw_parts_mut(self.ptr, self.len());
+            let elems = ptr::slice_from_raw_parts_mut(self.ptr, self.remaining);
+            self.remaining = 0;
             ptr::drop_in_place(elems);
-            (*get_allocator(&self.array)).free(self.array.entries);
+            if self.array.capacity != 0 {
+                (*get_allocator(&self.array)).free(self.array.entries);
+            }
         };
     }
 }
@@ -310,6 +310,61 @@ mod tests {
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.len(), 0);
+    }
+
+    #[test]
+    fn consuming_zsts_tracks_counts_and_drops_remainder() {
+        thread_local! {
+            static DROPS: Cell<usize> = const { Cell::new(0) };
+        }
+        struct Zst;
+        impl Drop for Zst {
+            fn drop(&mut self) {
+                DROPS.with(|drops| drops.set(drops.get() + 1));
+            }
+        }
+        assert_eq!(mem::size_of::<Zst>(), 0);
+        DROPS.with(|drops| drops.set(0));
+        // No allocation is needed for these synthetic ZST owners.
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: ptr::NonNull::<Zst>::dangling().as_ptr(),
+            remaining: 5,
+        };
+        assert_eq!(iter.len(), 5);
+        drop(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (4, Some(4)));
+        drop(iter.next_back().unwrap());
+        assert_eq!(iter.len(), 3);
+        drop(iter);
+        DROPS.with(|drops| assert_eq!(drops.get(), 5));
+
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: ptr::NonNull::<Zst>::dangling().as_ptr(),
+            remaining: 2,
+        };
+        drop(iter.next_back().unwrap());
+        drop(iter.next().unwrap());
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+        assert_eq!(iter.len(), 0);
+        drop(iter);
+        DROPS.with(|drops| assert_eq!(drops.get(), 7));
+    }
+
+    #[test]
+    fn consuming_non_zsts_supports_mixed_ends() {
+        let mut storage = [10, 20, 30, 40];
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: storage.as_mut_ptr(),
+            remaining: storage.len(),
+        };
+        assert_eq!(iter.next(), Some(10));
+        assert_eq!(iter.next_back(), Some(40));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.collect::<Vec<_>>(), [20, 30]);
     }
 
     #[test]
