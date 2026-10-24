@@ -115,7 +115,7 @@ impl<T> ops::Deref for RedArray<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        if !self.0.entries.is_null() {
+        if self.0.capacity != 0 && !self.is_empty() {
             unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) }
         } else {
             Default::default()
@@ -126,7 +126,7 @@ impl<T> ops::Deref for RedArray<T> {
 impl<T> ops::DerefMut for RedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [T] {
-        if !self.0.entries.is_null() {
+        if self.0.capacity != 0 && !self.is_empty() {
             unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) }
         } else {
             Default::default()
@@ -165,6 +165,12 @@ impl<T> IntoIterator for RedArray<T> {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         let me = mem::ManuallyDrop::new(self);
+        // With zero capacity, entries stores an allocator vtable, not elements.
+        let ptr = if me.is_empty() {
+            ptr::NonNull::<T>::dangling().as_ptr()
+        } else {
+            me.0.entries
+        };
         IntoIter {
             array: red::DynArray {
                 entries: me.0.entries,
@@ -172,8 +178,8 @@ impl<T> IntoIterator for RedArray<T> {
                 capacity: me.capacity(),
                 ..Default::default()
             },
-            ptr: me.0.entries,
-            end: unsafe { me.0.entries.add(me.len() as _) },
+            ptr,
+            end: unsafe { ptr.add(me.len() as _) },
         }
     }
 }
@@ -277,6 +283,34 @@ mod tests {
     use std::rc::Rc;
 
     use super::*;
+
+    #[test]
+    fn empty_views_ignore_allocator_vtable() {
+        #[repr(align(256))]
+        struct Aligned {
+            _byte: u8,
+        }
+        let mut array = RedArray::<Aligned>::new();
+        // A non-null, deliberately unaligned stand-in for an SDK allocator vtable.
+        array.0.entries = ptr::without_provenance_mut(1);
+        assert!(array.as_ref().is_empty());
+        assert!(array.as_mut().is_empty());
+        array.clear();
+        let mut iter = array.into_iter();
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+        drop(iter);
+    }
+
+    #[test]
+    fn null_empty_iterator_is_fused() {
+        let mut iter = RedArray::<u64>::new().into_iter();
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.len(), 0);
+    }
 
     #[test]
     fn clear_empties_before_panicking_drop() {
