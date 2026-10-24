@@ -27,7 +27,7 @@ pub mod types;
 pub use class::{ClassKind, ScriptClass, ScriptClassOps, class_kind};
 pub use invocable::{
     AsReceiver, FunctionType, GlobalInvocable, GlobalMetadata, InvokeError, MethodInvocable,
-    MethodMetadata,
+    MethodMetadata, SignatureError,
 };
 pub use repr::{FromRepr, IntoRepr, NativeRepr};
 pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
