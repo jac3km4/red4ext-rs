@@ -1,4 +1,3 @@
-use std::cell::UnsafeCell;
 use std::{mem, ptr};
 
 use crate::raw::root::RED4ext as red;
@@ -26,8 +25,7 @@ use crate::types::{
 /// }
 /// ```
 #[repr(transparent)]
-// Native readers mutate the embedded lock even while shared views exist.
-pub struct RttiSystem(UnsafeCell<red::CRTTISystem>);
+pub struct RttiSystem(red::CRTTISystem);
 
 impl RttiSystem {
     /// Acquire a read lock on the RTTI system.
@@ -35,8 +33,8 @@ impl RttiSystem {
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock);
-            RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
+            let lock = &(*rtti).typesLock;
+            RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
         }
     }
 
@@ -180,19 +178,19 @@ impl RttiSystem {
     /// Retrieve a reference to a map of all types by name.
     #[inline]
     pub fn type_map(&self) -> &RedHashMap<CName, &Type> {
-        unsafe { &*(&raw const (*self.0.get()).types as *const RedHashMap<CName, &Type>) }
+        unsafe { &*(&self.0.types as *const _ as *const RedHashMap<CName, &Type>) }
     }
 
     /// Retrieve a reference to a map of all script to native name aliases.
     #[inline]
     pub fn script_to_native_map(&self) -> &RedHashMap<CName, CName> {
-        unsafe { &*(&raw const (*self.0.get()).scriptToNative as *const RedHashMap<CName, CName>) }
+        unsafe { &*(&self.0.scriptToNative as *const _ as *const RedHashMap<CName, CName>) }
     }
 
     /// Retrieve a reference to a map of all native to script name aliases.
     #[inline]
     pub fn native_to_script_map(&self) -> &RedHashMap<CName, CName> {
-        unsafe { &*(&raw const (*self.0.get()).nativeToScript as *const RedHashMap<CName, CName>) }
+        unsafe { &*(&self.0.nativeToScript as *const _ as *const RedHashMap<CName, CName>) }
     }
 
     /// Resolves a static method by its full name, which should be in the format `Class::Method`.
@@ -232,14 +230,14 @@ impl RttiSystem {
 
     #[inline]
     fn vft(&self) -> &RttiSystemVft {
-        unsafe { &*((*self.0.get())._base.vtable_ as *const RttiSystemVft) }
+        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }
 }
 
 /// Exclusive access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
 /// Registration transfers metadata ownership to the engine.
 #[repr(transparent)]
-pub struct RttiSystemMut(UnsafeCell<red::CRTTISystem>);
+pub struct RttiSystemMut(red::CRTTISystem);
 
 impl RttiSystemMut {
     /// Acquire a write lock on the RTTI system. You should be careful not to hold the lock for
@@ -248,8 +246,8 @@ impl RttiSystemMut {
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock);
-            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
+            let lock = &(*rtti).typesLock;
+            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
         }
     }
 
@@ -288,19 +286,17 @@ impl RttiSystemMut {
 
     #[inline]
     fn type_map(&mut self) -> &mut RedHashMap<CName, &mut Type> {
-        unsafe { &mut *(&raw mut (*self.0.get()).types as *mut RedHashMap<CName, &mut Type>) }
+        unsafe { &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>) }
     }
 
     #[inline]
     fn type_by_id_map(&mut self) -> &mut RedHashMap<u32, &mut Type> {
-        unsafe {
-            &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u32, &mut Type>)
-        }
+        unsafe { &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>) }
     }
 
     #[inline]
     fn type_id_map(&mut self) -> &mut RedHashMap<CName, u32> {
-        unsafe { &mut *(&raw mut (*self.0.get()).typeAsyncIds as *mut RedHashMap<CName, u32>) }
+        unsafe { &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>) }
     }
 
     #[inline]
@@ -314,16 +310,16 @@ impl RttiSystemMut {
     ) {
         unsafe {
             (
-                &mut *(&raw mut (*self.0.get()).types as *mut RedHashMap<CName, &mut Type>),
-                &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u32, &mut Type>),
-                &mut *(&raw mut (*self.0.get()).typeAsyncIds as *mut RedHashMap<CName, u32>),
+                &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>),
+                &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>),
+                &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>),
             )
         }
     }
 
     #[inline]
     fn vft(&self) -> &RttiSystemVft {
-        unsafe { &*((*self.0.get())._base.vtable_ as *const RttiSystemVft) }
+        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
     }
 }
 

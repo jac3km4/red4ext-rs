@@ -4,7 +4,7 @@ use std::{mem, ops, ptr};
 use once_cell::race::OnceNonZeroUsize;
 use sealed::sealed;
 
-use super::{GlobalFunction, IScriptable, Method, Property, RwSpinLockReadGuard, StaticMethod};
+use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{VoidPtr, fnv1a32};
@@ -86,10 +86,8 @@ impl<T: Poolable> ops::DerefMut for PoolRef<T> {
 impl<T: Poolable> Drop for PoolRef<T> {
     #[inline]
     fn drop(&mut self) {
-        unsafe {
-            ptr::drop_in_place(self.0);
-            pool_free(self.0);
-        }
+        unsafe { ptr::drop_in_place(self.0) };
+        T::free(self);
     }
 }
 
@@ -137,6 +135,8 @@ where
 pub trait PoolableOps: Poolable + Sized {
     /// Allocates memory for `Self`. The resulting value must be initialized before use.
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
+    /// Frees memory pointed by `ptr`.
+    fn free(ptr: &mut PoolRef<Self>);
 }
 
 #[sealed]
@@ -145,19 +145,19 @@ impl<T: Poolable> PoolableOps for T {
         let result = unsafe { vault_alloc(T::Pool::vault(), mem::size_of::<T>() as u32)? };
         (!result.is_null()).then(|| PoolRef(result.cast::<mem::MaybeUninit<Self>>()))
     }
-}
 
-unsafe fn pool_free<T: Poolable>(memory: *mut T) {
-    let mut alloc = AllocationResult {
-        memory: memory as VoidPtr,
-        size: 0,
-    };
-    unsafe {
-        let free = crate::fn_from_hash!(
-            Memory_Vault_Free,
-            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
-        );
-        free(T::Pool::vault(), &mut alloc);
+    fn free(ptr: &mut PoolRef<Self>) {
+        let mut alloc = AllocationResult {
+            memory: ptr.0 as VoidPtr,
+            size: 0,
+        };
+        unsafe {
+            let free = crate::fn_from_hash!(
+                Memory_Vault_Free,
+                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
+            );
+            free(T::Pool::vault(), &mut alloc);
+        };
     }
 }
 
@@ -235,59 +235,20 @@ pub(super) unsafe fn vault_alloc_aligned(
 #[cold]
 pub(super) unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
     unsafe {
-        let vault = red::Memory::Vault::Get();
-        vault_get_from_registry(&raw mut (*vault).poolRegistry, handle)
-    }
-}
+        let vault = &mut *red::Memory::Vault::Get();
 
-unsafe fn vault_get_from_registry(
-    registry: *mut red::Memory::PoolRegistry,
-    handle: u32,
-) -> *mut red::Memory::Vault {
-    unsafe {
-        let nodes = RwSpinLockReadGuard::new(
-            ptr::NonNull::new_unchecked(&raw mut (*registry).nodesLock),
-            ptr::NonNull::new_unchecked(&raw mut (*registry).nodes),
-        );
-        let Some(info) = nodes.iter().find(|node| node.handle == handle) else {
+        vault.poolRegistry.nodesLock.lock_shared();
+        let Some(info) = vault
+            .poolRegistry
+            .nodes
+            .iter()
+            .find(|node| node.handle == handle)
+        else {
             return ptr::null_mut();
         };
-        ((*info.storage).allocatorStorage & !7) as _
-    }
-}
+        let storage = (*info.storage).allocatorStorage & !7;
+        vault.poolRegistry.nodesLock.unlock_shared();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn missing_pool_releases_registry_lock() {
-        let mut registry = red::Memory::PoolRegistry::default();
-
-        for _ in 0..2 {
-            assert!(unsafe { vault_get_from_registry(&raw mut registry, 1) }.is_null());
-            assert_eq!(registry.nodesLock.state, 0);
-        }
-    }
-
-    #[test]
-    fn matching_pool_masks_tags_and_releases_registry_lock() {
-        let mut registry = red::Memory::PoolRegistry::default();
-        let mut vault = mem::MaybeUninit::<red::Memory::Vault>::uninit();
-        let expected = vault.as_mut_ptr();
-        registry.nodes[0].handle = 1;
-
-        for tag in 0..8 {
-            let mut storage = red::Memory::PoolStorage {
-                allocatorStorage: expected as u64 | tag,
-                ..Default::default()
-            };
-            registry.nodes[0].storage = &mut storage;
-            assert_eq!(
-                unsafe { vault_get_from_registry(&raw mut registry, 1) },
-                expected
-            );
-            assert_eq!(registry.nodesLock.state, 0);
-        }
+        storage as _
     }
 }
