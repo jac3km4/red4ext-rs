@@ -20,21 +20,29 @@ env:
 jobs:
   check-format:
     name: Check formatting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: rustup toolchain install nightly-2026-10-15 --profile minimal --component rustfmt --no-self-update
       - run: cargo +nightly-2026-10-15 fmt --all -- --check
 
   check:
-    name: Lint and test (Windows)
+    name: Lint and test (Windows, ${{ matrix.features }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - features: default
+            cargo-args: ""
+          - features: all
+            cargo-args: --all-features
     env:
       RUSTUP_TOOLCHAIN: stable
     runs-on: windows-2025
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
@@ -44,14 +52,31 @@ jobs:
           cmake --version
           clang --version
       - uses: Swatinem/rust-cache@v2
-      - name: Lint default features
-        run: cargo +stable clippy --locked --workspace --all-targets -- -D warnings
-      - name: Lint all features
-        run: cargo +stable clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - name: Test default features
-        run: cargo +stable test --locked -p red4ext-rs --timings
-      - name: Test all features
-        run: cargo +stable test --locked -p red4ext-rs --all-features --timings
+        with:
+          prefix-key: v1-workspace
+          key: ${{ matrix.features }}
+          # Keep the workspace build-script outputs: SDK library, CMake tree, and bindings.
+          cache-workspace-crates: "true"
+      - name: Lint
+        run: cargo +stable clippy --locked --workspace --all-targets ${{ matrix.cargo-args }} -- -D warnings
+      - name: Test
+        run: cargo +stable test --locked -p red4ext-rs ${{ matrix.cargo-args }} --timings
+
+  plugin:
+    name: Build release plugin DLL (Windows)
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - run: rustup toolchain install stable --profile minimal --no-self-update
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: v1-workspace
+          cache-workspace-crates: "true"
       - name: Build release plugin DLL
         run: cargo +stable build --locked -p red4ext-smoke-plugin --release --target x86_64-pc-windows-msvc --timings
       - name: Verify plugin DLL
@@ -62,16 +87,27 @@ jobs:
           }
 
   msrv:
-    name: Check MSRV (Rust 1.95)
+    name: Check MSRV (Rust 1.95, ${{ matrix.features }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - features: default
+            cargo-args: ""
+          - features: all
+            cargo-args: --all-features
     env:
       RUSTUP_TOOLCHAIN: "1.95"
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
       - run: rustup toolchain install 1.95 --profile minimal --no-self-update
       - uses: Swatinem/rust-cache@v2
-      - run: cargo +1.95 check --locked --workspace --all-targets
-      - run: cargo +1.95 check --locked --workspace --all-targets --all-features
+        with:
+          prefix-key: v1-workspace
+          key: ${{ matrix.features }}
+          cache-workspace-crates: "true"
+      - run: cargo +1.95 check --locked --workspace --all-targets ${{ matrix.cargo-args }}
