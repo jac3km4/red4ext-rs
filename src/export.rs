@@ -66,6 +66,9 @@ impl Exportable for ExportNil {
 /// Registers a native class backed by SDK
 /// [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 /// Include the base class in the Rust layout. For value types, use [`StructExport`].
+/// Implement `Clone` explicitly: use `IScriptable::clone_native_base` for a fresh
+/// object's base and preserve the destination base in `clone_from`. Never copy
+/// an object's weak handle or value holder as raw bytes.
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
     base: &'static str,
@@ -297,12 +300,23 @@ impl Exportable for GlobalExport {
 ///   "Hello, world!".to_string()
 /// }
 ///
-/// #[derive(Debug, Default, Clone)]
+/// #[derive(Debug, Default)]
 /// #[repr(C)]
 /// struct MyClass {
 ///     // You must include the base native class in your Rust struct.
 ///     base: IScriptable,
 ///     value: Cell<i32>,
+/// }
+///
+/// impl Clone for MyClass {
+///     fn clone(&self) -> Self {
+///         Self { base: self.base.clone_native_base(), value: self.value.clone() }
+///     }
+///
+///     fn clone_from(&mut self, source: &Self) {
+///         // Assignment preserves the destination's engine identity and holder.
+///         self.value.set(source.value.get());
+///     }
 /// }
 ///
 /// impl MyClass {
