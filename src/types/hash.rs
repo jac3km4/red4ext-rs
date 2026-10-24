@@ -297,6 +297,18 @@ impl Hash for u32 {
     }
 }
 
+impl Hash for u64 {
+    #[inline]
+    fn hash(&self) -> u32 {
+        // SDK HashMapHash<uint64_t> hashes all eight bytes in native order.
+        self.to_ne_bytes()
+            .into_iter()
+            .fold(0x811C_9DC5, |hash, byte| {
+                (hash ^ u32::from(byte)).wrapping_mul(0x0100_0193)
+            })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
@@ -305,6 +317,32 @@ mod tests {
     use red::Memory::{AllocationResult, IAllocator as RawAllocator, IAllocator__bindgen_vtable};
 
     use super::*;
+
+    #[test]
+    fn u64_hash_matches_sdk_fnv1a32_bytes() {
+        // Fixed FNV-1a32 vectors for the eight little-endian bytes used on
+        // Windows x64, including zero padding and nonzero upper halves.
+        let vectors = [
+            (0x0000_0000_0000_0000u64, 0x9BE1_7165),
+            (0x0000_0000_0000_0001, 0x3E80_1244),
+            (0x0000_0000_FFFF_FFFF, 0x84BF_99C1),
+            (0x0000_0001_0000_0000, 0x4BB5_3254),
+            (0x0123_4567_89AB_CDEF, 0xE39E_4E75),
+            (0xFFFF_FFFF_FFFF_FFFF, 0x6CAE_0A5D),
+            // Native bytes are the standard FNV-1a input b"abcdefgh".
+            (0x6867_6665_6463_6261, 0x76DA_AA8D),
+        ];
+        for (key, expected) in vectors {
+            assert_eq!(key.hash(), expected, "key {key:#018x}");
+        }
+    }
+
+    #[test]
+    fn u32_hash_remains_identity() {
+        for key in [0u32, 1, 0x1234_5678, u32::MAX] {
+            assert_eq!(key.hash(), key);
+        }
+    }
 
     #[derive(Debug, PartialEq)]
     enum Event {
@@ -439,8 +477,23 @@ mod tests {
     }
 
     #[test]
+    fn u64_keys_preserve_upper_bits() {
+        let mut fixture = SyntheticMap::<u64, u32>::new(4);
+        let map = &mut fixture.map;
+        let low = u64::from(7u32);
+        let high = low | (1u64 << 32);
+        assert_eq!(map.insert(low, 10), None);
+        assert_eq!(map.insert(high, 20), None);
+        assert_eq!(map.get(&low), Some(&10));
+        assert_eq!(map.get(&high), Some(&20));
+        *map.get_mut(&high).unwrap() = 21;
+        assert_eq!(map.insert(low, 11), Some(10));
+        assert_eq!(map.get(&high), Some(&21));
+    }
+
+    #[test]
     fn full_capacity_lookup_and_iteration() {
-        let mut fixture = SyntheticMap::new(4);
+        let mut fixture = SyntheticMap::<u32, u32>::new(4);
         let map = &mut fixture.map;
         for key in [0, 4, 8, 12] {
             assert_eq!(map.insert(key, key + 1), None);

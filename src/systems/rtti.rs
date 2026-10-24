@@ -263,7 +263,7 @@ impl RttiSystemMut {
             return ty.as_class_mut();
         }
         let &id = type_ids.get(&name)?;
-        types_by_id.get_mut(&id)?.as_class_mut()
+        types_by_id.get_mut(&u64::from(id))?.as_class_mut()
     }
 
     /// Register a new [`ClassHandle`] with the RTTI system.
@@ -275,7 +275,7 @@ impl RttiSystemMut {
         self.type_map()
             .insert(class.as_ref().name(), class.as_mut().as_type_mut());
         self.type_by_id_map()
-            .insert(id, class.as_mut().as_type_mut());
+            .insert(u64::from(id), class.as_mut().as_type_mut());
         self.type_id_map().insert(class.as_ref().name(), id);
     }
 
@@ -294,9 +294,9 @@ impl RttiSystemMut {
     }
 
     #[inline]
-    fn type_by_id_map(&mut self) -> &mut RedHashMap<u32, &mut Type> {
+    fn type_by_id_map(&mut self) -> &mut RedHashMap<u64, &mut Type> {
         unsafe {
-            &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u32, &mut Type>)
+            &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u64, &mut Type>)
         }
     }
 
@@ -311,13 +311,13 @@ impl RttiSystemMut {
         &mut self,
     ) -> (
         &mut RedHashMap<CName, &mut Type>,
-        &mut RedHashMap<u32, &mut Type>,
+        &mut RedHashMap<u64, &mut Type>,
         &mut RedHashMap<CName, u32>,
     ) {
         unsafe {
             (
                 &mut *(&raw mut (*self.0.get()).types as *mut RedHashMap<CName, &mut Type>),
-                &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u32, &mut Type>),
+                &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u64, &mut Type>),
                 &mut *(&raw mut (*self.0.get()).typeAsyncIds as *mut RedHashMap<CName, u32>),
             )
         }
