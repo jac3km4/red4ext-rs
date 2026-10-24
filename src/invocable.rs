@@ -292,7 +292,8 @@ pub struct MethodMetadata<Ctx> {
     is_final: bool,
 }
 
-impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
+// Instance handlers receive the native object, never scripted field storage.
+impl<Ctx: ScriptClass<Kind = crate::class_kind::Native>> MethodMetadata<Ctx> {
     #[doc(hidden)]
     #[inline]
     pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
@@ -369,7 +370,20 @@ macro_rules! global {
     }};
 }
 
-/// A macro for defining class methods. Usually used in conjunction with the
+/// Defines methods on native classes (`ScriptClass<Kind = class_kind::Native>`).
+/// Scripted field layouts cannot be used as native instance headers.
+///
+/// ```compile_fail
+/// use red4ext_rs::{ScriptClass, class_kind, method};
+/// struct Fields;
+/// unsafe impl ScriptClass for Fields {
+///     type Kind = class_kind::Scripted;
+///     const NAME: &'static str = "Fields";
+/// }
+/// impl Fields { fn value(&self) -> i32 { 1 } }
+/// let _ = method!(c"Value", Fields::value);
+/// ```
+/// Usually used in conjunction with the
 /// [`methods!`](crate::methods) macro.
 #[macro_export]
 macro_rules! method {
