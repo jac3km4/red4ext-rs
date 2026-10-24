@@ -174,8 +174,22 @@ macro_rules! res_ref {
 
 #[derive(Debug)]
 #[repr(transparent)]
-/// SDK [ResourceReference](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp) layout wrapper.
+/// Owning SDK [ResourceReference](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp).
+/// Nonempty references must be dropped while the game's resource systems are available.
 pub struct ResourceRef<T>(red::ResourceReference<T>);
+
+impl<T> Drop for ResourceRef<T> {
+    fn drop(&mut self) {
+        // SAFETY: This transparent wrapper owns one SDK resource reference. The
+        // bridge uses the pinned SDK's T-independent token/handle destruction
+        // ABI (documented in deps/bridge/README.md), including its allocators.
+        unsafe {
+            crate::raw::root::red4ext_rs_destroy_resource_ref(
+                std::ptr::from_mut(&mut self.0).cast(),
+            );
+        }
+    }
+}
 
 #[derive(Debug, Default, Copy, Clone)]
 #[repr(transparent)]
@@ -184,8 +198,16 @@ pub struct MessageResourcePath(red::MessageResourcePath);
 
 #[cfg(test)]
 mod tests {
-    use super::{ResRef, encode_path};
+    use super::{ResRef, ResourceRef, encode_path};
     use crate::fnv1a64;
+
+    #[test]
+    fn empty_resource_ref_drop() {
+        // A default SDK reference has a null token and needs no game systems.
+        let resource = ResourceRef::<u8>(Default::default());
+        assert_eq!(std::mem::size_of_val(&resource), 0x18);
+        drop(resource);
+    }
 
     #[test]
     fn resource_path() {
