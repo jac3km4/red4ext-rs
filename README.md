@@ -96,11 +96,15 @@ git submodule update --init --recursive
 ### Validation
 
 Run from the root on Windows; keep `Cargo.lock` checked in.
+Native checks can be slow; only need to run before pushing, not after every edit.
 
 ```sh
+# One-time setup
 rustup toolchain install stable --profile minimal --component clippy
 rustup toolchain install nightly-2026-10-15 --profile minimal --component rustfmt
+# Every change
 cargo +nightly-2026-10-15 fmt --all -- --check
+# Before pushing
 cargo +stable clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo +stable test --locked -p red4ext-rs --all-features
 cargo +stable build --locked -p red4ext-smoke-plugin --release --target x86_64-pc-windows-msvc
