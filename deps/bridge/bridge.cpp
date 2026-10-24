@@ -31,6 +31,14 @@ static_assert(offsetof(ErasedToken, resource) == offsetof(DerivedToken, resource
 static_assert(offsetof(ErasedToken, self) == offsetof(DerivedToken, self));
 }
 
+extern "C" void red4ext_rs_destroy_handle_instance(RED4ext::ISerializable* instance) noexcept
+{
+    if (instance->CanBeDestructed())
+    {
+        RED4ext::Memory::Delete(instance);
+    }
+}
+
 extern "C" void red4ext_rs_destroy_resource_ref(void* resource_ref) noexcept
 {
     std::destroy_at(static_cast<ErasedResourceRef*>(resource_ref));

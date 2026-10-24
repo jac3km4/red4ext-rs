@@ -3,6 +3,17 @@
 This bridge targets only the SDK revision pinned by this repository. It adds no
 engine addresses and links against the SDK already built by `build.rs`.
 
+## Final handle instance release
+
+`red4ext_rs_destroy_handle_instance(ISerializable*)` accepts a live, nonnull
+instance after the caller has released the last strong reference and its implicit
+weak reference, matching `SharedPtrBase::DecRef` followed by `Handle::~Handle`.
+It does not touch reference counts. It calls the virtual `CanBeDestructed` and,
+if allowed, SDK `Memory::Delete`, which obtains the virtual allocator before
+invoking the virtual destructor and freeing the object. A veto leaves the
+instance alive, exactly as in the SDK. The generated Rust binding is
+`crate::raw::root::red4ext_rs_destroy_handle_instance`.
+
 ## Resource reference erasure
 
 `ResourceReference<T>` contains a `ResourcePath` followed by a

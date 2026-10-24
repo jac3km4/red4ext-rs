@@ -59,3 +59,4 @@ RED4ext::WeakHandle
 RED4ext::v1::EMainReason
 RED4ext::OpcodeHandlers
 red4ext_rs_destroy_resource_ref
+red4ext_rs_destroy_handle_instance
