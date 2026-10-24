@@ -75,19 +75,96 @@ mod tests {
         static FREES: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
     }
 
-    unsafe extern "C" fn free_buffer(_: *const (), memory: VoidPtr) {
-        FREES.with(|frees| frees.borrow_mut().push(memory as usize));
+    type NativeAllocator = red::Memory::IAllocator;
+    type Allocation = red::Memory::AllocationResult;
+
+    #[repr(C)]
+    struct RawAllocatorVtable {
+        realloc_aligned: unsafe extern "C" fn(*const (), VoidPtr, u32, u32) -> VoidPtr,
+        free: unsafe extern "C" fn(*const (), VoidPtr),
+        get_allocator: unsafe extern "C" fn(*const ()) -> *mut NativeAllocator,
     }
 
+    unsafe extern "C" fn get_allocator(this: *const ()) -> *mut NativeAllocator {
+        // RawBufferAllocator embeds an IAllocator (its vtable word), not a pointer
+        // to an IAllocator, immediately after its own vtable word.
+        unsafe { this.cast::<u64>().add(1).cast_mut().cast() }
+    }
+
+    unsafe extern "C" fn free_buffer(this: *const (), memory: VoidPtr) {
+        let allocator = unsafe { get_allocator(this) };
+        let mut allocation = Allocation { memory, size: 0 };
+        unsafe { ((*(*allocator).vtable_).IAllocator_Free)(allocator, &mut allocation) };
+    }
+
+    unsafe extern "C" fn realloc_buffer(_: *const (), _: VoidPtr, _: u32, _: u32) -> VoidPtr {
+        ptr::null_mut()
+    }
+
+    unsafe extern "C" fn alloc(_: *const NativeAllocator, _: u64) -> Allocation {
+        Allocation::default()
+    }
+
+    unsafe extern "C" fn alloc_aligned(_: *const NativeAllocator, _: u64, _: u32) -> Allocation {
+        Allocation::default()
+    }
+
+    unsafe extern "C" fn realloc(
+        _: *const NativeAllocator,
+        _: *mut Allocation,
+        _: u64,
+    ) -> Allocation {
+        Allocation::default()
+    }
+
+    unsafe extern "C" fn realloc_aligned(
+        _: *const NativeAllocator,
+        _: *mut Allocation,
+        _: u64,
+        _: u32,
+    ) -> Allocation {
+        Allocation::default()
+    }
+
+    unsafe extern "C" fn free_allocation(_: *const NativeAllocator, allocation: *mut Allocation) {
+        FREES.with(|frees| {
+            frees
+                .borrow_mut()
+                .push(unsafe { (*allocation).memory } as usize)
+        });
+    }
+
+    unsafe extern "C" fn sub_28(_: *const NativeAllocator, _: VoidPtr) {}
+
+    unsafe extern "C" fn get_handle(_: *const NativeAllocator) -> u32 {
+        0
+    }
+
+    static ALLOCATOR_VTABLE: red::Memory::IAllocator__bindgen_vtable =
+        red::Memory::IAllocator__bindgen_vtable {
+            IAllocator_Alloc: alloc,
+            IAllocator_AllocAligned: alloc_aligned,
+            IAllocator_Realloc: realloc,
+            IAllocator_ReallocAligned: realloc_aligned,
+            IAllocator_Free: free_allocation,
+            IAllocator_sub_28: sub_28,
+            IAllocator_GetHandle: get_handle,
+        };
+
     fn owned_raw(data: VoidPtr) -> red::RawBuffer {
-        // RawBufferAllocator's three SDK virtual slots: ReallocAligned, Free, GetAllocator.
-        static VTABLE: [unsafe extern "C" fn(*const (), VoidPtr); 3] =
-            [free_buffer, free_buffer, free_buffer];
+        static VTABLE: RawAllocatorVtable = RawAllocatorVtable {
+            realloc_aligned: realloc_buffer,
+            free: free_buffer,
+            get_allocator,
+        };
         red::RawBuffer {
             data,
             size: 1,
             alignment: 8,
-            allocator: [ptr::from_ref(&VTABLE) as u64, 0],
+            allocator: [
+                ptr::from_ref(&VTABLE) as u64,
+                ptr::from_ref(&ALLOCATOR_VTABLE) as u64,
+            ],
         }
     }
 
@@ -140,26 +217,16 @@ mod tests {
 
     #[test]
     fn last_shared_owner_destroys_payload_then_frees_object() {
-        unsafe extern "C" fn free_object(
-            _: *const (),
-            allocation: *mut red::Memory::AllocationResult,
-        ) {
-            FREES.with(|frees| {
-                frees
-                    .borrow_mut()
-                    .push(unsafe { (*allocation).memory } as usize)
-            });
-        }
-        // Only IAllocator::Free (slot 4) is called by this test.
-        static ALLOCATOR_VTABLE: [unsafe extern "C" fn(
-            *const (),
-            *mut red::Memory::AllocationResult,
-        ); 7] = [free_object; 7];
         FREES.with(|frees| frees.borrow_mut().clear());
         let mut byte = 0u8;
         let data = ptr::from_mut(&mut byte).cast();
         let mut raw = owned_raw(data);
-        raw.allocator[1] = ptr::from_ref(&ALLOCATOR_VTABLE) as u64;
+        let allocator = unsafe { raw.GetAllocator() };
+        assert_eq!(allocator, ptr::from_mut(&mut raw.allocator[1]).cast());
+        assert_eq!(
+            unsafe { (*allocator).vtable_ },
+            ptr::from_ref(&ALLOCATOR_VTABLE)
+        );
         let object = ptr::from_mut(&mut raw);
         let mut count = red::RefCnt {
             strongRefs: 1,
