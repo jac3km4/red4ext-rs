@@ -241,13 +241,16 @@ mod tests {
     fn rejects_oversized_target() {
         let target = Oversized([0; 33]);
         assert_eq!(target.0.len(), 33);
-        let _ = Callback::<Oversized, CallbackHandler<Oversized, u64, u64>>::new(target);
+        drop(Callback::<Oversized, CallbackHandler<Oversized, u64, u64>>::new(target));
     }
 
     #[test]
     #[should_panic(expected = "callback exceeds inline alignment")]
     fn rejects_overaligned_target() {
-        let _ = Callback::<Overaligned, CallbackHandler<Overaligned, u64, u64>>::new(Overaligned);
+        drop(Callback::<
+            Overaligned,
+            CallbackHandler<Overaligned, u64, u64>,
+        >::new(Overaligned));
     }
 
     #[test]
