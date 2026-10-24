@@ -226,8 +226,10 @@ impl<T> BaseRef<T> {
 
     #[inline]
     fn inc_strong(&self) {
+        // Match the SDK's unsuffixed Windows Interlocked operations, including
+        // their full barriers before promotion and final destruction.
         if let Some(cnt) = self.ref_count() {
-            cnt.strong().fetch_add(1, Ordering::Relaxed);
+            cnt.strong().fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -237,7 +239,7 @@ impl<T> BaseRef<T> {
         };
 
         cnt.strong()
-            .try_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |x| {
                 (x != 0).then(|| x + 1)
             })
             .is_ok()
@@ -248,7 +250,7 @@ impl<T> BaseRef<T> {
             return false;
         };
 
-        if cnt.strong().fetch_sub(1, Ordering::Relaxed) == 1 {
+        if cnt.strong().fetch_sub(1, Ordering::SeqCst) == 1 {
             self.dec_weak();
             true
         } else {
@@ -259,7 +261,7 @@ impl<T> BaseRef<T> {
     #[inline]
     fn inc_weak(&self) {
         if let Some(cnt) = self.ref_count() {
-            cnt.weak_refs().fetch_add(1, Ordering::Relaxed);
+            cnt.weak_refs().fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -317,6 +319,45 @@ impl RefCount {
     #[inline]
     fn weak_refs(&self) -> &AtomicU32 {
         unsafe { AtomicU32::from_ptr(&self.0.weakRefs as *const _ as _) }
+    }
+}
+
+#[cfg(test)]
+mod count_tests {
+    use super::*;
+
+    fn with_count(strong: u32, weak: u32) -> (Box<red::RefCnt>, BaseRef<()>) {
+        let mut count = Box::new(red::RefCnt {
+            strongRefs: strong,
+            weakRefs: weak,
+        });
+        let base = BaseRef(red::SharedPtrBase {
+            instance: ptr::null_mut(),
+            refCount: &mut *count,
+            ..Default::default()
+        });
+        (count, base)
+    }
+
+    #[test]
+    fn counts_match_sdk_transitions_without_final_release() {
+        let (count, mut base) = with_count(1, 1);
+        base.inc_strong();
+        assert_eq!(count.strongRefs, 2);
+        assert!(base.inc_strong_if_non_zero());
+        assert_eq!(count.strongRefs, 3);
+        assert!(!base.dec_strong());
+        assert_eq!(count.strongRefs, 2);
+        base.inc_weak();
+        assert_eq!(count.weakRefs, 2);
+    }
+
+    #[test]
+    fn promotion_never_revives_dead_or_empty_counts() {
+        let (count, base) = with_count(0, 1);
+        assert!(!base.inc_strong_if_non_zero());
+        assert_eq!(count.strongRefs, 0);
+        assert!(!BaseRef::<()>::default().inc_strong_if_non_zero());
     }
 }
 
