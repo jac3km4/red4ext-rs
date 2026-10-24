@@ -559,7 +559,7 @@ impl<T> NativeClass<T> {
         ClassHandle(NonNull::from(Box::leak(Box::new(class))))
     }
 
-    fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
+    unsafe extern "C" fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
         unsafe {
             crate::fn_from_hash!(
                 TTypedClass_IsEqual,
@@ -568,14 +568,19 @@ impl<T> NativeClass<T> {
         }
     }
 
-    fn assign(&self, lhs: &mut T, rhs: &T)
+    // Retains the existing initialized-destination contract. The SDK's use of
+    // placement new alone does not establish destination lifetime at call sites.
+    unsafe extern "C" fn assign(_this: *const Self, lhs: *mut T, rhs: *const T)
     where
         T: Clone,
     {
-        lhs.clone_from(rhs)
+        // Rust references must not be created for a self-assignment alias.
+        if lhs.cast_const() != rhs {
+            unsafe { (&mut *lhs).clone_from(&*rhs) };
+        }
     }
 
-    fn construct(&self, mem: *mut T)
+    unsafe extern "C" fn construct(_this: *const Self, mem: *mut T)
     where
         T: Default,
     {
@@ -584,16 +589,17 @@ impl<T> NativeClass<T> {
         }
     }
 
-    fn destruct(&self, mem: *mut T) {
+    unsafe extern "C" fn destruct(_this: *const Self, mem: *mut T) {
         unsafe {
             ptr::drop_in_place(mem);
         }
     }
 
-    fn alloc(&self) -> *mut T {
-        let align = self.0.as_type().alignment();
-        let size = self.0.as_type().size().next_multiple_of(align);
-        let alloc: *mut T = unsafe { self.0.as_type().allocator().alloc_aligned(size, align) };
+    unsafe extern "C" fn alloc(this: *const Self) -> *mut T {
+        let this = unsafe { &*this };
+        let align = this.0.as_type().alignment();
+        let size = this.0.as_type().size().next_multiple_of(align);
+        let alloc: *mut T = unsafe { this.0.as_type().allocator().alloc_aligned(size, align) };
         alloc
     }
 }
