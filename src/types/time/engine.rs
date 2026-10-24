@@ -1,5 +1,8 @@
 use std::time::Duration;
 
+/// Engine-clock seconds; see SDK
+/// [EngineTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/EngineTime.hpp).
+/// Zero is invalid; Rust conversions reject NaN and infinity.
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct EngineTime(f64);

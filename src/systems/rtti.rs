@@ -384,7 +384,7 @@ struct RttiSystemVft {
         parent: *const Class,
     ),
     // FIXME: signature is wrong, but how to represent name and value of enumerator ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L50
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_enum: unsafe extern "C" fn(
         this: *const RttiSystem,
         name: CName,
@@ -392,7 +392,7 @@ struct RttiSystemVft {
         variants: *mut RedArray<u64>,
     ),
     // FIXME: signature is wrong, but how to represent name and bit ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L54
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_bitfield:
         unsafe extern "C" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
     _initialize_script_runtime: unsafe extern "C" fn(this: *const RttiSystem),
@@ -410,7 +410,8 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
-/// A helper struct to set up RTTI registration callbacks.
+/// SDK [RTTI registration callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Normally installed by [`export_plugin_symbols!`](crate::export_plugin_symbols).
 #[derive(Debug)]
 pub struct RttiRegistrator;
 

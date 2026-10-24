@@ -3,6 +3,8 @@ use std::hash::Hash;
 use crate::fnv1a32;
 use crate::raw::root::RED4ext as red;
 
+/// SDK [CRUID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp) identifier.
+/// Its hash is not interchangeable with [`CName`](crate::types::CName).
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct Cruid(red::CRUID);

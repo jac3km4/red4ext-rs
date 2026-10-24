@@ -1,13 +1,12 @@
 use std::fmt;
 
-/// A convenience type to explicitly mark
-/// a function argument as `opt T`.
-///
-/// When left unspecified on Redscript side,
-/// it translates to its `Default` representation.
+/// Rust adapter for REDscript `opt T` parameters; see SDK
+/// [parameter flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
+/// Omitted arguments use `T::default()`, so omission and an explicit default value
+/// cannot be distinguished during representation conversion.
 #[derive(Default, Debug, Clone, Copy)]
 pub enum Opt<T> {
-    /// Value is specified and guaranteed to be non-`Default` value.
+    /// Explicit value. Direct construction does not enforce a non-default value.
     NonDefault(T),
     /// `Default` value.
     #[default]

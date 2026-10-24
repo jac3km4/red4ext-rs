@@ -2,6 +2,9 @@ use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
+/// Game-clock seconds; see SDK
+/// [GameTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/GameTime.hpp).
+/// Rust addition and subtraction methods saturate at the `u32` bounds.
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct GameTime(red::GameTime);

@@ -1,7 +1,9 @@
 # red4ext-rs
 
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK) for
-building Cyberpunk 2077 plugins.
+building Cyberpunk 2077 plugins. SDK links target the
+[pinned submodule revision](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757),
+not upstream `master`.
 
 [API documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)
 · [Generated game bindings](https://github.com/jac3km4/red4ext-rs-bindings)
@@ -11,8 +13,8 @@ building Cyberpunk 2077 plugins.
 Build on **Windows x64** with:
 
 - Rust **1.95+**, targeting `x86_64-pc-windows-msvc`.
-- Visual Studio C++ build tools (x64 MSVC) and the Windows SDK.
-- CMake **3.21+** on `PATH`.
+- Visual Studio C++ build tools (x64 MSVC, C++20) and the Windows SDK.
+- CMake **3.21+** on `PATH` ([SDK build configuration](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/CMakeLists.txt)).
 - LLVM/libclang (`LIBCLANG_PATH` can point to the directory containing `libclang.dll`).
 
 Use an x64 developer shell. Linux supports formatting only; rely on Windows CI
@@ -20,10 +22,9 @@ for native checks rather than attempting cross-compilation.
 
 ## Quickstart
 
-The root `red4ext-rs` crate is a Rust library used by plugins, not a plugin DLL
-itself. Downstream plugins must declare `crate-type = ["cdylib"]` and export the
-RED4ext entry points with `export_plugin_symbols!`, as below. The workspace's
-`red4ext-smoke-plugin` fixture is a separate `cdylib` used to check DLL linking.
+Plugins must build as `cdylib` and call `export_plugin_symbols!` to export the
+loader entry points ([SDK examples](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757/examples)).
+The wrapper crate itself is not a plugin DLL.
 
 `Cargo.toml`:
 
@@ -100,7 +101,7 @@ git submodule update --init --recursive
 ### Validation
 
 Run from the root on Windows; keep `Cargo.lock` checked in.
-Native checks can be slow; only need to run before pushing, not after every edit.
+Formatting is sufficient for documentation-only edits; run native checks before pushing.
 
 ```sh
 # One-time setup
@@ -120,9 +121,18 @@ Also lint and test without `--all-features`.
 
 ### Native safety
 
-Verify FFI layouts and ownership against SDK source. Owning wrappers must release
-allocations through the matching allocator, including custom `Drop` where needed.
-Never free engine memory with Rust's allocator; validate runtime-dependent changes in-game.
+Verify layouts against [SDK types](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp)
+and ownership against the relevant SDK implementation. Release engine memory through
+the matching [allocator](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Allocators.hpp),
+never Rust's allocator. Do not move owners out of borrowed engine views.
+
+Engine pools, relocations, RTTI, and singletons require initialized game systems;
+plugin load does not imply that every system is ready. Reference counts do not
+prevent native aliasing. Validate runtime-dependent changes in-game and report
+checks not run; DLL linking alone does not establish runtime safety.
+
+Leave the SDK submodule untouched unless explicitly requested. Ask before changing
+dependencies.
 
 `Plugin::RUNTIME` defaults to `RuntimeVersion::RUNTIME_INDEPENDENT`. This does not
 guarantee compatibility across game updates; native layouts and function addresses
@@ -133,9 +143,6 @@ can still change.
 - `RED4EXT_USE_PCH`: `1` (default) enables SDK precompiled headers; `0` disables them.
 - `RED4EXT_BUILD_TIMINGS=1`: reports SDK and bindgen phase timings.
 - Cargo's `--timings`: writes an HTML report to `target/cargo-timings/`.
-
-Compare PCH on/off with the same toolchain and features. Measure clean and warm
-builds separately; unchanged builds may skip the build script.
 
 ### Layout and conventions
 

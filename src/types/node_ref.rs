@@ -3,6 +3,8 @@ use std::hash::Hash;
 use crate::raw::root::RED4ext as red;
 use crate::{NativeRepr, fnv1a64_step};
 
+/// Hashed world-node path; see SDK
+/// [NodeRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NodeRef.hpp).
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct NodeRef(red::NodeRef);
@@ -17,8 +19,8 @@ impl NodeRef {
         self.0.hash != 0
     }
 
-    /// Creates a new `NodeRef` from the given string.
-    /// This function just calculates the hash of the string using the FNV-1a algorithm.
+    /// Hashes a node path without engine access, ignoring `#` and `;` suffixes
+    /// up to the next `/`. This does not resolve the node.
     #[inline]
     pub const fn new(name: &str) -> Self {
         Self::from_bytes(name.as_bytes())

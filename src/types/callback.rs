@@ -1,9 +1,12 @@
 use std::marker::PhantomData;
 use std::{ffi, ptr};
 
+/// No-argument C callback used for RTTI registration.
 pub type VoidFunctionPointerCallback =
     Callback<extern "C" fn(), CallbackHandler<extern "C" fn(), ffi::c_void, ()>>;
 
+/// Inline callable using the SDK
+/// [Callback](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Callback.hpp) layout.
 #[repr(C)]
 pub struct Callback<F, H: 'static> {
     callback: PhantomData<F>,

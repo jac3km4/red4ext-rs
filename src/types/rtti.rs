@@ -13,10 +13,11 @@ use crate::repr::{FromRepr, NativeRepr};
 use crate::types::PtrEq;
 use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
-/// A handler for function calls.
+/// Native handler for SDK [functions](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
 
-/// An RTTI representation of a type.
+/// SDK [CBaseRTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
+/// Metadata borrowed from RTTI remains engine-owned.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Type(red::CBaseRTTIType);
@@ -129,7 +130,7 @@ impl Type {
     }
 }
 
-/// An identifier for a kind of type.
+/// SDK [ERTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp) discriminator.
 #[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TypeKind {
@@ -167,7 +168,7 @@ impl TypeKind {
     }
 }
 
-/// Enum representation of the RTTI type.
+/// Borrowed RTTI metadata dispatched by [`TypeKind`].
 #[derive(Debug)]
 pub enum TaggedType<'a> {
     /// A name type.
@@ -206,7 +207,7 @@ pub enum TaggedType<'a> {
     FixedArray(&'a ArrayType),
 }
 
-/// An RTTI representation of a class.
+/// SDK [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp) metadata.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Class(red::CClass);
@@ -391,7 +392,7 @@ impl Drop for Class {
     }
 }
 
-/// Flags for a class type.
+/// SDK [CClass flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct ClassFlags(red::CClass_Flags);
@@ -512,7 +513,7 @@ impl fmt::Debug for ClassFlags {
     }
 }
 
-/// An RTTI representation of a native class.
+/// Rust-defined native [`Class`] with construction, cloning, and destruction callbacks.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct NativeClass<T>(Class, PhantomData<*mut T>);
@@ -609,7 +610,7 @@ impl ClassHandle {
     }
 }
 
-/// An RTTI representation of a pointer type.
+/// SDK [CRTTIPointerType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct PointerType(red::CRTTIPointerType);
 
@@ -630,7 +631,7 @@ impl PointerType {
     }
 }
 
-/// An RTTI representation of a reference type.
+/// SDK [CRTTIHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct RefType(red::CRTTIHandleType);
 
@@ -651,7 +652,7 @@ impl RefType {
     }
 }
 
-/// An RTTI representation of a weak reference type.
+/// SDK [CRTTIWeakHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct WeakRefType(red::CRTTIWeakHandleType);
 
@@ -672,7 +673,7 @@ impl WeakRefType {
     }
 }
 
-/// An RTTI representation of a script reference type.
+/// SDK [CRTTIScriptReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct ScriptRefType(red::CRTTIScriptReferenceType);
 
@@ -693,7 +694,7 @@ impl ScriptRefType {
     }
 }
 
-/// An RTTI representation of a static array type.
+/// SDK [CRTTIStaticArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct StaticArrayType(red::CRTTIStaticArrayType);
 
@@ -719,7 +720,7 @@ impl StaticArrayType {
     }
 }
 
-/// An RTTI representation of a native array type.
+/// SDK [CRTTINativeArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct NativeArrayType(red::CRTTINativeArrayType);
 
@@ -745,7 +746,7 @@ impl NativeArrayType {
     }
 }
 
-/// An RTTI representation of a resource reference type.
+/// SDK [CRTTIResourceReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct ResourceRefType(red::CRTTIResourceReferenceType);
 
@@ -766,7 +767,7 @@ impl ResourceRefType {
     }
 }
 
-/// An RTTI representation of an asynchronous resource reference type.
+/// SDK [CRTTIResourceAsyncReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct RaRefType(red::CRTTIResourceAsyncReferenceType);
 
@@ -787,7 +788,7 @@ impl RaRefType {
     }
 }
 
-/// An RTTI representation of a curve type.
+/// SDK [CRTTILegacySingleChannelCurveType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct CurveType(red::CRTTILegacySingleChannelCurveType);
 
@@ -808,7 +809,7 @@ impl CurveType {
     }
 }
 
-/// An RTTI representation of a function type.
+/// SDK [CBaseFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp) metadata.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Function(red::CBaseFunction);
@@ -867,9 +868,8 @@ impl Function {
         unsafe { self.0.SetReturnType(typ.to_raw()) };
     }
 
-    /// Executes the function with the given arguments represented as a tuple of values
-    /// that satsify the [`NativeRepr`] trait.
-    /// Returns the result of the function execution.
+    /// Executes with a tuple of [`NativeRepr`] arguments and a matching return type.
+    /// Requires initialized engine RTTI and a valid receiver for instance methods.
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
     where
         A: Args,
@@ -956,7 +956,7 @@ impl Function {
     }
 }
 
-/// An RTTI representation of a global function.
+/// SDK [CGlobalFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct GlobalFunction(red::CGlobalFunction);
@@ -1007,7 +1007,7 @@ impl Drop for GlobalFunction {
     }
 }
 
-/// An RTTI representation of a method.
+/// SDK [CClassFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Method(red::CClassFunction);
@@ -1086,7 +1086,7 @@ impl Drop for Method {
     }
 }
 
-/// An RTTI representation of a static method.
+/// SDK [CClassStaticFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StaticMethod(red::CClassStaticFunction);
@@ -1157,7 +1157,7 @@ impl Drop for StaticMethod {
     }
 }
 
-/// Flags for a function.
+/// SDK [CBaseFunction flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct FunctionFlags(red::CBaseFunction_Flags);
@@ -1196,7 +1196,7 @@ impl FunctionFlags {
     }
 }
 
-/// An RTTI representation of a property.
+/// SDK [CProperty](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Property(red::CProperty);
@@ -1255,7 +1255,7 @@ impl Property {
     }
 }
 
-/// Flags for a property.
+/// SDK [CProperty flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct PropertyFlags(red::CProperty_Flags);
@@ -1278,7 +1278,7 @@ impl PropertyFlags {
     }
 }
 
-/// An RTTI representation of an array type.
+/// SDK [CRTTIBaseArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ArrayType(red::CRTTIBaseArrayType);
@@ -1323,7 +1323,7 @@ impl Drop for ArrayType {
     }
 }
 
-/// An RTTI representation of an enum type.
+/// SDK [CEnum](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Enum(red::CEnum);
@@ -1368,7 +1368,7 @@ impl Drop for Enum {
     }
 }
 
-/// An RTTI representation of a bitfield type.
+/// SDK [CBitfield](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Bitfield(red::CBitfield);
@@ -1403,7 +1403,8 @@ impl Drop for Bitfield {
     }
 }
 
-/// The base type for all types held inside game references.
+/// SDK [ISerializable](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ISerializable.hpp),
+/// the base for handle-managed instances.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ISerializable(red::ISerializable);
@@ -1467,7 +1468,8 @@ unsafe impl ScriptClass for ISerializable {
     const NAME: &'static str = "ISerializable";
 }
 
-/// The base type for all scripted classes.
+/// SDK [IScriptable](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/IScriptable.hpp),
+/// with separate storage for scripted fields.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IScriptable(red::IScriptable);

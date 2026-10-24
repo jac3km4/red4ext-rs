@@ -210,7 +210,8 @@ impl_method_invocable!(
     (A, B, C, D, E, F, G)
 );
 
-/// A representation of a function type, including its arguments and return type.
+/// Argument and return-type metadata for SDK
+/// [functions](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 pub struct FunctionType {
     args: &'static [CName],
@@ -390,10 +391,10 @@ macro_rules! method {
     }
 }
 
-/// A macro for conveniently calling functions and methods.
-/// If you're calling a method, the first argument should be the instance of the class.
-/// The next argument should be a full function name, which might have to include mangled names of
-/// the parameter types.
+/// Calls a reflected function using SDK
+/// [stack arguments](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
+/// Use the full RTTI name, including mangled parameter types where required.
+/// Instance calls take a receiver first. Requires initialized engine RTTI.
 ///
 /// # Example
 /// ```rust

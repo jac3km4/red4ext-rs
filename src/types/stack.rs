@@ -7,7 +7,8 @@ use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
 use crate::{FromRepr, VoidPtr};
 
-/// A script stack frame.
+/// Borrowed SDK [CStackFrame](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
+/// Reading arguments advances bytecode state; restore it before forwarding a hooked call.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StackFrame(red::CStackFrame);
@@ -165,7 +166,8 @@ impl StackFrame {
     }
 }
 
-/// A stack argument to be passed to a function.
+/// Borrowed argument descriptor for an SDK
+/// [CStack](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp) call.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StackArg<'a>(red::CStackType, PhantomData<&'a mut ()>);
