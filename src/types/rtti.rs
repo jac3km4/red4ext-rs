@@ -534,7 +534,11 @@ impl<T> NativeClass<T> {
         const DESTRUCT_SLOT: usize = 28;
         const ALLOC_SLOT: usize = 29;
 
-        let mut class = Class::new_native(name, mem::size_of::<T>() as u32);
+        let size = u32::try_from(mem::size_of::<T>()).expect("native class size exceeds u32");
+        let alignment =
+            u32::try_from(mem::align_of::<T>()).expect("native class alignment exceeds u32");
+        let mut class = Class::new_native(name, size);
+        class.0.alignment = alignment;
         if let Some(base) = base {
             class.0.parent = base.as_raw() as *const _ as *mut red::CClass;
         }
