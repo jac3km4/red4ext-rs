@@ -56,8 +56,8 @@ impl<T> RedArray<T> {
     #[inline]
     pub fn clear(&mut self) {
         let elems: *mut [T] = &mut **self;
-        unsafe { ptr::drop_in_place(elems) }
         self.0.size = 0;
+        unsafe { ptr::drop_in_place(elems) }
     }
 
     /// Adds an element to the end of the array.
@@ -267,6 +267,51 @@ impl<T> Drop for IntoIter<T> {
             ptr::drop_in_place(elems);
             (*get_allocator(&self.array)).free(self.array.entries);
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::rc::Rc;
+
+    use super::*;
+
+    #[test]
+    fn clear_empties_before_panicking_drop() {
+        struct PanickingDrop(Rc<Cell<usize>>);
+        impl Drop for PanickingDrop {
+            fn drop(&mut self) {
+                let drops = self.0.get();
+                self.0.set(drops + 1);
+                if drops == 0 {
+                    panic!("synthetic drop failure");
+                }
+            }
+        }
+
+        let drops = Rc::new(Cell::new(0));
+        let mut storage = mem::ManuallyDrop::new([
+            PanickingDrop(Rc::clone(&drops)),
+            PanickingDrop(Rc::clone(&drops)),
+        ]);
+        // Borrow stack storage without transferring its allocation to the engine.
+        let mut array = RedArray(red::DynArray {
+            entries: storage.as_mut_ptr(),
+            size: 2,
+            capacity: 2,
+            ..Default::default()
+        });
+        assert!(catch_unwind(AssertUnwindSafe(|| array.clear())).is_err());
+        assert!(array.is_empty());
+        assert_eq!(drops.get(), 2);
+        array.clear();
+        // Detach the borrowed allocation before testing array drop.
+        array.0.entries = ptr::null_mut();
+        array.0.capacity = 0;
+        drop(array);
+        assert_eq!(drops.get(), 2);
     }
 }
 
