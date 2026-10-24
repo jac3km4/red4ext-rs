@@ -384,7 +384,7 @@ macro_rules! global {
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
-            let out = unsafe { std::mem::transmute(ret) };
+            let out = unsafe { (ret as *mut ::std::mem::MaybeUninit<_>).as_mut() };
             $crate::GlobalInvocable::invoke($fun, ctx, frame, out);
             unsafe { frame.step() };
         }
@@ -417,7 +417,7 @@ macro_rules! method {
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
-            let out = unsafe { ::std::mem::transmute(ret) };
+            let out = unsafe { (ret as *mut ::std::mem::MaybeUninit<_>).as_mut() };
             if !ctx.is_aligned() { return; }
             let Some(ctx) = (unsafe { ctx.as_ref() }) else { return };
             $crate::MethodInvocable::invoke($ty::$id, ctx, frame, out);
