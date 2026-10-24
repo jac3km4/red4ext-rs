@@ -21,6 +21,21 @@ impl LocalizationString {
     }
 }
 
+impl Drop for LocalizationString {
+    fn drop(&mut self) {
+        // The SDK aggregate's implicit destructor destroys its CString member.
+        unsafe { self.0.unk08.destruct() }
+    }
+}
+
+impl fmt::Display for LocalizationString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", unsafe {
+            mem::transmute::<&red::CString, &RedString>(&self.0.unk08)
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::LocalizationString;
@@ -41,20 +56,5 @@ mod tests {
             value.0.unk08.length = flags;
             assert!(value.is_empty());
         }
-    }
-}
-
-impl Drop for LocalizationString {
-    fn drop(&mut self) {
-        // The SDK aggregate's implicit destructor destroys its CString member.
-        unsafe { self.0.unk08.destruct() }
-    }
-}
-
-impl fmt::Display for LocalizationString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", unsafe {
-            mem::transmute::<&red::CString, &RedString>(&self.0.unk08)
-        })
     }
 }

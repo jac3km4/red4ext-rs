@@ -58,22 +58,6 @@ impl NativeGameInstance {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::NativeGameInstance;
-
-    #[test]
-    fn missing_game_framework_is_unavailable() {
-        let engine = super::GameEngine(unsafe { std::mem::zeroed() });
-        assert!(unsafe { engine.game_instance() }.is_none());
-    }
-
-    #[test]
-    fn native_game_instance_is_non_owning() {
-        assert!(!std::mem::needs_drop::<NativeGameInstance>());
-    }
-}
-
 #[repr(C)]
 pub struct GameInstanceVft {
     _destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
@@ -216,4 +200,20 @@ pub struct IGameSystemVft {
     sub_198: VoidPtr,
     on_initialize: VoidPtr,
     on_uninitialize: VoidPtr,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NativeGameInstance;
+
+    #[test]
+    fn missing_game_framework_is_unavailable() {
+        let engine = super::GameEngine(unsafe { std::mem::zeroed() });
+        assert!(unsafe { engine.game_instance() }.is_none());
+    }
+
+    #[test]
+    fn native_game_instance_is_non_owning() {
+        assert!(!std::mem::needs_drop::<NativeGameInstance>());
+    }
 }

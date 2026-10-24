@@ -276,6 +276,16 @@ impl<T> Drop for IntoIter<T> {
     }
 }
 
+fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
+    if arr.capacity == 0 {
+        &arr.entries as *const _ as *mut _
+    } else {
+        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
+        let aligned = end.next_multiple_of(mem::size_of::<usize>());
+        aligned as _
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -401,15 +411,5 @@ mod tests {
         array.0.capacity = 0;
         drop(array);
         assert_eq!(drops.get(), 2);
-    }
-}
-
-fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
-    if arr.capacity == 0 {
-        &arr.entries as *const _ as *mut _
-    } else {
-        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
-        let aligned = end.next_multiple_of(mem::size_of::<usize>());
-        aligned as _
     }
 }
