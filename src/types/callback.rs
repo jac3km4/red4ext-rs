@@ -127,14 +127,52 @@ mod tests {
 
     extern "C" fn noop() {}
 
+    struct Owned(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+
+    unsafe impl Callable<u64, u64> for Owned {
+        unsafe extern "C" fn invoke(_this: *const Self, arg: u64) -> u64 {
+            arg
+        }
+        unsafe extern "C" fn copy(target: *mut Self, source: *const Self) {
+            unsafe { target.write(Self((*source).0.clone())) };
+        }
+        unsafe extern "C" fn move_(target: *mut Self, source: *mut Self) {
+            // Sharing is a valid move policy; the source remains destructible.
+            unsafe { Self::copy(target, source) };
+        }
+        unsafe extern "C" fn destroy(this: *mut Self) {
+            unsafe {
+                (*this).0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                ptr::drop_in_place(this);
+            }
+        }
+    }
+
+    #[test]
+    fn owned_target_is_aligned_and_destroyed_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let drops = std::sync::Arc::new(AtomicUsize::new(0));
+        let callback = Callback::new(Owned(drops.clone()));
+        assert!(callback.buffer.as_ptr().cast::<Owned>().is_aligned());
+        assert_eq!(
+            unsafe { (callback.handler.invoke)(callback.buffer.as_ptr().cast(), 42) },
+            42
+        );
+        drop(callback);
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+        assert_eq!(std::sync::Arc::strong_count(&drops), 1);
+    }
+
     struct Oversized([u8; 33]);
     #[repr(align(16))]
     struct Overaligned;
 
     macro_rules! test_callable {
         ($ty:ty) => {
-            unsafe impl Callable<(), ()> for $ty {
-                unsafe extern "C" fn invoke(_this: *const Self, _arg: ()) {}
+            unsafe impl Callable<u64, u64> for $ty {
+                unsafe extern "C" fn invoke(_this: *const Self, arg: u64) -> u64 {
+                    arg
+                }
                 unsafe extern "C" fn copy(_target: *mut Self, _source: *const Self) {
                     unreachable!()
                 }
