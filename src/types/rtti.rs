@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
@@ -559,6 +560,24 @@ impl<T> NativeClass<T> {
         ClassHandle(NonNull::from(Box::leak(Box::new(class))))
     }
 
+    /// Only ClassExport opts in: StructExport has no IScriptable base.
+    pub(crate) fn configure_instance_dispatch(handle: &ClassHandle) {
+        unsafe {
+            crate::raw::root::red4ext_rs_configure_native_class(
+                handle.as_ref().as_raw() as *const _ as *mut red::CClass,
+                Some(Self::destroy_instance),
+            );
+        }
+    }
+
+    unsafe extern "C" fn destroy_instance(instance: VoidPtr) {
+        // C++ calls this from the shim destructor body, then automatically
+        // destroys its IScriptable base. Suppress only that embedded Rust drop,
+        // not nested IScriptable owners in T's remaining fields.
+        let _guard = NativeBaseDropGuard::new(instance);
+        unsafe { ptr::drop_in_place(instance.cast::<T>()) };
+    }
+
     unsafe extern "C" fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
         unsafe {
             crate::fn_from_hash!(
@@ -570,26 +589,34 @@ impl<T> NativeClass<T> {
 
     // Retains the existing initialized-destination contract. The SDK's use of
     // placement new alone does not establish destination lifetime at call sites.
-    unsafe extern "C" fn assign(_this: *const Self, lhs: *mut T, rhs: *const T)
+    unsafe extern "C" fn assign(this: *const Self, lhs: *mut T, rhs: *const T)
     where
         T: Clone,
     {
         // Rust references must not be created for a self-assignment alias.
         if lhs.cast_const() != rhs {
-            unsafe { (&mut *lhs).clone_from(&*rhs) };
+            unsafe {
+                (&mut *lhs).clone_from(&*rhs);
+                // Manual clone_from must preserve destination base identity.
+                // Reinstall dispatch in case a fresh base vptr was introduced.
+                crate::raw::root::red4ext_rs_bind_native_instance(this.cast(), lhs.cast());
+            };
         }
     }
 
-    unsafe extern "C" fn construct(_this: *const Self, mem: *mut T)
+    unsafe extern "C" fn construct(this: *const Self, mem: *mut T)
     where
         T: Default,
     {
         unsafe {
             ptr::write(mem, T::default());
+            crate::raw::root::red4ext_rs_bind_native_instance(this.cast(), mem.cast());
         }
     }
 
     unsafe extern "C" fn destruct(_this: *const Self, mem: *mut T) {
+        // RTTI destruction has no automatic C++ shim/base destruction: retain
+        // the full Rust drop, including IScriptable's explicit SDK destructor.
         unsafe {
             ptr::drop_in_place(mem);
         }
@@ -1559,10 +1586,34 @@ impl AsRef<IScriptable> for IScriptable {
     }
 }
 
+thread_local! {
+    static SUPPRESSED_NATIVE_BASE: Cell<VoidPtr> = const { Cell::new(ptr::null_mut()) };
+}
+
+struct NativeBaseDropGuard(VoidPtr);
+
+impl NativeBaseDropGuard {
+    fn new(instance: VoidPtr) -> Self {
+        Self(SUPPRESSED_NATIVE_BASE.with(|slot| slot.replace(instance)))
+    }
+
+    fn is_suppressed(instance: VoidPtr) -> bool {
+        SUPPRESSED_NATIVE_BASE.with(|slot| slot.get() == instance)
+    }
+}
+
+impl Drop for NativeBaseDropGuard {
+    fn drop(&mut self) {
+        SUPPRESSED_NATIVE_BASE.with(|slot| slot.set(self.0));
+    }
+}
+
 impl Drop for IScriptable {
     #[inline]
     fn drop(&mut self) {
-        unsafe { red::IScriptable_IScriptable_destructor(&mut self.0) }
+        if !NativeBaseDropGuard::is_suppressed(ptr::from_mut(self).cast()) {
+            unsafe { red::IScriptable_IScriptable_destructor(&mut self.0) }
+        }
     }
 }
 
@@ -1681,6 +1732,85 @@ pub struct IScriptableVft {
 #[cfg(test)]
 mod native_class_tests {
     use super::*;
+
+    #[test]
+    fn base_drop_suppression_is_exact_scoped_and_thread_local() {
+        let mut addresses = [0u8; 2];
+        let outer = ptr::from_mut(&mut addresses[0]).cast();
+        let inner = ptr::from_mut(&mut addresses[1]).cast();
+        assert!(!NativeBaseDropGuard::is_suppressed(outer));
+        {
+            let _outer = NativeBaseDropGuard::new(outer);
+            assert!(NativeBaseDropGuard::is_suppressed(outer));
+            assert!(!NativeBaseDropGuard::is_suppressed(inner));
+            std::thread::spawn(|| {
+                SUPPRESSED_NATIVE_BASE.with(|slot| assert!(slot.get().is_null()));
+            })
+            .join()
+            .unwrap();
+            {
+                let _inner = NativeBaseDropGuard::new(inner);
+                assert!(NativeBaseDropGuard::is_suppressed(inner));
+                assert!(!NativeBaseDropGuard::is_suppressed(outer));
+            }
+            assert!(NativeBaseDropGuard::is_suppressed(outer));
+        }
+        assert!(!NativeBaseDropGuard::is_suppressed(outer));
+    }
+
+    #[test]
+    fn instance_callback_drops_payload_but_defers_only_embedded_base() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        #[repr(C)]
+        struct FakeBase(Arc<AtomicUsize>);
+        impl Drop for FakeBase {
+            fn drop(&mut self) {
+                if !NativeBaseDropGuard::is_suppressed(ptr::from_mut(self).cast()) {
+                    self.0.fetch_add(1, Ordering::SeqCst);
+                }
+            }
+        }
+        #[repr(C)]
+        struct Payload {
+            base: FakeBase,
+            nested: FakeBase,
+            owner: Arc<()>,
+        }
+        let base_drops = Arc::new(AtomicUsize::new(0));
+        let nested_drops = Arc::new(AtomicUsize::new(0));
+        let owner = Arc::new(());
+        let mut payload = mem::ManuallyDrop::new(Payload {
+            base: FakeBase(base_drops.clone()),
+            nested: FakeBase(nested_drops.clone()),
+            owner: owner.clone(),
+        });
+        unsafe {
+            NativeClass::<Payload>::destroy_instance(ptr::from_mut(&mut *payload).cast());
+        }
+        assert_eq!(base_drops.load(Ordering::SeqCst), 0);
+        assert_eq!(nested_drops.load(Ordering::SeqCst), 1);
+        assert_eq!(Arc::strong_count(&owner), 1);
+        SUPPRESSED_NATIVE_BASE.with(|slot| assert!(slot.get().is_null()));
+
+        // RTTI destruction is deliberately not scoped by the suppression guard.
+        let mut value = mem::ManuallyDrop::new(FakeBase(base_drops.clone()));
+        unsafe { NativeClass::<FakeBase>::destruct(ptr::null(), &mut *value) };
+        assert_eq!(base_drops.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn unregistered_value_type_bind_does_not_touch_storage() {
+        let mut value = 42u64;
+        assert!(!unsafe {
+            crate::raw::root::red4ext_rs_bind_native_instance(
+                ptr::null(),
+                ptr::from_mut(&mut value).cast(),
+            )
+        });
+        assert_eq!(value, 42);
+    }
 
     #[test]
     fn trampolines_have_explicit_c_signatures() {

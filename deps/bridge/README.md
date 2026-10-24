@@ -14,6 +14,52 @@ invoking the virtual destructor and freeing the object. A veto leaves the
 instance alive, exactly as in the SDK. The generated Rust binding is
 `crate::raw::root::red4ext_rs_destroy_handle_instance`.
 
+## Rust-exported native instance dispatch
+
+Patching the `CClass` RTTI vtable is not sufficient for handle deletion: SDK
+`Memory::Delete` calls the **instance** virtual allocator and destructor. The
+SDK's inherited `ISerializable::GetAllocator` returns `ScriptAllocator`, whereas
+Rust `NativeClass::alloc` uses `CClass::GetAllocator` (`RTTIAllocator` in the
+pinned SDK). The inherited base destructor also cannot drop Rust-owned fields.
+
+Only `ClassExport` registers a permanent class -> Rust destructor + allocator
+entry. `StructExport` never opts in. The registry is mutex-protected; lookup
+copies metadata and releases the mutex before callbacks or SDK calls. Entries,
+RTTI classes, and Rust callback code must remain valid for all instances' lives;
+unloading a plugin while its classes/instances remain registered is unsupported.
+
+After `T::default` initializes an exported class, binding sets `nativeType` and
+copies the ABI vptr from a live, fieldless `IScriptable`-derived prototype. Size,
+alignment, inheritance, and virtual signature contracts are compile-time
+asserted. The compiler generates `GetNativeType`, `GetAllocator`, and virtual
+(including deleting) destructor dispatch; no Rust destructor-slot ABI is guessed.
+The allocator is captured from the same permanent RTTI class used by allocation.
+SDK `Memory::Delete` captures that allocator before virtual destruction.
+
+The shim destructor calls Rust `drop_in_place<T>` under a thread-local,
+exact-instance-address base-drop suppression guard. All Rust fields (including
+nested native owners at other addresses) are dropped normally. The embedded
+`IScriptable` Rust drop alone is skipped, because C++ automatically destroys
+`IScriptable`, its value holder, and `ISerializable` weak members once after the
+callback. RTTI `DestructCls` has no automatic C++ shim destructor and therefore
+continues to perform the full Rust drop without suppression. Rust destructors
+must not unwind across the C ABI.
+
+`clone_from` retains the existing initialized-destination contract: user code
+must preserve destination base identity, weak handles, and value holder. Dispatch
+is rebound after non-self assignment; this does not repair an invalid Clone
+implementation or change assignment into placement construction. A standalone
+`clone_native_base` keeps the SDK base vptr, not the shim (there is no enclosing
+Rust payload to destroy); RTTI construction/assignment binds complete instances.
+
+Game-free tests cover exact/scoped/thread-local suppression, Rust payload and
+nested-owner destruction versus RTTI destruction, and an unregistered value-type
+bind that must not touch memory. A live shim prototype cannot be created in a
+standalone test: its base constructor and destructor require game relocations.
+The real handle -> virtual shim -> Rust fields -> native base -> matching free
+sequence still requires in-game validation; compile-time ABI contracts and DLL
+linking do not replace it.
+
 ## Resource reference erasure
 
 `ResourceReference<T>` contains a `ResourcePath` followed by a

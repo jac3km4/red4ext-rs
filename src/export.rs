@@ -68,7 +68,9 @@ impl Exportable for ExportNil {
 /// Include the base class in the Rust layout. For value types, use [`StructExport`].
 /// Implement `Clone` explicitly: use `IScriptable::clone_native_base` for a fresh
 /// object's base and preserve the destination base in `clone_from`. Never copy
-/// an object's weak handle or value holder as raw bytes.
+/// an object's weak handle or value holder as raw bytes. Construction installs
+/// native instance dispatch; assignment rebinds it after `clone_from`, without
+/// replacing the destination's identity or scripted storage.
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
     base: &'static str,
@@ -95,6 +97,7 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             .get_class(CName::new(self.base))
             .expect("base should exist");
         let handle = NativeClass::<C>::new_handle(&name_cstr, Some(base));
+        NativeClass::<C>::configure_instance_dispatch(&handle);
         rtti.register_class(handle);
     }
 

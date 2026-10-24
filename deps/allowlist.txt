@@ -60,3 +60,5 @@ RED4ext::v1::EMainReason
 RED4ext::OpcodeHandlers
 red4ext_rs_destroy_resource_ref
 red4ext_rs_destroy_handle_instance
+red4ext_rs_configure_native_class
+red4ext_rs_bind_native_instance
