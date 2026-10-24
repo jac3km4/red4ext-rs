@@ -1676,3 +1676,37 @@ pub struct IScriptableVft {
     sub_f8: VoidPtr,
     sub_100: VoidPtr,
 }
+
+#[cfg(test)]
+mod native_class_tests {
+    use super::*;
+
+    #[test]
+    fn trampolines_have_explicit_c_signatures() {
+        let _: unsafe extern "C" fn(VoidPtr, VoidPtr, VoidPtr, u32) -> bool =
+            NativeClass::<u64>::is_equal;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64, *const u64) =
+            NativeClass::<u64>::assign;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64) =
+            NativeClass::<u64>::construct;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64) =
+            NativeClass::<u64>::destruct;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>) -> *mut u64 =
+            NativeClass::<u64>::alloc;
+    }
+
+    #[test]
+    fn assignment_handles_self_alias_without_references() {
+        let mut value = String::from("unchanged");
+        let value_ptr = ptr::from_mut(&mut value);
+        unsafe { NativeClass::<String>::assign(ptr::null(), value_ptr, value_ptr) };
+        assert_eq!(value, "unchanged");
+    }
+
+    #[test]
+    fn construction_initializes_raw_storage() {
+        let mut value = mem::MaybeUninit::<u64>::uninit();
+        unsafe { NativeClass::<u64>::construct(ptr::null(), value.as_mut_ptr()) };
+        assert_eq!(unsafe { value.assume_init() }, 0);
+    }
+}
