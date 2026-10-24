@@ -8,6 +8,7 @@ fn main() {
 
     println!("cargo:rerun-if-changed=deps/wrapper.hpp");
     println!("cargo:rerun-if-changed=deps/allowlist.txt");
+    println!("cargo:rerun-if-changed=deps/bridge");
 
     // Bindgen tracks headers; Cargo must also watch CMake's other inputs.
     for input in ["CMakeLists.txt", "cmake", "src", "vendor"] {
@@ -40,6 +41,21 @@ fn main() {
         "cargo:rustc-link-search=native={}",
         red4ext_target.join("lib").display()
     );
+    let bridge_target = cmake::Config::new("deps/bridge")
+        .out_dir(PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("bridge"))
+        .profile("Release")
+        .define(
+            "RED4EXT_SDK_DIR",
+            env::current_dir()
+                .expect("working directory must exist")
+                .join(red4ext_dir),
+        )
+        .build();
+    println!(
+        "cargo:rustc-link-search=native={}",
+        bridge_target.join("lib").display()
+    );
+    println!("cargo:rustc-link-lib=static=red4ext_rs_bridge");
     println!("cargo:rustc-link-lib=user32");
     println!("cargo:rustc-link-lib=static=RED4ext.SDK");
 
