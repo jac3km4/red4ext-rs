@@ -11,12 +11,30 @@ pub struct LocalizationString(red::LocalizationString);
 impl LocalizationString {
     #[inline]
     pub fn len(&self) -> usize {
-        self.0.unk08.length as usize
+        (self.0.unk08.length & 0x3FFF_FFFF) as usize
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LocalizationString;
+
+    #[test]
+    fn length_masks_storage_flags() {
+        for flags in [0, 0x4000_0000, 0x8000_0000, 0xC000_0000] {
+            // Inspect metadata only; the synthetic CString must never be destroyed.
+            let mut value =
+                std::mem::ManuallyDrop::new(LocalizationString(unsafe { std::mem::zeroed() }));
+            value.0.unk08.length = flags | 17;
+            assert_eq!(value.len(), 17);
+            value.0.unk08.length = flags;
+            assert!(value.is_empty());
+        }
     }
 }
 
