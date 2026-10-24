@@ -9,7 +9,7 @@ pub const OPCODE_SIZE: isize = 1;
 pub const CALL_INSTR_SIZE: isize = mem::size_of::<InvokeStatic>() as isize;
 
 /// SDK [opcode handler](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/OpcodeHandlers.hpp) signature.
-pub type OpcodeHandler = unsafe extern "C" fn(Option<&IScriptable>, &StackFrame, VoidPtr, VoidPtr);
+pub type OpcodeHandler = unsafe extern "C" fn(*mut IScriptable, *mut StackFrame, VoidPtr, VoidPtr);
 
 /// A trait for types that correspond to bytecode instructions.
 #[sealed]
