@@ -1224,6 +1224,7 @@ impl Property {
             (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::CBaseRTTIType;
             (*ptr).0.parent = parent.as_raw() as *const _ as *mut red::CClass;
             (*ptr).0.valueOffset = offset;
+            (*ptr).0.flags = PropertyFlags::default().0;
             prop.assume_init()
         }
     }
