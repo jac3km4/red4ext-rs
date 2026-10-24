@@ -166,9 +166,11 @@ unsafe fn pool_free<T: Poolable>(memory: *mut T) {
 pub trait Pool {
     const NAME: &'static str;
 
+    #[doc(hidden)]
+    fn vault_cache() -> &'static OnceNonZeroUsize;
+
     fn vault() -> *mut red::Memory::Vault {
-        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
-        VAULT
+        Self::vault_cache()
             .get_or_try_init(|| {
                 NonZeroUsize::new(unsafe { vault_get(fnv1a32(Self::NAME)) as _ }).ok_or(())
             })
@@ -184,6 +186,11 @@ pub struct FunctionPool;
 #[sealed]
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 /// A pool for properties.
@@ -193,6 +200,11 @@ pub struct PropertyPool;
 #[sealed]
 impl Pool for PropertyPool {
     const NAME: &'static str = "PoolRTTIProperty";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 /// A pool for scripts values.
@@ -202,6 +214,11 @@ pub struct ScriptPool;
 #[sealed]
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
@@ -259,6 +276,21 @@ unsafe fn vault_get_from_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn vault_caches_are_per_pool() {
+        let caches = [
+            FunctionPool::vault_cache(),
+            PropertyPool::vault_cache(),
+            ScriptPool::vault_cache(),
+        ];
+        for (i, cache) in caches.iter().enumerate() {
+            for other in &caches[i + 1..] {
+                assert!(!ptr::eq(*cache, *other));
+            }
+        }
+        assert!(ptr::eq(FunctionPool::vault_cache(), caches[0]));
+    }
 
     #[test]
     fn missing_pool_releases_registry_lock() {
