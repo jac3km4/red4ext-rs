@@ -584,3 +584,27 @@ impl_args!(
     (A, B, C, D, E, F),
     (A, B, C, D, E, F, G)
 );
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+
+    fn answer() -> i32 {
+        42
+    }
+
+    #[test]
+    fn global_handler_accepts_null_context() {
+        let metadata = crate::global!(c"Answer", answer);
+        // CStackFrame is plain pointer/integer/bool storage. The no-argument
+        // handler only advances code and never reads the null metadata fields.
+        let mut raw: crate::raw::root::RED4ext::CStackFrame = unsafe { std::mem::zeroed() };
+        let mut code = [0i8; 2];
+        raw.code = code.as_mut_ptr();
+        let frame = unsafe { &mut *std::ptr::from_mut(&mut raw).cast::<StackFrame>() };
+        let mut result = MaybeUninit::<i32>::uninit();
+        unsafe { (metadata.func)(std::ptr::null_mut(), frame, result.as_mut_ptr().cast(), 0) };
+        assert_eq!(unsafe { result.assume_init() }, 42);
+        assert_eq!(raw.code, unsafe { code.as_mut_ptr().add(1) });
+    }
+}
