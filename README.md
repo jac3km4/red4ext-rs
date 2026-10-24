@@ -20,6 +20,11 @@ for native checks rather than attempting cross-compilation.
 
 ## Quickstart
 
+The root `red4ext-rs` crate is a Rust library used by plugins, not a plugin DLL
+itself. Downstream plugins must declare `crate-type = ["cdylib"]` and export the
+RED4ext entry points with `export_plugin_symbols!`, as below. The workspace's
+`red4ext-smoke-plugin` fixture is a separate `cdylib` used to check DLL linking.
+
 `Cargo.toml`:
 
 ```toml

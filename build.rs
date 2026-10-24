@@ -6,8 +6,11 @@ fn main() {
     let red4ext_dir = Path::new("deps/RED4ext.SDK");
     let red4ext_include_dir = red4ext_dir.join("include");
 
-    // Watch CMake inputs too, including headers not reached by the bindgen wrapper.
-    for input in ["CMakeLists.txt", "cmake", "include", "src", "vendor"] {
+    println!("cargo:rerun-if-changed=deps/wrapper.hpp");
+    println!("cargo:rerun-if-changed=deps/allowlist.txt");
+
+    // Bindgen tracks headers; Cargo must also watch CMake's other inputs.
+    for input in ["CMakeLists.txt", "cmake", "src", "vendor"] {
         println!(
             "cargo:rerun-if-changed={}",
             red4ext_dir.join(input).display()
@@ -38,7 +41,7 @@ fn main() {
         red4ext_target.join("lib").display()
     );
     println!("cargo:rustc-link-lib=user32");
-    println!("cargo:rustc-link-lib=RED4ext.SDK");
+    println!("cargo:rustc-link-lib=static=RED4ext.SDK");
 
     let allowlist = include_str!("deps/allowlist.txt")
         .split('\n')
@@ -49,7 +52,12 @@ fn main() {
     let builder = bindgen::Builder::default()
         .time_phases(timings)
         .clang_arg("-std=c++20")
+        .clang_arg("-DRED4EXT_STATIC_LIB")
         .clang_arg(format!("-I{}", red4ext_include_dir.display()))
+        .clang_arg(format!(
+            "-I{}",
+            red4ext_dir.join("vendor/D3D12MemAlloc").display()
+        ))
         .header("deps/wrapper.hpp")
         .parse_callbacks(Box::new(Callbacks::default()))
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
