@@ -1,7 +1,9 @@
 # red4ext-rs
 
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK) for
-building Cyberpunk 2077 plugins.
+building Cyberpunk 2077 plugins. SDK links target the
+[pinned submodule revision](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757),
+not upstream `master`.
 
 [API documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)
 · [Generated game bindings](https://github.com/jac3km4/red4ext-rs-bindings)
@@ -22,6 +24,7 @@ for native checks rather than attempting cross-compilation.
 
 Plugins must build as `cdylib` and call `export_plugin_symbols!` to export the
 loader entry points ([SDK examples](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757/examples)).
+The wrapper crate itself is not a plugin DLL.
 
 `Cargo.toml`:
 
@@ -80,6 +83,10 @@ With [REDscript](https://github.com/jac3km4/redscript) installed, declare the fu
 native func Add2(value: Int32) -> Int32;
 ```
 
+Optional features (none enabled by default): `log` for the logging facade,
+`chrono` and `time` for game-time conversions. See the API docs for invoking
+functions and exporting classes; prefer generated game bindings to hand-written layouts.
+
 ## Contributing
 
 After cloning:
@@ -88,7 +95,13 @@ After cloning:
 git submodule update --init --recursive
 ```
 
+`build.rs` compiles the SDK and generates bindings from `deps/wrapper.hpp` and
+`deps/allowlist.txt`; never edit generated files in `target/`.
+
 ### Validation
+
+Run from the root on Windows; keep `Cargo.lock` checked in.
+Formatting is sufficient for documentation-only edits; run native checks before pushing.
 
 ```sh
 # One-time setup
@@ -125,11 +138,17 @@ dependencies.
 guarantee compatibility across game updates; native layouts and function addresses
 can still change.
 
+### Build performance
+
+- `RED4EXT_USE_PCH`: `1` (default) enables SDK precompiled headers; `0` disables them.
+- `RED4EXT_BUILD_TIMINGS=1`: reports SDK and bindgen phase timings.
+- Cargo's `--timings`: writes an HTML report to `target/cargo-timings/`.
+
 ### Layout and conventions
 
 `src/lib.rs` handles plugins; `invocable.rs`, `export.rs`, and `class.rs` define
 calls and exports. `src/types/` and `src/systems/` wrap SDK types and runtime access.
 `deps/RED4ext.SDK/` is the upstream submodule.
 
-Branch names: `feat/`, `fix/`, `chore/`. Commits and PR titles:
+Branches: `feat/`, `fix/`, `chore/`. Commits and PR titles:
 `<prefix>: <imperative summary>`.

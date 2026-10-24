@@ -322,7 +322,7 @@ impl Exportable for GlobalExport {
 #[macro_export]
 macro_rules! exports {
     [$export:expr, $($tt:tt)*] => {
-        $crate::ExportList::new($export, exports!($($tt)*))
+        $crate::ExportList::new($export, $crate::exports!($($tt)*))
     };
     [$export:expr] => {
         $crate::ExportList::new($export, $crate::ExportNil)
