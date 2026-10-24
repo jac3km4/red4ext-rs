@@ -30,9 +30,14 @@ impl Variant {
         unsafe { Type::from_raw(self.0.GetType()) }
     }
 
-    pub fn as_bytes(&self) -> Option<&[u8]> {
+    /// Borrows the payload's object representation, including uninitialized padding.
+    ///
+    /// Bytes are not guaranteed to be initialized, even when the payload is valid.
+    /// Calling `assume_init` on any byte requires independent proof that that byte
+    /// is initialized. This view is not a serialization format.
+    pub fn as_uninit_bytes(&self) -> Option<&[mem::MaybeUninit<u8>]> {
         let size = self.type_()?.size() as usize;
-        let data_ptr = unsafe { self.0.GetDataPtr() } as *const u8;
+        let data_ptr = unsafe { self.0.GetDataPtr() }.cast::<mem::MaybeUninit<u8>>();
         if data_ptr.is_null() {
             None
         } else {
@@ -221,12 +226,20 @@ mod tests {
     }
 
     #[test]
+    fn byte_view_exposes_maybe_uninitialized_storage() {
+        // Pin the safe API to MaybeUninit: payload padding must not become &[u8].
+        let variant = Variant::default();
+        let bytes: Option<&[mem::MaybeUninit<u8>]> = variant.as_uninit_bytes();
+        assert!(bytes.is_none());
+    }
+
+    #[test]
     fn taking_from_empty_variant_leaves_it_empty() {
         let mut variant = Variant::default();
 
         assert_eq!(variant.try_take::<u64>(), None);
         assert!(variant.type_().is_none());
-        assert!(variant.as_bytes().is_none());
+        assert!(variant.as_uninit_bytes().is_none());
         assert!(variant.try_access::<u64>().is_none());
         assert_eq!(variant.try_take::<u64>(), None);
     }
