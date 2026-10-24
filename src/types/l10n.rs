@@ -4,6 +4,7 @@ use crate::raw::root::RED4ext as red;
 use crate::types::RedString;
 
 /// SDK [LocalizationString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
+/// Owns its embedded SDK `CString` and releases it through the native destructor.
 /// Display reads the stored text; it does not perform a localization lookup.
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
@@ -25,6 +26,11 @@ mod tests {
     use super::LocalizationString;
 
     #[test]
+    fn owns_native_string() {
+        assert!(std::mem::needs_drop::<LocalizationString>());
+    }
+
+    #[test]
     fn length_masks_storage_flags() {
         for flags in [0, 0x4000_0000, 0x8000_0000, 0xC000_0000] {
             // Inspect metadata only; the synthetic CString must never be destroyed.
@@ -35,6 +41,13 @@ mod tests {
             value.0.unk08.length = flags;
             assert!(value.is_empty());
         }
+    }
+}
+
+impl Drop for LocalizationString {
+    fn drop(&mut self) {
+        // The SDK aggregate's implicit destructor destroys its CString member.
+        unsafe { self.0.unk08.destruct() }
     }
 }
 
