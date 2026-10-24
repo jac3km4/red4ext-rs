@@ -78,7 +78,12 @@ impl InvokeError {
 pub trait GlobalInvocable<A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
+    fn invoke(
+        self,
+        ctx: *mut IScriptable,
+        frame: &mut StackFrame,
+        ret: Option<&mut MaybeUninit<R>>,
+    );
 }
 
 macro_rules! impl_global_invocable {
@@ -98,7 +103,7 @@ macro_rules! impl_global_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
+                fn invoke(self, _ctx: *mut IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self($($types,)*);
                     if let Some(ret) = ret {
@@ -139,7 +144,7 @@ macro_rules! impl_global_invocable_with_ref {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
+                fn invoke(self, _ctx: *mut IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     let this = unsafe { frame.get_arg() };
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self(this, $($types,)*);
@@ -349,8 +354,8 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 #[macro_export]
 macro_rules! global {
     ($name:literal, $fun:expr) => {{
-        extern "C" fn native_impl(
-            ctx: &$crate::types::IScriptable,
+        unsafe extern "C" fn native_impl(
+            ctx: *mut $crate::types::IScriptable,
             frame: &mut $crate::types::StackFrame,
             ret: $crate::VoidPtr,
             _unk: i64,
@@ -369,13 +374,15 @@ macro_rules! global {
 #[macro_export]
 macro_rules! method {
     ($name:literal, $ty:ident::$id:ident $($mods:ident)*) => {{
-        extern "C" fn native_impl(
-            ctx: &$ty,
+        unsafe extern "C" fn native_impl(
+            ctx: *mut $ty,
             frame: &mut $crate::types::StackFrame,
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
             let out = unsafe { ::std::mem::transmute(ret) };
+            if !ctx.is_aligned() { return; }
+            let Some(ctx) = (unsafe { ctx.as_ref() }) else { return };
             $crate::MethodInvocable::invoke($ty::$id, ctx, frame, out);
             unsafe { frame.step() };
         }

@@ -14,7 +14,7 @@ use crate::types::PtrEq;
 use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
 /// Native handler for SDK [functions](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
-pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
+pub type FunctionHandler<C, R> = unsafe extern "C" fn(*mut C, &mut StackFrame, R, i64);
 
 /// SDK [CBaseRTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 /// Metadata borrowed from RTTI remains engine-owned.
