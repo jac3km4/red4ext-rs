@@ -115,7 +115,7 @@ impl<T> ops::Deref for RedArray<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        if !self.0.entries.is_null() {
+        if self.0.capacity != 0 && !self.is_empty() {
             unsafe { slice::from_raw_parts(self.0.entries, self.len() as _) }
         } else {
             Default::default()
@@ -126,7 +126,7 @@ impl<T> ops::Deref for RedArray<T> {
 impl<T> ops::DerefMut for RedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [T] {
-        if !self.0.entries.is_null() {
+        if self.0.capacity != 0 && !self.is_empty() {
             unsafe { slice::from_raw_parts_mut(self.0.entries, self.len() as _) }
         } else {
             Default::default()
@@ -165,6 +165,12 @@ impl<T> IntoIterator for RedArray<T> {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         let me = mem::ManuallyDrop::new(self);
+        // With zero capacity, entries stores an allocator vtable, not elements.
+        let ptr = if me.is_empty() {
+            ptr::NonNull::<T>::dangling().as_ptr()
+        } else {
+            me.0.entries
+        };
         IntoIter {
             array: red::DynArray {
                 entries: me.0.entries,
@@ -172,8 +178,8 @@ impl<T> IntoIterator for RedArray<T> {
                 capacity: me.capacity(),
                 ..Default::default()
             },
-            ptr: me.0.entries,
-            end: unsafe { me.0.entries.add(me.len() as _) },
+            ptr,
+            remaining: me.len() as usize,
         }
     }
 }
@@ -216,7 +222,7 @@ impl<T> Drop for RedArray<T> {
 pub struct IntoIter<T> {
     array: red::DynArray<T>,
     ptr: *mut T,
-    end: *mut T,
+    remaining: usize,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -224,9 +230,10 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.ptr == self.end {
+        if self.remaining == 0 {
             None
         } else {
+            self.remaining -= 1;
             let old = self.ptr;
             self.ptr = unsafe { old.add(1) };
             Some(unsafe { ptr::read(old) })
@@ -235,19 +242,18 @@ impl<T> Iterator for IntoIter<T> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = unsafe { self.end.offset_from(self.ptr) } as usize;
-        (len, Some(len))
+        (self.remaining, Some(self.remaining))
     }
 }
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.ptr == self.end {
+        if self.remaining == 0 {
             None
         } else {
-            self.end = unsafe { self.end.sub(1) };
-            Some(unsafe { ptr::read(self.end) })
+            self.remaining -= 1;
+            Some(unsafe { ptr::read(self.ptr.add(self.remaining)) })
         }
     }
 }
@@ -259,14 +265,24 @@ impl<T> FusedIterator for IntoIter<T> {}
 impl<T> Drop for IntoIter<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.array.capacity == 0 {
-            return;
-        }
         unsafe {
-            let elems = slice::from_raw_parts_mut(self.ptr, self.len());
+            let elems = ptr::slice_from_raw_parts_mut(self.ptr, self.remaining);
+            self.remaining = 0;
             ptr::drop_in_place(elems);
-            (*get_allocator(&self.array)).free(self.array.entries);
+            if self.array.capacity != 0 {
+                (*get_allocator(&self.array)).free(self.array.entries);
+            }
         };
+    }
+}
+
+fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
+    if arr.capacity == 0 {
+        &arr.entries as *const _ as *mut _
+    } else {
+        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
+        let aligned = end.next_multiple_of(mem::size_of::<usize>());
+        aligned as _
     }
 }
 
@@ -277,6 +293,89 @@ mod tests {
     use std::rc::Rc;
 
     use super::*;
+
+    #[test]
+    fn empty_views_ignore_allocator_vtable() {
+        #[repr(align(256))]
+        struct Aligned {
+            _byte: u8,
+        }
+        let mut array = RedArray::<Aligned>::new();
+        // A non-null, deliberately unaligned stand-in for an SDK allocator vtable.
+        array.0.entries = ptr::without_provenance_mut(1);
+        assert!(array.as_ref().is_empty());
+        assert!(array.as_mut().is_empty());
+        array.clear();
+        let mut iter = array.into_iter();
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+        drop(iter);
+    }
+
+    #[test]
+    fn null_empty_iterator_is_fused() {
+        let mut iter = RedArray::<u64>::new().into_iter();
+        assert_eq!(iter.len(), 0);
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.len(), 0);
+    }
+
+    #[test]
+    fn consuming_zsts_tracks_counts_and_drops_remainder() {
+        thread_local! {
+            static DROPS: Cell<usize> = const { Cell::new(0) };
+        }
+        struct Zst;
+        impl Drop for Zst {
+            fn drop(&mut self) {
+                DROPS.with(|drops| drops.set(drops.get() + 1));
+            }
+        }
+        assert_eq!(mem::size_of::<Zst>(), 0);
+        DROPS.with(|drops| drops.set(0));
+        // No allocation is needed for these synthetic ZST owners.
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: ptr::NonNull::<Zst>::dangling().as_ptr(),
+            remaining: 5,
+        };
+        assert_eq!(iter.len(), 5);
+        drop(iter.next().unwrap());
+        assert_eq!(iter.size_hint(), (4, Some(4)));
+        drop(iter.next_back().unwrap());
+        assert_eq!(iter.len(), 3);
+        drop(iter);
+        DROPS.with(|drops| assert_eq!(drops.get(), 5));
+
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: ptr::NonNull::<Zst>::dangling().as_ptr(),
+            remaining: 2,
+        };
+        drop(iter.next_back().unwrap());
+        drop(iter.next().unwrap());
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+        assert_eq!(iter.len(), 0);
+        drop(iter);
+        DROPS.with(|drops| assert_eq!(drops.get(), 7));
+    }
+
+    #[test]
+    fn consuming_non_zsts_supports_mixed_ends() {
+        let mut storage = [10, 20, 30, 40];
+        let mut iter = IntoIter {
+            array: red::DynArray::default(),
+            ptr: storage.as_mut_ptr(),
+            remaining: storage.len(),
+        };
+        assert_eq!(iter.next(), Some(10));
+        assert_eq!(iter.next_back(), Some(40));
+        assert_eq!(iter.len(), 2);
+        assert_eq!(iter.collect::<Vec<_>>(), [20, 30]);
+    }
 
     #[test]
     fn clear_empties_before_panicking_drop() {
@@ -312,15 +411,5 @@ mod tests {
         array.0.capacity = 0;
         drop(array);
         assert_eq!(drops.get(), 2);
-    }
-}
-
-fn get_allocator<T>(arr: &red::DynArray<T>) -> *mut IAllocator {
-    if arr.capacity == 0 {
-        &arr.entries as *const _ as *mut _
-    } else {
-        let end = unsafe { arr.entries.add(arr.capacity as _) } as usize;
-        let aligned = end.next_multiple_of(mem::size_of::<usize>());
-        aligned as _
     }
 }
