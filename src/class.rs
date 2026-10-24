@@ -20,8 +20,18 @@ pub unsafe trait ScriptClass: Sized {
 pub trait ClassKind<T> {
     type NativeType;
 
-    fn fields(inst: &Self::NativeType) -> &T;
-    fn fields_mut(inst: &mut Self::NativeType) -> &mut T;
+    /// Projects the native instance into its Rust field layout.
+    ///
+    /// # Safety
+    /// The instance must belong to the class bound to `T`, with initialized,
+    /// correctly aligned storage for `T` for the duration of the borrow.
+    unsafe fn fields(inst: &Self::NativeType) -> &T;
+    /// Projects the native instance into its mutable Rust field layout.
+    ///
+    /// # Safety
+    /// The requirements of `fields` apply, and the field storage must be
+    /// exclusively accessible for the duration of the borrow.
+    unsafe fn fields_mut(inst: &mut Self::NativeType) -> &mut T;
 }
 
 /// Marker types for distinguishing between native and scripted classes.
@@ -38,12 +48,12 @@ pub mod class_kind {
         type NativeType = IScriptable;
 
         #[inline]
-        fn fields(inst: &Self::NativeType) -> &T {
+        unsafe fn fields(inst: &Self::NativeType) -> &T {
             unsafe { &*inst.fields().as_ptr().cast::<T>() }
         }
 
         #[inline]
-        fn fields_mut(inst: &mut Self::NativeType) -> &mut T {
+        unsafe fn fields_mut(inst: &mut Self::NativeType) -> &mut T {
             unsafe { &mut *inst.fields().as_ptr().cast::<T>() }
         }
     }
@@ -57,12 +67,12 @@ pub mod class_kind {
         type NativeType = T;
 
         #[inline]
-        fn fields(inst: &Self::NativeType) -> &T {
+        unsafe fn fields(inst: &Self::NativeType) -> &T {
             inst
         }
 
         #[inline]
-        fn fields_mut(inst: &mut Self::NativeType) -> &mut T {
+        unsafe fn fields_mut(inst: &mut Self::NativeType) -> &mut T {
             inst
         }
     }
