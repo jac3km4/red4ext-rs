@@ -29,7 +29,7 @@ unsafe impl NativeRepr for GameInstance {
 
 /// Native SDK [GameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp),
 /// not REDscript's [`GameInstance`]. Access through [`GameEngine::game_instance`].
-#[derive(Default)]
+/// This is a borrowed engine object, not a constructible or owning Rust value.
 #[repr(transparent)]
 pub struct NativeGameInstance(red::GameInstance);
 
@@ -51,16 +51,9 @@ impl NativeGameInstance {
     }
 }
 
-impl Drop for NativeGameInstance {
-    #[inline]
-    fn drop(&mut self) {
-        unsafe { (self.vft().destroy)(self) };
-    }
-}
-
 #[repr(C)]
 pub struct GameInstanceVft {
-    destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
+    _destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
     get_system:
         unsafe extern "C" fn(this: *const NativeGameInstance, ty: &Type) -> *mut red::IScriptable,
     _unk10: VoidPtr,
@@ -186,4 +179,14 @@ pub struct IGameSystemVft {
     sub_198: VoidPtr,
     on_initialize: VoidPtr,
     on_uninitialize: VoidPtr,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NativeGameInstance;
+
+    #[test]
+    fn native_game_instance_is_non_owning() {
+        assert!(!std::mem::needs_drop::<NativeGameInstance>());
+    }
 }
