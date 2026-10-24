@@ -2,6 +2,76 @@
 
 Rust wrapper around [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK).
 
+## contributing
+
+### prerequisites
+
+Build and validate on Windows x64 with:
+
+- Rust 1.95 or newer, with the `x86_64-pc-windows-msvc` target.
+- Visual Studio C++ build tools (x64 MSVC) and the Windows SDK. Run commands
+  from an x64 developer shell so the compiler and linker are available.
+- CMake 3.21 or newer on `PATH`.
+- LLVM/libclang for bindgen; set `LIBCLANG_PATH` to the directory containing
+  `libclang.dll` if it is not discoverable.
+- Initialized Git submodules: `git submodule update --init --recursive`.
+
+Install the formatter separately; it is pinned because `.rustfmt.toml` uses
+nightly options:
+
+```sh
+rustup toolchain install nightly-2026-10-15 --profile minimal --component rustfmt
+cargo +nightly-2026-10-15 fmt --all -- --check
+```
+
+### validation
+
+Run from the repository root. Use `--locked` to keep dependency resolution
+reproducible. The Windows CI job combines Clippy and tests for
+both default features and all features; the Rust 1.95 MSRV check is separate:
+
+```sh
+cargo +stable clippy --locked --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings
+cargo +stable test --locked -p red4ext-rs --target x86_64-pc-windows-msvc
+cargo +stable clippy --locked --workspace --all-targets --all-features --target x86_64-pc-windows-msvc -- -D warnings
+cargo +stable test --locked -p red4ext-rs --all-features --target x86_64-pc-windows-msvc
+cargo +1.95 check --locked --workspace --all-targets --target x86_64-pc-windows-msvc
+cargo +1.95 check --locked --workspace --all-targets --all-features --target x86_64-pc-windows-msvc
+```
+
+The downstream smoke fixture in `tests/fixtures/plugin` is a minimal `cdylib`
+using only the path dependency's default features (no optional features). It
+exercises the README plugin example's `export_plugin_symbols!`, `global!`, and
+`exports!` macros. Build the actual DLL, not just its test harness, to check the
+exported entry points and linking:
+
+```sh
+cargo +stable build --locked -p red4ext-smoke-plugin --release --target x86_64-pc-windows-msvc
+```
+
+The resulting DLL is
+`target/x86_64-pc-windows-msvc/release/red4ext_smoke_plugin.dll`. This is a
+compile/link smoke check, not an in-game runtime test.
+
+### measuring build performance
+
+`RED4EXT_USE_PCH` defaults to on; set it to `0` to disable precompiled headers.
+`RED4EXT_BUILD_TIMINGS=1` opts into build-script phase timings. Add Cargo's
+`--timings` flag to collect its HTML timing report in `target/cargo-timings/`:
+
+```sh
+cargo +stable build --locked -p red4ext-smoke-plugin --release --target x86_64-pc-windows-msvc --timings
+```
+
+Set these environment variables in your developer shell before running the
+command. Compare PCH on and off using both clean builds (run `cargo clean`
+before each clean measurement) and repeated warm builds without cleaning.
+Keep the toolchains, features, machine, and command identical, record the
+settings and timings, and repeat runs to account for noise. Warm no-change
+builds may skip the build script entirely; measure rebuilds after the same
+controlled source change separately. PCH benefits depend on the workload; no
+speedup is guaranteed.
+
 ## documentation
 
 Read the [documentation](https://jac3km4.github.io/red4ext-rs/red4ext_rs/index.html)!
