@@ -15,11 +15,18 @@ use crate::{NativeRepr, VoidPtr};
 pub struct GameInstance(red::ScriptGameInstance);
 
 impl GameInstance {
+    /// Returns `None` if the engine, framework, or game instance is unavailable.
+    ///
+    /// # Safety
+    /// The engine must be initialized, and its game instance must remain live
+    /// for every use of the returned script instance. The caller must synchronize
+    /// access with native engine activity.
     #[inline]
-    pub fn new() -> Self {
-        Self(unsafe {
-            red::ScriptGameInstance::new(GameEngine::get().game_instance() as *const _ as *mut _)
-        })
+    pub unsafe fn new() -> Option<Self> {
+        let game = unsafe { GameEngine::get()?.game_instance()? };
+        Some(Self(unsafe {
+            red::ScriptGameInstance::new(game as *const _ as *mut _)
+        }))
     }
 }
 
@@ -56,6 +63,12 @@ mod tests {
     use super::NativeGameInstance;
 
     #[test]
+    fn missing_game_framework_is_unavailable() {
+        let engine = super::GameEngine(unsafe { std::mem::zeroed() });
+        assert!(unsafe { engine.game_instance() }.is_none());
+    }
+
+    #[test]
     fn native_game_instance_is_non_owning() {
         assert!(!std::mem::needs_drop::<NativeGameInstance>());
     }
@@ -86,12 +99,26 @@ pub struct GameInstanceVft {
 pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
-    pub fn get<'a>() -> &'a Self {
-        unsafe { &*(red::CGameEngine::Get() as *const GameEngine) }
+    /// Returns `None` when the engine singleton is unavailable.
+    ///
+    /// # Safety
+    /// The engine runtime must permit querying the singleton. The caller must
+    /// ensure the engine remains live for `'a` and prevent native mutation that
+    /// conflicts with the returned shared reference. Null checks do not establish
+    /// initialization, lifetime, or synchronization.
+    pub unsafe fn get<'a>() -> Option<&'a Self> {
+        unsafe { (red::CGameEngine::Get() as *const GameEngine).as_ref() }
     }
 
-    pub fn game_instance(&self) -> &NativeGameInstance {
-        unsafe { &*((*self.0.framework).gameInstance as *const NativeGameInstance) }
+    /// Returns `None` when the framework or game instance is unavailable.
+    ///
+    /// # Safety
+    /// Non-null framework and instance pointers must refer to initialized, live
+    /// objects. The instance must remain live for the returned borrow, and the
+    /// caller must synchronize access with native mutation and teardown.
+    pub unsafe fn game_instance(&self) -> Option<&NativeGameInstance> {
+        let framework = unsafe { self.0.framework.as_ref()? };
+        unsafe { (framework.gameInstance as *const NativeGameInstance).as_ref() }
     }
 }
 
