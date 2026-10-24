@@ -133,13 +133,16 @@ mod tests {
         unsafe extern "C" fn invoke(_this: *const Self, arg: u64) -> u64 {
             arg
         }
+
         unsafe extern "C" fn copy(target: *mut Self, source: *const Self) {
             unsafe { target.write(Self((*source).0.clone())) };
         }
+
         unsafe extern "C" fn move_(target: *mut Self, source: *mut Self) {
             // Sharing is a valid move policy; the source remains destructible.
             unsafe { Self::copy(target, source) };
         }
+
         unsafe extern "C" fn destroy(this: *mut Self) {
             unsafe {
                 (*this).0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -173,12 +176,15 @@ mod tests {
                 unsafe extern "C" fn invoke(_this: *const Self, arg: u64) -> u64 {
                     arg
                 }
+
                 unsafe extern "C" fn copy(_target: *mut Self, _source: *const Self) {
                     unreachable!()
                 }
+
                 unsafe extern "C" fn move_(_target: *mut Self, _source: *mut Self) {
                     unreachable!()
                 }
+
                 unsafe extern "C" fn destroy(_this: *mut Self) {}
             }
         };
