@@ -8,7 +8,7 @@ use crate::raw::root::RED4ext as red;
 /// SDK [TweakDBID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 /// Creating an ID hashes a name; it does not create or look up a database record.
 #[derive(Default, Clone, Copy)]
-#[repr(C, align(4))]
+#[repr(transparent)]
 pub struct TweakDbId(red::TweakDBID);
 
 impl TweakDbId {
@@ -56,9 +56,16 @@ impl TweakDbId {
         i32::from_be_bytes([0, b1, b2, b3])
     }
 
+    /// Sets an unsigned 24-bit database offset.
+    ///
+    /// # Panics
+    /// Panics outside `0..=0xFF_FFFF`. Unlike the SDK setter, this rejects
+    /// negative and overflowing inputs rather than truncating their high byte.
     pub fn with_tdb_offset(self, offset: i32) -> Self {
-        assert!(offset <= (i8::MAX as i32 * i8::MAX as i32 * i8::MAX as i32));
-        assert!(offset >= (i8::MIN as i32 * i8::MIN as i32 * i8::MIN as i32));
+        assert!(
+            (0..=0xFF_FFFF).contains(&offset),
+            "TDB offset must fit in 24 unsigned bits"
+        );
         let [_, b1, b2, b3] = offset.to_be_bytes();
         Self::new_with(
             unsafe { self.0.__bindgen_anon_1.name }.hash,
@@ -90,7 +97,7 @@ impl Debug for TweakDbId {
 
 impl PartialEq for TweakDbId {
     fn eq(&self, other: &Self) -> bool {
-        u64::from(*self).eq(&u64::from(*other))
+        self.hash() == other.hash() && self.len() == other.len()
     }
 }
 
@@ -104,7 +111,7 @@ impl PartialOrd for TweakDbId {
 
 impl Ord for TweakDbId {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        u64::from(*self).cmp(&u64::from(*other))
+        (self.hash(), self.len()).cmp(&(other.hash(), other.len()))
     }
 }
 
@@ -124,13 +131,24 @@ impl From<TweakDbId> for u64 {
 
 impl Hash for TweakDbId {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        u64::from(*self).hash(state);
+        self.hash().hash(state);
+        self.len().hash(state);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::TweakDbId;
+
+    #[test]
+    fn sdk_layout() {
+        assert_eq!(std::mem::size_of::<TweakDbId>(), 8);
+        assert_eq!(std::mem::align_of::<TweakDbId>(), 1);
+        assert_eq!(
+            std::mem::align_of::<TweakDbId>(),
+            std::mem::align_of::<crate::raw::root::RED4ext::TweakDBID>()
+        );
+    }
 
     #[test]
     fn conversion() {
@@ -142,6 +160,32 @@ mod tests {
             u64::from(TweakDbId::new("Items.FirstAidWhiffV0")),
             90_628_141_458
         );
+    }
+
+    #[test]
+    fn identity_ignores_offset() {
+        use std::collections::{BTreeSet, HashSet};
+
+        let original = TweakDbId::new("Items.FirstAidWhiffV0");
+        let modified = original.with_tdb_offset(128);
+        assert_ne!(u64::from(original), u64::from(modified));
+        assert_eq!(original, modified);
+        assert_eq!(HashSet::from([original, modified]).len(), 1);
+        assert_eq!(BTreeSet::from([original, modified]).len(), 1);
+        // Hash takes precedence over length, unlike the packed u64 ordering.
+        assert!(TweakDbId::new_with(1, 255, [0; 3]) < TweakDbId::new_with(2, 0, [0; 3]));
+        assert!(TweakDbId::new_with(1, 1, [0; 3]) < TweakDbId::new_with(1, 2, [0; 3]));
+    }
+
+    #[test]
+    fn offset_bounds() {
+        let id = TweakDbId::new("test");
+        for offset in [0, 1, 0x7F_FFFF, 0x80_0000, 0xFF_FFFF] {
+            assert_eq!(id.with_tdb_offset(offset).tdb_offset(), offset);
+        }
+        for offset in [-1, i32::MIN, 0x100_0000, i32::MAX] {
+            assert!(std::panic::catch_unwind(|| id.with_tdb_offset(offset)).is_err());
+        }
     }
 
     #[test]
