@@ -56,9 +56,16 @@ impl TweakDbId {
         i32::from_be_bytes([0, b1, b2, b3])
     }
 
+    /// Sets an unsigned 24-bit database offset.
+    ///
+    /// # Panics
+    /// Panics outside `0..=0xFF_FFFF`. Unlike the SDK setter, this rejects
+    /// negative and overflowing inputs rather than truncating their high byte.
     pub fn with_tdb_offset(self, offset: i32) -> Self {
-        assert!(offset <= (i8::MAX as i32 * i8::MAX as i32 * i8::MAX as i32));
-        assert!(offset >= (i8::MIN as i32 * i8::MIN as i32 * i8::MIN as i32));
+        assert!(
+            (0..=0xFF_FFFF).contains(&offset),
+            "TDB offset must fit in 24 unsigned bits"
+        );
         let [_, b1, b2, b3] = offset.to_be_bytes();
         Self::new_with(
             unsafe { self.0.__bindgen_anon_1.name }.hash,
@@ -168,6 +175,17 @@ mod tests {
         // Hash takes precedence over length, unlike the packed u64 ordering.
         assert!(TweakDbId::new_with(1, 255, [0; 3]) < TweakDbId::new_with(2, 0, [0; 3]));
         assert!(TweakDbId::new_with(1, 1, [0; 3]) < TweakDbId::new_with(1, 2, [0; 3]));
+    }
+
+    #[test]
+    fn offset_bounds() {
+        let id = TweakDbId::new("test");
+        for offset in [0, 1, 0x7F_FFFF, 0x80_0000, 0xFF_FFFF] {
+            assert_eq!(id.with_tdb_offset(offset).tdb_offset(), offset);
+        }
+        for offset in [-1, i32::MIN, 0x100_0000, i32::MAX] {
+            assert!(std::panic::catch_unwind(|| id.with_tdb_offset(offset)).is_err());
+        }
     }
 
     #[test]
