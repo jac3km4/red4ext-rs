@@ -91,6 +91,10 @@ impl<C: ScriptClass> ClassExport<C> {
 #[sealed]
 impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for ClassExport<C> {
     fn register(&self) {
+        assert_eq!(
+            self.base, "IScriptable",
+            "ClassExport only supports direct IScriptable bases; derived bases require separate native vtable shims"
+        );
         let mut rtti = RttiSystemMut::get();
         let name_cstr = CString::new(C::NAME).expect("name should be valid");
         let base = rtti
@@ -147,7 +151,9 @@ pub struct ClassExportBuilder<C: 'static> {
 
 impl<C> ClassExportBuilder<C> {
     /// Set the base class of the class to be exported.
-    /// This is set to `IScriptable` by default.
+    ///
+    /// Currently only `"IScriptable"` is supported because the instance-side native
+    /// dispatch shim targets the `IScriptable` vtable layout directly.
     pub const fn base(mut self, base: &'static str) -> Self {
         self.base = base;
         self
