@@ -1503,6 +1503,30 @@ impl IScriptable {
         self.0.nativeType = class.as_raw() as *const _ as *mut red::CClass;
     }
 
+    /// Creates a fresh native base, retaining type metadata but not object identity.
+    ///
+    /// This deliberately does not copy scripted fields or the embedded weak
+    /// handle. Native Rust classes can use this in a manual `Clone` implementation
+    /// to copy their own fields without duplicating engine-owned base state.
+    /// Scripted objects must be copied through engine RTTI instead.
+    pub fn clone_native_base(&self) -> Self {
+        assert!(
+            self.0.valueHolder.is_null(),
+            "cannot copy a scripted value holder"
+        );
+        if let Some(class) = unsafe { self.0.nativeType.cast::<Class>().as_ref() } {
+            assert!(
+                !class.flags().is_scripted_class() && !class.flags().is_scripted_struct(),
+                "cannot copy a scripted object as a native base"
+            );
+        }
+        let mut base = Self::default();
+        // Keep the fresh base's vtable: a derived vtable may access fields that
+        // are not present in this standalone IScriptable value.
+        base.0.nativeType = self.0.nativeType;
+        base
+    }
+
     #[inline]
     pub fn vft(&self) -> &IScriptableVft {
         unsafe { &*(self.0._base.vtable_ as *const IScriptableVft) }
@@ -1513,13 +1537,6 @@ impl Default for IScriptable {
     #[inline]
     fn default() -> Self {
         Self(unsafe { red::IScriptable::new() })
-    }
-}
-
-impl Clone for IScriptable {
-    #[inline]
-    fn clone(&self) -> Self {
-        unsafe { ptr::read(self) }
     }
 }
 
