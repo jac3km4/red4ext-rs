@@ -48,12 +48,12 @@ where
 
 impl<T> fmt::Display for Opt<T>
 where
-    T: fmt::Display,
+    T: fmt::Display + Default,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonDefault(x) => write!(f, "{x}"),
-            Self::Default => write!(f, "{}", <Self as Default>::default()),
+            Self::Default => write!(f, "{}", T::default()),
         }
     }
 }
@@ -125,6 +125,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::Opt;
+
+    #[test]
+    fn display() {
+        assert_eq!(Opt::<i32>::Default.to_string(), "0");
+        assert_eq!(Opt::NonDefault(42).to_string(), "42");
+        assert_eq!(Opt::<String>::Default.to_string(), "");
+    }
 
     #[test]
     fn transitivity() {
