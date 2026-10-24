@@ -3,7 +3,7 @@ use std::{ffi, mem, ptr};
 
 /// No-argument C callback used for RTTI registration.
 pub type VoidFunctionPointerCallback =
-    Callback<extern "C" fn(), CallbackHandler<extern "C" fn(), ffi::c_void, ()>>;
+    Callback<extern "C" fn(), NoArgCallbackHandler<extern "C" fn(), ()>>;
 
 /// Inline callable using the SDK
 /// [Callback](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Callback.hpp) layout.
@@ -80,20 +80,63 @@ unsafe impl<A, R> Callable<A, R> for extern "C" fn(A) -> R {
     unsafe extern "C" fn destroy(_this: *mut Self) {}
 }
 
-unsafe impl<R> Callable<ffi::c_void, R> for extern "C" fn() -> R {
-    unsafe extern "C" fn invoke(this: *const Self, _arg: ffi::c_void) -> R {
+/// SDK handler for a callable with no arguments.
+#[repr(C)]
+pub struct NoArgCallbackHandler<C, R> {
+    invoke: unsafe extern "C" fn(this: *const C) -> R,
+    copy: unsafe extern "C" fn(target: *mut C, source: *const C),
+    move_: unsafe extern "C" fn(target: *mut C, source: *mut C),
+    destroy: unsafe extern "C" fn(this: *mut C),
+}
+
+impl<R: 'static> Callback<extern "C" fn() -> R, NoArgCallbackHandler<extern "C" fn() -> R, R>> {
+    const HANDLER: NoArgCallbackHandler<extern "C" fn() -> R, R> = NoArgCallbackHandler {
+        invoke: Self::invoke,
+        copy: Self::copy,
+        move_: Self::move_,
+        destroy: Self::destroy,
+    };
+
+    pub fn new(callback: extern "C" fn() -> R) -> Self {
+        let mut buffer = [0usize; 4];
+        unsafe {
+            buffer
+                .as_mut_ptr()
+                .cast::<extern "C" fn() -> R>()
+                .write(callback)
+        };
+        Self {
+            callback: PhantomData,
+            buffer,
+            handler: &Self::HANDLER,
+        }
+    }
+
+    unsafe extern "C" fn invoke(this: *const extern "C" fn() -> R) -> R {
         unsafe { (*this)() }
     }
 
-    unsafe extern "C" fn copy(target: *mut Self, source: *const Self) {
+    unsafe extern "C" fn copy(
+        target: *mut extern "C" fn() -> R,
+        source: *const extern "C" fn() -> R,
+    ) {
         unsafe { target.write(*source) };
     }
 
-    unsafe extern "C" fn move_(target: *mut Self, source: *mut Self) {
+    unsafe extern "C" fn move_(
+        target: *mut extern "C" fn() -> R,
+        source: *mut extern "C" fn() -> R,
+    ) {
         unsafe { target.write(*source) };
     }
 
-    unsafe extern "C" fn destroy(_this: *mut Self) {}
+    unsafe extern "C" fn destroy(_this: *mut extern "C" fn() -> R) {}
+}
+
+unsafe impl<C, R> CallbackStorage for NoArgCallbackHandler<C, R> {
+    unsafe fn destroy_storage(&self, storage: *mut ffi::c_void) {
+        unsafe { (self.destroy)(storage.cast()) };
+    }
 }
 
 #[repr(C)]
@@ -155,7 +198,8 @@ mod tests {
     fn owned_target_is_aligned_and_destroyed_once() {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let drops = std::sync::Arc::new(AtomicUsize::new(0));
-        let callback = Callback::new(Owned(drops.clone()));
+        let callback =
+            Callback::<Owned, CallbackHandler<Owned, u64, u64>>::new(Owned(drops.clone()));
         assert!(callback.buffer.as_ptr().cast::<Owned>().is_aligned());
         assert_eq!(
             unsafe { (callback.handler.invoke)(callback.buffer.as_ptr().cast(), 42) },
@@ -197,13 +241,13 @@ mod tests {
     fn rejects_oversized_target() {
         let target = Oversized([0; 33]);
         assert_eq!(target.0.len(), 33);
-        let _ = Callback::new(target);
+        let _ = Callback::<Oversized, CallbackHandler<Oversized, u64, u64>>::new(target);
     }
 
     #[test]
     #[should_panic(expected = "callback exceeds inline alignment")]
     fn rejects_overaligned_target() {
-        let _ = Callback::new(Overaligned);
+        let _ = Callback::<Overaligned, CallbackHandler<Overaligned, u64, u64>>::new(Overaligned);
     }
 
     #[test]
@@ -211,6 +255,7 @@ mod tests {
         assert_eq!(mem::size_of::<VoidFunctionPointerCallback>(), 0x28);
         assert_eq!(mem::align_of::<VoidFunctionPointerCallback>(), 8);
         let callback = VoidFunctionPointerCallback::new(noop as extern "C" fn());
+        unsafe { (callback.handler.invoke)(callback.buffer.as_ptr().cast()) };
         assert_eq!(
             ptr::addr_of!(callback.handler) as usize - ptr::addr_of!(callback) as usize,
             0x20
