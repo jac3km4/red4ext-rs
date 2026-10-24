@@ -89,7 +89,9 @@ impl RttiSystem {
     #[inline]
     pub fn get_enums(&self) -> RedArray<&Enum> {
         let mut out = RedArray::default();
-        unsafe { (self.vft().get_enums)(self, &mut out as *mut _ as *mut RedArray<*mut Enum>) };
+        unsafe {
+            (self.vft().get_enums)(self, &mut out as *mut _ as *mut RedArray<*mut Enum>, false)
+        };
         out
     }
 
@@ -343,7 +345,11 @@ struct RttiSystemVft {
     _sub_50: unsafe extern "C" fn(this: *const RttiSystem),
     get_class_functions:
         unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
-    get_enums: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Enum>),
+    get_enums: unsafe extern "C" fn(
+        this: *const RttiSystem,
+        out: *mut RedArray<*mut Enum>,
+        scripted_only: bool,
+    ),
     get_bitfields: unsafe extern "C" fn(
         this: *const RttiSystem,
         out: *mut RedArray<*mut Bitfield>,
