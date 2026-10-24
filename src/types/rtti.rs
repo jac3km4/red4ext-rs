@@ -1533,7 +1533,8 @@ impl IScriptable {
             );
         }
         let mut base = Self::default();
-        base.0._base.vtable_ = self.0._base.vtable_;
+        // Keep the fresh base's vtable: a derived vtable may access fields that
+        // are not present in this standalone IScriptable value.
         base.0.nativeType = self.0.nativeType;
         base
     }
