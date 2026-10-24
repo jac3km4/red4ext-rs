@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use std::{ffi, ptr};
+use std::{ffi, mem, ptr};
 
 /// No-argument C callback used for RTTI registration.
 pub type VoidFunctionPointerCallback =
@@ -8,13 +8,13 @@ pub type VoidFunctionPointerCallback =
 /// Inline callable using the SDK
 /// [Callback](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Callback.hpp) layout.
 #[repr(C)]
-pub struct Callback<F, H: 'static> {
+pub struct Callback<F, H: CallbackStorage + 'static> {
     callback: PhantomData<F>,
-    buffer: [u8; 0x20],
+    buffer: [usize; 4],
     handler: &'static H,
 }
 
-impl<F: Callable<A, R>, A, R> Callback<F, CallbackHandler<F, A, R>> {
+impl<F: Callable<A, R> + 'static, A: 'static, R: 'static> Callback<F, CallbackHandler<F, A, R>> {
     const HANDLER: CallbackHandler<F, A, R> = CallbackHandler {
         invoke: F::invoke,
         copy: F::copy,
@@ -23,7 +23,15 @@ impl<F: Callable<A, R>, A, R> Callback<F, CallbackHandler<F, A, R>> {
     };
 
     pub fn new(callback: F) -> Self {
-        let mut buffer = [0u8; 0x20];
+        assert!(
+            mem::size_of::<F>() <= 0x20,
+            "callback exceeds inline storage"
+        );
+        assert!(
+            mem::align_of::<F>() <= mem::align_of::<usize>(),
+            "callback exceeds inline alignment"
+        );
+        let mut buffer = [0usize; 4];
         unsafe { ptr::write(buffer.as_mut_ptr().cast::<F>(), callback) };
         Self {
             callback: PhantomData,
@@ -33,50 +41,135 @@ impl<F: Callable<A, R>, A, R> Callback<F, CallbackHandler<F, A, R>> {
     }
 }
 
+impl<F, H: CallbackStorage + 'static> Drop for Callback<F, H> {
+    fn drop(&mut self) {
+        unsafe {
+            self.handler
+                .destroy_storage(self.buffer.as_mut_ptr().cast())
+        };
+    }
+}
+
+/// Operations for an inline SDK callable.
+///
+/// # Safety
+/// Implementations must accept the SDK calling convention. Copy and move must
+/// initialize an uninitialized, aligned destination; move must leave the source
+/// valid for destruction. Destroy must release exactly the target's resources.
+/// Targets must remain valid when relocated as bytes and must not unwind.
 pub unsafe trait Callable<A, R> {
-    extern "C" fn invoke(&self, arg: A) -> R;
-    extern "C" fn copy(target: &mut Self, source: &Self);
-    extern "C" fn move_(target: &mut Self, source: &mut Self);
-    extern "C" fn destroy(&mut self);
+    unsafe extern "C" fn invoke(this: *const Self, arg: A) -> R;
+    unsafe extern "C" fn copy(target: *mut Self, source: *const Self);
+    unsafe extern "C" fn move_(target: *mut Self, source: *mut Self);
+    unsafe extern "C" fn destroy(this: *mut Self);
 }
 
 unsafe impl<A, R> Callable<A, R> for extern "C" fn(A) -> R {
-    extern "C" fn invoke(&self, arg: A) -> R {
-        self(arg)
+    unsafe extern "C" fn invoke(this: *const Self, arg: A) -> R {
+        unsafe { (*this)(arg) }
     }
 
-    extern "C" fn copy(target: &mut Self, source: &Self) {
-        *target = *source;
+    unsafe extern "C" fn copy(target: *mut Self, source: *const Self) {
+        unsafe { target.write(*source) };
     }
 
-    extern "C" fn move_(target: &mut Self, source: &mut Self) {
-        *target = *source;
+    unsafe extern "C" fn move_(target: *mut Self, source: *mut Self) {
+        unsafe { target.write(*source) };
     }
 
-    extern "C" fn destroy(&mut self) {}
+    unsafe extern "C" fn destroy(_this: *mut Self) {}
 }
 
 unsafe impl<R> Callable<ffi::c_void, R> for extern "C" fn() -> R {
-    extern "C" fn invoke(&self, _arg: ffi::c_void) -> R {
-        self()
+    unsafe extern "C" fn invoke(this: *const Self, _arg: ffi::c_void) -> R {
+        unsafe { (*this)() }
     }
 
-    extern "C" fn copy(target: &mut Self, source: &Self) {
-        *target = *source;
+    unsafe extern "C" fn copy(target: *mut Self, source: *const Self) {
+        unsafe { target.write(*source) };
     }
 
-    extern "C" fn move_(target: &mut Self, source: &mut Self) {
-        *target = *source;
+    unsafe extern "C" fn move_(target: *mut Self, source: *mut Self) {
+        unsafe { target.write(*source) };
     }
 
-    extern "C" fn destroy(&mut self) {}
+    unsafe extern "C" fn destroy(_this: *mut Self) {}
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct CallbackHandler<C, A, R> {
-    invoke: extern "C" fn(this: &C, arg: A) -> R,
-    copy: extern "C" fn(target: &mut C, source: &C),
-    move_: extern "C" fn(target: &mut C, source: &mut C),
-    destroy: extern "C" fn(this: &mut C),
+    invoke: unsafe extern "C" fn(this: *const C, arg: A) -> R,
+    copy: unsafe extern "C" fn(target: *mut C, source: *const C),
+    move_: unsafe extern "C" fn(target: *mut C, source: *mut C),
+    destroy: unsafe extern "C" fn(this: *mut C),
+}
+
+/// Erased destruction for SDK inline callback storage.
+///
+/// # Safety
+/// Implementations must destroy the same target type stored by their handler.
+#[doc(hidden)]
+pub unsafe trait CallbackStorage {
+    /// # Safety
+    /// `storage` must contain a live target associated with this handler.
+    unsafe fn destroy_storage(&self, storage: *mut ffi::c_void);
+}
+
+unsafe impl<C, A, R> CallbackStorage for CallbackHandler<C, A, R> {
+    unsafe fn destroy_storage(&self, storage: *mut ffi::c_void) {
+        unsafe { (self.destroy)(storage.cast()) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    extern "C" fn noop() {}
+
+    struct Oversized([u8; 33]);
+    #[repr(align(16))]
+    struct Overaligned;
+
+    macro_rules! test_callable {
+        ($ty:ty) => {
+            unsafe impl Callable<(), ()> for $ty {
+                unsafe extern "C" fn invoke(_this: *const Self, _arg: ()) {}
+                unsafe extern "C" fn copy(_target: *mut Self, _source: *const Self) {
+                    unreachable!()
+                }
+                unsafe extern "C" fn move_(_target: *mut Self, _source: *mut Self) {
+                    unreachable!()
+                }
+                unsafe extern "C" fn destroy(_this: *mut Self) {}
+            }
+        };
+    }
+    test_callable!(Oversized);
+    test_callable!(Overaligned);
+
+    #[test]
+    #[should_panic(expected = "callback exceeds inline storage")]
+    fn rejects_oversized_target() {
+        let target = Oversized([0; 33]);
+        assert_eq!(target.0.len(), 33);
+        let _ = Callback::new(target);
+    }
+
+    #[test]
+    #[should_panic(expected = "callback exceeds inline alignment")]
+    fn rejects_overaligned_target() {
+        let _ = Callback::new(Overaligned);
+    }
+
+    #[test]
+    fn callback_matches_sdk_layout() {
+        assert_eq!(mem::size_of::<VoidFunctionPointerCallback>(), 0x28);
+        assert_eq!(mem::align_of::<VoidFunctionPointerCallback>(), 8);
+        let callback = VoidFunctionPointerCallback::new(noop as extern "C" fn());
+        assert_eq!(
+            ptr::addr_of!(callback.handler) as usize - ptr::addr_of!(callback) as usize,
+            0x20
+        );
+    }
 }
