@@ -40,6 +40,8 @@ crate-type = ["cdylib"]
 red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", rev = "v0.10.0" }
 ```
 
+This example pins the `v0.10.0` release; development API changes may differ from that revision.
+
 `src/lib.rs`:
 
 ```rust
@@ -70,9 +72,11 @@ fn add2(value: i32) -> i32 {
 
 Build with `cargo build --release --target x86_64-pc-windows-msvc`. Copy
 `target/x86_64-pc-windows-msvc/release/my_plugin.dll` into
-`<game>/red4ext/plugins/my-plugin/` with RED4ext installed.
+`<game>/red4ext/plugins/my-plugin/` with [RED4ext](https://github.com/WopsS/RED4ext)
+installed. Here, `<game>` is the Cyberpunk 2077 installation directory.
 
-Declare it in REDscript:
+With [REDscript](https://github.com/jac3km4/redscript) installed, declare the function in
+`<game>/r6/scripts/my-plugin.reds` (create the file and directories as needed):
 
 ```swift
 native func Add2(value: Int32) -> Int32;
@@ -119,6 +123,10 @@ Also lint and test without `--all-features`.
 Verify FFI layouts and ownership against SDK source. Owning wrappers must release
 allocations through the matching allocator, including custom `Drop` where needed.
 Never free engine memory with Rust's allocator; validate runtime-dependent changes in-game.
+
+`Plugin::RUNTIME` defaults to `RuntimeVersion::RUNTIME_INDEPENDENT`. This does not
+guarantee compatibility across game updates; native layouts and function addresses
+can still change.
 
 ### Build performance
 
