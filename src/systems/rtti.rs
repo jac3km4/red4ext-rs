@@ -222,7 +222,9 @@ impl RttiSystem {
     /// Resolve the context required for a call to a static scripted method on specified class.
     /// Returns `None` if the class was not found in the RTTI system.
     pub fn resolve_static_context(&self, class: CName) -> Option<Ref<ScriptableSystem>> {
-        let game = GameEngine::get().game_instance();
+        // Like reflected execution, static-context resolution requires a live,
+        // synchronized game runtime (see README native-safety guidance).
+        let game = unsafe { GameEngine::get()?.game_instance()? };
         let get_context = |class| Some(game.get_system(self.get_class(class)?.as_type()));
         let ctx = get_context(class)?;
         if ctx.is_null() {
