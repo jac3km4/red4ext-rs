@@ -30,7 +30,9 @@ impl<T: ScriptClass> Ref<T> {
         let mut this = Self::default();
         Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
-        init(T::Kind::fields_mut(this.0.instance_mut()?));
+        // The unsafe ScriptClass implementation supplies the field layout; this
+        // newly constructed instance has not escaped to another Rust handle.
+        init(unsafe { T::Kind::fields_mut(this.0.instance_mut()?) });
         Some(this)
     }
 
@@ -47,7 +49,7 @@ impl<T: ScriptClass> Ref<T> {
     /// Prevent mutation through the engine or other handles for the entire borrow.
     #[inline]
     pub unsafe fn fields(&self) -> Option<&T> {
-        Some(T::Kind::fields(self.0.instance()?))
+        Some(unsafe { T::Kind::fields(self.0.instance()?) })
     }
 
     /// Mutably borrows the class fields.
@@ -57,7 +59,7 @@ impl<T: ScriptClass> Ref<T> {
     /// fields for the entire borrow.
     #[inline]
     pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
-        Some(T::Kind::fields_mut(self.0.instance_mut()?))
+        Some(unsafe { T::Kind::fields_mut(self.0.instance_mut()?) })
     }
 
     /// Borrows the native instance.
