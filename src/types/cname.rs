@@ -12,7 +12,7 @@ use crate::raw::root::RED4ext as red;
 pub struct CName(red::CName);
 
 impl CName {
-    /// Computes FNV-1a without engine access; `"None"` maps to zero.
+    /// Computes FNV-1a without engine access; `"None"` and empty text map to zero.
     /// Use [`CNamePool::add_cstr`] to register text for reverse lookup.
     #[inline]
     pub const fn new(name: &str) -> Self {
@@ -21,7 +21,7 @@ impl CName {
 
     pub const fn from_bytes(name: &[u8]) -> Self {
         #[allow(clippy::equatable_if_let)]
-        if let b"None" = name {
+        if let b"" | b"None" = name {
             return Self::undefined();
         }
         Self(red::CName {
@@ -141,6 +141,7 @@ mod test {
         assert_eq!(u64::from(CName::new("Vector2")), 7_466_804_955_052_523_504);
         assert_eq!(u64::from(CName::new("Color")), 3_769_135_706_557_701_272);
         assert_eq!(u64::from(CName::new("None")), 0);
-        assert_eq!(u64::from(CName::new("")), 0xCBF2_9CE4_8422_2325);
+        assert_eq!(u64::from(CName::new("")), 0);
+        assert_eq!(CName::from_bytes(b""), CName::undefined());
     }
 }
