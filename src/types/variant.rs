@@ -150,7 +150,7 @@ mod tests {
             drops: Rc::clone(&drops),
             marker: [0x1234_5678_9abc_def0; N],
         };
-        let typ = red::CBaseRTTIType::default();
+        let typ = red::rtti::IType::default();
         let mut variant = Variant::default();
         // Only the SDK's storage/tag operations are used; no RTTI virtual calls.
         variant.0.type_ = ptr::from_ref(&typ).map_addr(|addr| addr | usize::from(inlined));

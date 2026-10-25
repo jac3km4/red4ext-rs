@@ -20,16 +20,16 @@ pub type FunctionHandler<C, R> = unsafe extern "C" fn(*mut C, &mut StackFrame, R
 /// Metadata borrowed from RTTI remains engine-owned.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Type(red::CBaseRTTIType);
+pub struct Type(red::rtti::IType);
 
 impl Type {
     #[inline]
-    pub(crate) fn as_raw(&self) -> &red::CBaseRTTIType {
+    pub(crate) fn as_raw(&self) -> &red::rtti::IType {
         &self.0
     }
 
     #[inline]
-    pub(crate) unsafe fn from_raw<'a>(raw: *const red::CBaseRTTIType) -> Option<&'a Self> {
+    pub(crate) unsafe fn from_raw<'a>(raw: *const red::rtti::IType) -> Option<&'a Self> {
         unsafe { raw.cast::<Self>().as_ref() }
     }
 
@@ -65,7 +65,7 @@ impl Type {
     #[inline]
     pub fn as_class(&self) -> Option<&Class> {
         if self.kind().is_class() {
-            Some(unsafe { mem::transmute::<&red::CBaseRTTIType, &Class>(&self.0) })
+            Some(unsafe { mem::transmute::<&red::rtti::IType, &Class>(&self.0) })
         } else {
             None
         }
@@ -74,7 +74,7 @@ impl Type {
     #[inline]
     pub fn as_class_mut(&mut self) -> Option<&mut Class> {
         if self.kind().is_class() {
-            Some(unsafe { mem::transmute::<&mut red::CBaseRTTIType, &mut Class>(&mut self.0) })
+            Some(unsafe { mem::transmute::<&mut red::rtti::IType, &mut Class>(&mut self.0) })
         } else {
             None
         }
@@ -83,7 +83,7 @@ impl Type {
     #[inline]
     pub fn as_array(&self) -> Option<&ArrayType> {
         if self.kind().is_array() {
-            Some(unsafe { mem::transmute::<&red::CBaseRTTIType, &ArrayType>(&self.0) })
+            Some(unsafe { mem::transmute::<&red::rtti::IType, &ArrayType>(&self.0) })
         } else {
             None
         }
@@ -1228,7 +1228,7 @@ impl Property {
         unsafe {
             (*ptr).0.name = name.to_raw();
             (*ptr).0.group = group.to_raw();
-            (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::CBaseRTTIType;
+            (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::rtti::IType;
             (*ptr).0.parent = parent.as_raw() as *const _ as *mut red::CClass;
             (*ptr).0.valueOffset = offset;
             (*ptr).0.flags = PropertyFlags::default().0;
@@ -1543,6 +1543,14 @@ impl IScriptable {
     pub fn vft(&self) -> &IScriptableVft {
         unsafe { &*(self.0._base.vtable_ as *const IScriptableVft) }
     }
+}
+
+impl Clone for IScriptable {
+    fn clone(&self) -> Self {
+        self.clone_native_base()
+    }
+    /// Never copy an object's weak handle or value holder as raw bytes.
+    fn clone_from(&mut self, _: &Self) {}
 }
 
 impl Default for IScriptable {
