@@ -7,10 +7,9 @@ use crate::types::WeakRef;
 use crate::types::rtti::IScriptableVft;
 use crate::{NativeRepr, VoidPtr};
 
-/// Scripted game instance.
-///
-/// It's worth noting that `GameInstance` is named after Redscript and Lua,
-/// but it differs from [RED4ext naming convention](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp).
+/// REDscript `GameInstance`, named
+/// [ScriptGameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp)
+/// in the SDK. Not the native [`NativeGameInstance`].
 #[derive(Default)]
 #[repr(transparent)]
 pub struct GameInstance(red::ScriptGameInstance);
@@ -28,10 +27,8 @@ unsafe impl NativeRepr for GameInstance {
     const NAME: &'static str = "ScriptGameInstance";
 }
 
-/// Native game instance.
-///
-/// Please note that it differs from Redscript and Lua's `GameInstance`,
-/// see [`GameInstance`].
+/// Native SDK [GameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp),
+/// not REDscript's [`GameInstance`]. Access through [`GameEngine::game_instance`].
 #[derive(Default)]
 #[repr(transparent)]
 pub struct NativeGameInstance(red::GameInstance);
@@ -81,6 +78,8 @@ pub struct GameInstanceVft {
 }
 
 #[repr(transparent)]
+/// SDK [CGameEngine](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp).
+/// Access requires a live engine and game framework.
 pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
@@ -94,6 +93,7 @@ impl GameEngine {
 }
 
 #[repr(transparent)]
+/// SDK [game::ScriptableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/game/ScriptableSystem.hpp).
 pub struct ScriptableSystem(red::ScriptableSystem);
 
 unsafe impl ScriptClass for ScriptableSystem {
@@ -109,6 +109,7 @@ impl AsRef<IScriptable> for ScriptableSystem {
 }
 
 #[repr(transparent)]
+/// SDK [IUpdatableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/IUpdatableSystem.hpp).
 pub struct IUpdatableSystem(IScriptable);
 
 unsafe impl ScriptClass for IUpdatableSystem {
@@ -131,6 +132,7 @@ impl AsRef<IScriptable> for IUpdatableSystem {
 }
 
 #[repr(C)]
+/// SDK [game::IGameSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp).
 pub struct IGameSystem {
     base: IUpdatableSystem,
     game_instance: *mut NativeGameInstance,

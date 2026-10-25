@@ -4,10 +4,15 @@ use crate::raw::root::RED4ext as red;
 use crate::types::{CName, Type};
 use crate::{FromRepr, IntoRepr, NativeRepr, RttiSystem};
 
+/// Owns an RTTI-typed payload, stored inline or in engine-allocated storage.
+/// See SDK [Variant](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
+/// Construction, cloning, and cleanup require initialized engine RTTI and allocators.
 #[repr(transparent)]
 pub struct Variant(red::Variant);
 
 impl Variant {
+    /// Copies a converted representation into owned storage; returns `None` if
+    /// its RTTI type is unavailable or SDK initialization fails.
     pub fn new<A: IntoRepr>(val: A) -> Option<Self> {
         let mut this = Self::default();
         let rtti = RttiSystem::get();
@@ -35,6 +40,8 @@ impl Variant {
         }
     }
 
+    /// Moves out a matching payload and empties this variant.
+    /// A type mismatch leaves the variant unchanged.
     pub fn try_take<A: FromRepr>(&mut self) -> Option<A> {
         let repr = self.try_access::<A::Repr>()?;
         let value = unsafe { ptr::read(repr) };
@@ -44,6 +51,7 @@ impl Variant {
         Some(A::from_repr(value))
     }
 
+    /// Borrows the payload if its RTTI name matches `A`.
     pub fn try_access<A: NativeRepr>(&self) -> Option<&A> {
         if self.type_()?.name() == CName::new(A::NAME) {
             unsafe { self.0.GetDataPtr().cast::<A>().as_ref() }

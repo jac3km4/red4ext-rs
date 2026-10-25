@@ -7,7 +7,9 @@ use crate::types::{
     ScriptableSystem, Type, VoidFunctionPointerCallback,
 };
 
-/// The RTTI system containing information about all types in the game.
+/// Read access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Requires initialized engine RTTI. Keep lock guards short-lived and release
+/// them before operations that acquire a conflicting lock.
 ///
 /// # Example
 /// ```rust
@@ -71,7 +73,7 @@ impl RttiSystem {
         unsafe { ty.cast::<Function>().as_ref() }
     }
 
-    /// Retrieve all native types and collect them into a [`RedArray`]`.
+    /// Collects all native types into a [`RedArray`].
     #[inline]
     pub fn get_native_types(&self) -> RedArray<&Type> {
         let mut out = RedArray::default();
@@ -81,7 +83,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all enums and collect them into a [`RedArray`]`.
+    /// Collects all enums into a [`RedArray`].
     #[inline]
     pub fn get_enums(&self) -> RedArray<&Enum> {
         let mut out = RedArray::default();
@@ -89,7 +91,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all bitfields and collect them into a [`RedArray`]`.
+    /// Collects bitfields into a [`RedArray`], optionally restricting to scripted types.
     #[inline]
     pub fn get_bitfields(&self, scripted_only: bool) -> RedArray<&Bitfield> {
         let mut out = RedArray::default();
@@ -103,7 +105,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all global functions and collect them into a [`RedArray`]`.
+    /// Collects all global functions into a [`RedArray`].
     #[inline]
     pub fn get_global_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -116,7 +118,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all instance methods and collect them into a [`RedArray`]`.
+    /// Collects all instance methods into a [`RedArray`].
     #[inline]
     pub fn get_class_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -232,8 +234,8 @@ impl RttiSystem {
     }
 }
 
-/// The RTTI system containing information about all types in the game.
-/// This variant allows for modifying the RTTI system and locks it for exclusive access.
+/// Exclusive access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Registration transfers metadata ownership to the engine.
 #[repr(transparent)]
 pub struct RttiSystemMut(red::CRTTISystem);
 
@@ -378,7 +380,7 @@ struct RttiSystemVft {
         parent: *const Class,
     ),
     // FIXME: signature is wrong, but how to represent name and value of enumerator ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L50
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_enum: unsafe extern "C" fn(
         this: *const RttiSystem,
         name: CName,
@@ -386,7 +388,7 @@ struct RttiSystemVft {
         variants: *mut RedArray<u64>,
     ),
     // FIXME: signature is wrong, but how to represent name and bit ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L54
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_bitfield:
         unsafe extern "C" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
     _initialize_script_runtime: unsafe extern "C" fn(this: *const RttiSystem),
@@ -404,7 +406,8 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
-/// A helper struct to set up RTTI registration callbacks.
+/// SDK [RTTI registration callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Normally installed by [`export_plugin_symbols!`](crate::export_plugin_symbols).
 #[derive(Debug)]
 pub struct RttiRegistrator;
 

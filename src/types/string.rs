@@ -4,7 +4,8 @@ use std::{fmt, ops, ptr};
 
 use crate::raw::root::RED4ext as red;
 
-/// A dynamically allocated string.
+/// Owns an SDK [CString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CString.hpp).
+/// Construction, cloning, and drop use engine functions; access bytes through `CStr`.
 #[repr(transparent)]
 pub struct RedString(red::CString);
 

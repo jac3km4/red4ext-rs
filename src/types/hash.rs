@@ -6,7 +6,9 @@ use crate::raw::root::RED4ext as red;
 
 const INVALID_INDEX: u32 = u32::MAX;
 
-/// A hash map.
+/// Owns an SDK [HashMap](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/HashMap.hpp).
+/// Drop destroys live keys and values and frees storage through the engine allocator.
+/// Borrowed engine maps must remain borrowed; do not move ownership out of a view.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct RedHashMap<K, V>(red::HashMap<K, V>);
@@ -262,7 +264,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
 impl<K, V> FusedIterator for Iter<'_, K, V> {}
 
-/// A trait for types that can be hashed.
+/// Produces the 32-bit hash used by [`RedHashMap`], not Rust's `std::hash::Hash`.
 pub trait Hash {
     fn hash(&self) -> u32;
 }

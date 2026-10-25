@@ -2,11 +2,13 @@ use sealed::sealed;
 
 use crate::types::{IScriptable, Ref};
 
-/// A trait for types that represent script classes.
+/// Maps Rust fields to a native or scripted RTTI class.
+/// See SDK [IScriptable](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/IScriptable.hpp).
 ///
 /// # Safety
-/// Implementors must ensure that the type's layout is compatible with the layout of the native
-/// type that has the specified name.
+/// `NAME` and `Kind` must identify the actual engine class. Native types must
+/// include their base layout; scripted types must match the separate script-field
+/// storage. Size, alignment, field validity, and cleanup must match the engine.
 pub unsafe trait ScriptClass: Sized {
     type Kind: ClassKind<Self>;
 

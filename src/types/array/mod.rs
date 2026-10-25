@@ -1,4 +1,3 @@
-//! A dynamically sized array.
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::{fmt, mem, ops, ptr, slice};
@@ -10,7 +9,8 @@ use crate::raw::root::RED4ext as red;
 mod static_array;
 pub use static_array::StaticArray;
 
-/// A dynamically sized array.
+/// Owns an SDK [DynArray](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/DynArray.hpp).
+/// Allocation and cleanup require the engine; drop destroys elements and releases storage.
 #[repr(transparent)]
 pub struct RedArray<T>(red::DynArray<T>);
 

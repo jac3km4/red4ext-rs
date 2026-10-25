@@ -5,6 +5,8 @@ use const_crc32::{crc32, crc32_seed};
 
 use crate::raw::root::RED4ext as red;
 
+/// SDK [TweakDBID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
+/// Creating an ID hashes a name; it does not create or look up a database record.
 #[derive(Default, Clone, Copy)]
 #[repr(C, align(4))]
 pub struct TweakDbId(red::TweakDBID);

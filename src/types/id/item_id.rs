@@ -7,6 +7,7 @@ const DEFAULT_ITEM_ID_RNG_SEED: u32 = 2;
 
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
+/// SDK [ItemID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp), including record and instance identity.
 pub struct ItemId(red::ItemID);
 
 impl ItemId {
@@ -78,8 +79,8 @@ impl From<u8> for GamedataItemStructure {
     }
 }
 
-/// see [gameEItemIDFlag](https://nativedb.red4ext.com/gameEItemIDFlag)
-/// and [CET initialization](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.27.1/src/scripting/Scripting.cpp#L311).
+/// Item flags; see SDK [game::EItemIDFlag](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/game/EItemIDFlag.hpp).
+/// `None` represents zero; unknown byte values also convert to `None`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq)]
 #[repr(u8)]
 pub enum GameEItemIdFlag {

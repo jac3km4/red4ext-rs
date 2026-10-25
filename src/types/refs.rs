@@ -10,7 +10,9 @@ use crate::systems::RttiSystem;
 use crate::types::PtrEq;
 use crate::{ClassKind, VoidPtr};
 
-/// A reference counted shared pointer to a script class.
+/// Shared ownership of a script-class instance via SDK
+/// [Handle](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Handle.hpp).
+/// Cloning shares the instance, not its fields; reference counting does not prevent aliasing.
 #[repr(transparent)]
 pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
 
@@ -39,31 +41,29 @@ impl<T: ScriptClass> Ref<T> {
         }
     }
 
-    /// Returns a reference to the fields of the class.
+    /// Borrows the class fields.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Prevent mutation through the engine or other handles for the entire borrow.
     #[inline]
     pub unsafe fn fields(&self) -> Option<&T> {
         Some(T::Kind::fields(self.0.instance()?))
     }
 
-    /// Returns a mutable reference to the fields of the class.
+    /// Mutably borrows the class fields.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Ensure exclusive access: no engine or other handle may read or write these
+    /// fields for the entire borrow.
     #[inline]
     pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
         Some(T::Kind::fields_mut(self.0.instance_mut()?))
     }
 
-    /// Returns a reference to the instance of the class.
+    /// Borrows the native instance.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Prevent mutation through the engine or other handles for the entire borrow.
     #[inline]
     pub unsafe fn instance(&self) -> Option<&NativeType<T>> {
         self.0.instance()
@@ -154,8 +154,8 @@ impl<T: ScriptClass> Drop for Ref<T> {
 unsafe impl<T: ScriptClass> Send for Ref<T> {}
 unsafe impl<T: ScriptClass> Sync for Ref<T> {}
 
-/// A weak reference to a script class.
-/// Before use, it must be upgraded to a strong reference using [`WeakRef::upgrade`].
+/// Non-owning SDK [WeakHandle](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Handle.hpp).
+/// Use [`WeakRef::upgrade`] before accessing the instance.
 #[repr(transparent)]
 pub struct WeakRef<T: ScriptClass>(BaseRef<NativeType<T>>);
 
@@ -318,7 +318,8 @@ impl RefCount {
     }
 }
 
-/// A reference to local script data.
+/// Borrowed script data using SDK
+/// [ScriptRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ScriptRef<'a, T>(red::ScriptRef<T>, PhantomData<&'a mut T>);

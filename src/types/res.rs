@@ -9,7 +9,8 @@ use crate::{NativeRepr, fnv1a64};
 
 pub const MAX_LENGTH: usize = 216;
 
-/// An asynchronous resource reference.
+/// SDK [RaRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp).
+/// Construction hashes an archive path; it does not load the resource.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct RaRef<T>(red::RaRef, PhantomData<T>);
@@ -55,6 +56,8 @@ impl<T> Hash for RaRef<T> {
 
 #[derive(Debug, Default)]
 #[repr(transparent)]
+/// Script resource token; see SDK
+/// [ResRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/red/ResourceReferenceScriptToken.hpp).
 pub struct ResRef(red::ResRef);
 
 impl ResRef {
@@ -152,7 +155,8 @@ pub enum ResourcePathError {
     InvalidUnicode,
 }
 
-/// shortcut for ResRef creation.
+/// Creates a [`ResRef`](crate::types::ResRef) from slash-separated path literals,
+/// returning a `Result` from path validation.
 #[macro_export]
 macro_rules! res_ref {
     ($base:expr, /$lit:literal $($tt:tt)*) => {
@@ -170,10 +174,12 @@ macro_rules! res_ref {
 
 #[derive(Debug)]
 #[repr(transparent)]
+/// SDK [ResourceReference](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp) layout wrapper.
 pub struct ResourceRef<T>(red::ResourceReference<T>);
 
 #[derive(Debug, Default, Copy, Clone)]
 #[repr(transparent)]
+/// SDK [MessageResourcePath](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp) layout wrapper.
 pub struct MessageResourcePath(red::MessageResourcePath);
 
 #[cfg(test)]

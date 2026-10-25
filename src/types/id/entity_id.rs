@@ -3,6 +3,8 @@ use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
+/// Entity identifier; see SDK
+/// [ent::EntityID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/entEntityID.hpp).
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct EntityId(red::ent::EntityID);

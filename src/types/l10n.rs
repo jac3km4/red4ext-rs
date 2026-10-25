@@ -3,6 +3,8 @@ use std::{fmt, mem};
 use crate::raw::root::RED4ext as red;
 use crate::types::RedString;
 
+/// SDK [LocalizationString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
+/// Display reads the stored text; it does not perform a localization lookup.
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
 

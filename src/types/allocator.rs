@@ -9,13 +9,18 @@ use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{VoidPtr, fnv1a32};
 
-/// An interface for allocating and freeing memory.
+/// Engine allocator interface; see the SDK's
+/// [allocators](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Allocators.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IAllocator(red::Memory::IAllocator);
 
 impl IAllocator {
-    /// Frees the memory pointed by `memory`.
+    /// Releases storage without dropping its contents.
+    ///
+    /// # Safety
+    /// `memory` must be a live allocation from this allocator, with any required
+    /// payload destruction already complete. It must not be used or freed afterward.
     #[inline]
     pub unsafe fn free<T>(&self, memory: *mut T) {
         let mut alloc = AllocationResult {
@@ -30,7 +35,11 @@ impl IAllocator {
         }
     }
 
-    /// Allocates `size` bytes of memory with `alignment` bytes alignment.
+    /// Allocates `size` bytes with the requested alignment; returns null on failure.
+    ///
+    /// # Safety
+    /// The size and alignment must be valid for the engine allocator. Initialize
+    /// the allocation before reading it and release it through the same allocator.
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         unsafe {
@@ -43,7 +52,9 @@ impl IAllocator {
     }
 }
 
-/// A reference to a value stored in a pool.
+/// Owns storage from an SDK
+/// [memory pool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Pool.hpp).
+/// Drop destroys `T` and releases storage. `PoolRef<MaybeUninit<T>>` releases only storage.
 #[derive(Debug)]
 pub struct PoolRef<T: Poolable>(*mut T);
 
