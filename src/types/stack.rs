@@ -179,7 +179,7 @@ impl<'a> StackArg<'a> {
             ptr::null_mut()
         } else {
             let rtti = RttiSystem::get();
-            rtti.get_type(CName::new(A::NAME))?.as_raw() as *const _ as *mut red::CBaseRTTIType
+            rtti.get_type(CName::new(A::NAME))?.as_raw() as *const _ as *mut red::rtti::IType
         };
         let inner = red::CStackType {
             type_,
@@ -204,5 +204,5 @@ impl<'a> StackArg<'a> {
 pub struct StackArgsState {
     code: *mut i8,
     data: VoidPtr,
-    data_type: *mut red::CBaseRTTIType,
+    data_type: *mut red::rtti::IType,
 }

@@ -373,7 +373,7 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
         let rtti = RttiSystem::get();
         let inner = rtti.get_type(CName::new(T::NAME))?;
         let ref_ = red::ScriptRef {
-            innerType: inner.as_raw() as *const _ as *mut red::CBaseRTTIType,
+            innerType: inner.as_raw() as *const _ as *mut red::rtti::IType,
             ref_: val as *mut T,
             ..Default::default()
         };
