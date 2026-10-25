@@ -1549,6 +1549,7 @@ impl Clone for IScriptable {
     fn clone(&self) -> Self {
         self.clone_native_base()
     }
+
     /// Never copy an object's weak handle or value holder as raw bytes.
     fn clone_from(&mut self, _: &Self) {}
 }
