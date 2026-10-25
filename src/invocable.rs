@@ -223,32 +223,12 @@ pub struct FunctionType {
     ret: CName,
 }
 
-/// A function signature could not be fully installed in engine RTTI.
-#[derive(Debug, Error)]
-#[error("failed to install RTTI type {typ:?} at parameter {parameter:?} (None means return type)")]
-pub struct SignatureError {
-    pub typ: CName,
-    pub parameter: Option<usize>,
-}
-
 impl FunctionType {
-    fn initialize_func(&self, func: &mut Function) -> Result<(), SignatureError> {
-        for (index, &arg) in self.args.iter().enumerate() {
-            if !func.add_param(arg, c"", false, false) {
-                return Err(SignatureError {
-                    typ: arg,
-                    parameter: Some(index),
-                });
-            }
+    fn initialize_func(&self, func: &mut Function) {
+        for &arg in self.args {
+            func.add_param(arg, c"", false, false);
         }
-        // Void is represented by the absence of a return property.
-        if self.ret != CName::new("Void") && !func.set_return_type(self.ret) {
-            return Err(SignatureError {
-                typ: self.ret,
-                parameter: None,
-            });
-        }
-        Ok(())
+        func.set_return_type(self.ret);
     }
 }
 
@@ -277,30 +257,27 @@ impl GlobalMetadata {
 
     /// Converts this metadata into a [`GlobalFunction`] instance, which can be registered with
     /// [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti(&self) -> Result<PoolRef<GlobalFunction>, SignatureError> {
+    pub fn to_rtti(&self) -> PoolRef<GlobalFunction> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_final(true);
         flags.set_is_static(true);
         let mut func = GlobalFunction::new(self.name, self.name, self.func, flags);
-        self.typ.initialize_func(func.as_function_mut())?;
-        Ok(func)
+        self.typ.initialize_func(func.as_function_mut());
+        func
     }
 
     /// Converts this metadata into a [`StaticMethod`] instance, which can be registered with
     /// [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti_static_method(
-        &self,
-        class: &Class,
-    ) -> Result<PoolRef<StaticMethod>, SignatureError> {
+    pub fn to_rtti_static_method(&self, class: &Class) -> PoolRef<StaticMethod> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_final(true);
         flags.set_is_static(true);
 
         let mut func = StaticMethod::new(self.name, self.name, class, self.func, flags);
-        self.typ.initialize_func(func.as_function_mut())?;
-        Ok(func)
+        self.typ.initialize_func(func.as_function_mut());
+        func
     }
 }
 
@@ -348,15 +325,15 @@ impl<Ctx: ScriptClass<Kind = crate::class_kind::Native>> MethodMetadata<Ctx> {
 
     /// Converts this metadata into a [`Method`] instance, which can be registered with
     /// the [RttiSystemMut](crate::RttiSystemMut).
-    pub fn to_rtti(&self, class: &Class) -> Result<PoolRef<Method>, SignatureError> {
+    pub fn to_rtti(&self, class: &Class) -> PoolRef<Method> {
         let mut flags = FunctionFlags::default();
         flags.set_is_native(true);
         flags.set_is_event(self.is_event);
         flags.set_is_final(self.is_final);
 
         let mut func = Method::new(self.name, self.name, class, self.func, flags);
-        self.typ.initialize_func(func.as_function_mut())?;
-        Ok(func)
+        self.typ.initialize_func(func.as_function_mut());
+        func
     }
 }
 

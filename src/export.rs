@@ -107,15 +107,12 @@ impl<C: Default + Clone + ScriptClass<Kind = class_kind::Native>> Exportable for
             let converted_methods = self
                 .methods
                 .iter()
-                .map(|m| m.to_rtti(class).expect("method signature must resolve"))
+                .map(|m| m.to_rtti(class))
                 .collect::<Vec<_>>();
             let converted_static_methods = self
                 .static_methods
                 .iter()
-                .map(|m| {
-                    m.to_rtti_static_method(class)
-                        .expect("static method signature must resolve")
-                })
+                .map(|m| m.to_rtti_static_method(class))
                 .collect::<Vec<_>>();
             (converted_methods, converted_static_methods)
         };
@@ -212,10 +209,7 @@ impl<C: Default + Clone + NativeRepr> Exportable for StructExport<C> {
                 .expect("class should exist");
             self.static_methods
                 .iter()
-                .map(|m| {
-                    m.to_rtti_static_method(class)
-                        .expect("static method signature must resolve")
-                })
+                .map(|m| m.to_rtti_static_method(class))
                 .collect::<Vec<_>>()
         };
 
@@ -273,7 +267,7 @@ impl Exportable for GlobalExport {
     fn register(&self) {}
 
     fn post_register(&self) {
-        let converted = self.0.to_rtti().expect("global signature must resolve");
+        let converted = self.0.to_rtti();
 
         let mut rtti = RttiSystemMut::get();
         rtti.register_function(converted);
