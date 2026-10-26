@@ -89,11 +89,19 @@ impl<T> RedArray<T> {
         let size = mem::size_of::<T>();
         let align = mem::align_of::<T>().max(8);
         unsafe {
+            #[cfg(not(target_os = "macos"))]
             let realloc = crate::fn_from_hash!(
                 DynArray_Realloc,
                 unsafe extern "C" fn(VoidPtr, u32, u32, u32, usize)
             );
-            realloc(self as *mut _ as VoidPtr, cap, size as u32, align as u32, 0);
+            // macOS: the alignment (x3) is used as a 64 bit value by the game function (`mov x23,x3 ... mov x2,x23`), so it is a
+            // usize here; the capacity (w1) and the element size (w20) are 32 bit. Evidence: `rx m 0x286e8`.
+            #[cfg(target_os = "macos")]
+            let realloc = crate::fn_from_hash!(
+                DynArray_Realloc,
+                unsafe extern "C" fn(VoidPtr, u32, u32, usize, usize)
+            );
+            realloc(self as *mut _ as VoidPtr, cap, size as u32, align as _, 0);
         };
     }
 }

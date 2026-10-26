@@ -53,7 +53,14 @@ impl NativeGameInstance {
 
 #[repr(C)]
 pub struct GameInstanceVft {
+    /// Windows: the scalar deleting destructor. macOS: D1, the complete object destructor, which destroys in place.
     _destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
+    /// macOS: D0 (deleting destructor) takes the next slot, so GetSystem is at 0x10 and the table has one more entry.
+    /// Evidence: Mac GameInstance vtable (vptr 0x6FB1FA0, set by the derived constructor 0x1F2D640): slot 0x00 `b 0x33141bc` (D1),
+    /// 0x08 `bl 0x33141bc; b 0x4a3dbf4` (D0), 0x10 -> 0x331543c (looks the type up in the system map at +0x10: GetSystem),
+    /// slots 0x18 to 0x70 are the other virtuals and 0x78 is zero (end of the table).
+    #[cfg(target_os = "macos")]
+    _destroy_deleting: unsafe extern "C" fn(this: *mut NativeGameInstance),
     get_system:
         unsafe extern "C" fn(this: *const NativeGameInstance, ty: &Type) -> *mut red::IScriptable,
     _unk10: VoidPtr,
@@ -68,6 +75,8 @@ pub struct GameInstanceVft {
     _unk58: VoidPtr,
     _unk60: VoidPtr,
     _unk68: VoidPtr,
+    #[cfg(target_os = "macos")]
+    _unk70: VoidPtr,
 }
 
 #[repr(transparent)]
@@ -81,7 +90,10 @@ impl GameEngine {
     }
 
     pub fn game_instance(&self) -> &NativeGameInstance {
-        unsafe { &*((*self.0.framework).gameInstance as *const NativeGameInstance) }
+        // macOS 2.5: the SDK's Mac CGameEngine declares `framework` at its Mac offset (+0x378; 2.3.1 read the pointer at +0x338
+        // through `unk338`), so both platforms read the same field.
+        let framework = self.0.framework;
+        unsafe { &*((*framework).gameInstance as *const NativeGameInstance) }
     }
 }
 

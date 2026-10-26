@@ -1,9 +1,25 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
 
 fn main() {
-    let red4ext_dir = Path::new("deps/RED4ext.SDK");
+    // `cfg!(target_os)` in a build script is the host, so the target comes from cargo's environment.
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+
+    let red4ext_dir = if target_os == "macos" {
+        // macOS: the pinned deps/RED4ext.SDK is upstream and has no macOS support (it includes Windows.h
+        // everywhere), so the SDK comes from a RED4ext.SDK-macos checkout (branch mac-rs). Evidence: B1 report E0.
+        println!("cargo:rerun-if-env-changed=RED4EXT_SDK_DIR");
+        match env::var_os("RED4EXT_SDK_DIR") {
+            Some(dir) => PathBuf::from(dir),
+            None => panic!(
+                "RED4EXT_SDK_DIR is not set: on macOS red4ext-rs needs a RED4ext.SDK-macos checkout \
+                 (branch mac-rs), e.g. RED4EXT_SDK_DIR=$HOME/repos/cp2077-mac/RED4ext.SDK-macos-rs"
+            ),
+        }
+    } else {
+        PathBuf::from("deps/RED4ext.SDK")
+    };
     let red4ext_include_dir = red4ext_dir.join("include");
 
     println!("cargo:rerun-if-changed=deps/wrapper.hpp");
@@ -26,7 +42,7 @@ fn main() {
         _ => panic!("RED4EXT_USE_PCH must be 0 or 1"),
     };
     let native_start = Instant::now();
-    let red4ext_target = cmake::Config::new(red4ext_dir)
+    let red4ext_target = cmake::Config::new(&red4ext_dir)
         .profile("Release")
         .define("RED4EXT_USE_PCH", use_pch)
         .build();
@@ -48,7 +64,7 @@ fn main() {
             "RED4EXT_SDK_DIR",
             env::current_dir()
                 .expect("working directory must exist")
-                .join(red4ext_dir),
+                .join(&red4ext_dir),
         )
         .build();
     println!(
@@ -56,8 +72,27 @@ fn main() {
         bridge_target.join("lib").display()
     );
     println!("cargo:rustc-link-lib=static=red4ext_rs_bridge");
-    println!("cargo:rustc-link-lib=user32");
+    if target_os == "windows" {
+        println!("cargo:rustc-link-lib=user32");
+    }
     println!("cargo:rustc-link-lib=static=RED4ext.SDK");
+    if target_os == "macos" {
+        // The SDK static lib is C++ and needs the libc++ runtime (__cxa_*, __gxx_personality_v0). B1 report E5.
+        println!("cargo:rustc-link-lib=c++");
+
+        // The Mac SDK header routes nine hashes to plugin-provided tweakxl_* symbols (memory vault, RTTI id counters, CClass
+        // virtual slots). B1 report E5 lists them as the only undefined symbols left in the link.
+        println!("cargo:rerun-if-changed=deps/macos/MacVault.cpp");
+        cc::Build::new()
+            .cpp(true)
+            .cpp_link_stdlib(None)
+            .std("c++20")
+            .include(&red4ext_include_dir)
+            .define("RED4EXT_STATIC_LIB", None)
+            .warnings(false)
+            .file("deps/macos/MacVault.cpp")
+            .compile("r4e_mac_vault");
+    }
 
     let allowlist = include_str!("deps/allowlist.txt")
         .split('\n')

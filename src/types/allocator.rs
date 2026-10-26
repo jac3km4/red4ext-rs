@@ -40,6 +40,7 @@ impl IAllocator {
     /// # Safety
     /// The size and alignment must be valid for the engine allocator. Initialize
     /// the allocation before reading it and release it through the same allocator.
+    #[cfg(not(target_os = "macos"))]
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         unsafe {
@@ -48,6 +49,31 @@ impl IAllocator {
             );
             let vault = vault_get(result);
             vault_alloc_aligned(vault, size, alignment).unwrap_or(ptr::null_mut()) as _
+        }
+    }
+
+    /// Allocates `size` bytes with the requested alignment; returns null on failure.
+    ///
+    /// # Safety
+    /// The size and alignment must be valid for the engine allocator. Initialize
+    /// the allocation before reading it and release it through the same allocator.
+    ///
+    /// macOS: asks the allocator itself (vtable slot 0x08, AllocAligned) instead of looking its handle up in the vault. The game's
+    /// `GetHandle` (slot 0x30) returns `PoolStorage::allocatorhandle` of its own pool storage, which the vault stand-in
+    /// (`deps/macos/MacVault.cpp`) does not mirror, so the Windows lookup by handle cannot be trusted. Evidence: Mac
+    /// Allocator<PoolScript> vtable (vptr 0x71B58E8, reached from the CClass GetAllocator thunk 0x94C958 -> 0x344DBC4): slot 0x08 is the
+    /// game's AllocateAligned wrapper and slot 0x30 is `adrp x8,..; ldr x8,[x8,#0xea8]; ldr w0,[x8,#0x20]; ret`. The `AllocationResult`
+    /// is a 16 byte trivially copyable struct, returned in x0/x1 on arm64, which is how Rust's `extern "C"` reads it too.
+    #[cfg(target_os = "macos")]
+    #[inline]
+    pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
+        unsafe {
+            let result = ((*self.0.vtable_).IAllocator_AllocAligned)(
+                &self.0 as *const _ as *const red::Memory::IAllocator,
+                size as u64,
+                alignment,
+            );
+            result.memory as _
         }
     }
 }
@@ -221,18 +247,27 @@ impl Pool for ScriptPool {
     }
 }
 
+/// The type of the size argument of the vault functions. macOS: the stand-ins (`deps/macos/MacVault.cpp`) take `uint64_t`, and a `u32`
+/// argument leaves the upper half of x2 unspecified.
+#[cfg(not(target_os = "macos"))]
+type VaultSize = u32;
+#[cfg(target_os = "macos")]
+type VaultSize = usize;
+
 pub(super) unsafe fn vault_alloc(vault: *mut red::Memory::Vault, size: u32) -> Option<VoidPtr> {
     let mut result = AllocationResult::default();
     unsafe {
         let alloc = crate::fn_from_hash!(
             Memory_Vault_Alloc,
-            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32)
+            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, VaultSize)
         );
         alloc(vault, &mut result, size as _);
     };
     (!result.memory.is_null()).then_some(result.memory)
 }
 
+// macOS: not called (`IAllocator::alloc_aligned` uses the allocator's own AllocAligned slot there).
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub(super) unsafe fn vault_alloc_aligned(
     vault: *mut red::Memory::Vault,
     size: u32,
@@ -242,7 +277,7 @@ pub(super) unsafe fn vault_alloc_aligned(
     unsafe {
         let alloc_aligned = crate::fn_from_hash!(
             Memory_Vault_AllocAligned,
-            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, u32, u32)
+            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult, VaultSize, u32)
         );
         alloc_aligned(vault, &mut result, size as _, alignment as _);
     };

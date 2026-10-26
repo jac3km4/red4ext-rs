@@ -35,9 +35,25 @@ impl Type {
 
     #[inline]
     pub fn name(&self) -> CName {
-        // calling Type with unk8 == 0 crashes the game
-        if self.0.unk8.is_null() {
-            return CName::undefined();
+        #[cfg(not(target_os = "macos"))]
+        {
+            // calling Type with unk8 == 0 crashes the game
+            if self.0.unk8.is_null() {
+                return CName::undefined();
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            // unk8 (CBaseRTTIType +0x08) is 0 for every Mac type, so the Windows guard would turn every name into None. Evidence:
+            // the base constructor 0x21AFCAC that every type constructor calls (59 call sites: CClass 0x2196F40, CEnum 0x21A33E0,
+            // handle 0x21AD5F8, array 0x21A5368, ...) is `adrp x8,0x6ffd000; add x8,x8,#0xf40; stp x8,xzr,[x0]`, RegisterType (0x2192004) does not store
+            // it, and boot 2 logged "kind Class ... vtable name None, field name PlayerPuppet" (the guard fired on PlayerPuppet).
+            // GetName of every Mac kind is one load of a field of `this` (+0x10, +0x18 or +0x20) or a constant CName (Fundamental, Simple,
+            // CName types), so a constructed type cannot crash it. The only way to crash is a missing vtable (zeroed memory), so the guard
+            // checks the vptr. The result comes back in x0 (`ldr x0,[x0,#0x18]; ret`), which is what the binding declares.
+            if self.0.vtable_.is_null() {
+                return CName::undefined();
+            }
         }
         CName::from_raw(unsafe { (self.vft().tail.IType_GetName)(&self.0) })
     }
@@ -527,12 +543,35 @@ impl<T> NativeClass<T> {
     where
         T: Default + Clone,
     {
+        #[cfg(not(target_os = "macos"))]
         const VFT_SIZE: usize = 30;
+        #[cfg(not(target_os = "macos"))]
         const IS_EQUAL_SLOT: usize = 9;
+        #[cfg(not(target_os = "macos"))]
         const ASSIGN_SLOT: usize = 10;
+        #[cfg(not(target_os = "macos"))]
         const CONSTRUCT_SLOT: usize = 27;
+        #[cfg(not(target_os = "macos"))]
         const DESTRUCT_SLOT: usize = 28;
+        #[cfg(not(target_os = "macos"))]
         const ALLOC_SLOT: usize = 29;
+
+        // macOS: every slot after the destructor is one higher (D1 and D0 take two slots). Evidence: decoded Mac CClass vtable
+        // (RVA 0x7001020): slot 0x50 `b 0x2197fe4` (the TTypedClass_IsEqual row), slot 0x58 (Assign), slot 0x40 `ldr x2,[x8,#0xe0]; br x2`
+        // and 0x48 `...#0xe8` (Construct and Destruct forward to ConstructCls 0xE0 and DestructCls 0xE8), AllocMemory 0xF0, and
+        // slot 0xF8 is zero (end of the table).
+        #[cfg(target_os = "macos")]
+        const VFT_SIZE: usize = 31;
+        #[cfg(target_os = "macos")]
+        const IS_EQUAL_SLOT: usize = 10;
+        #[cfg(target_os = "macos")]
+        const ASSIGN_SLOT: usize = 11;
+        #[cfg(target_os = "macos")]
+        const CONSTRUCT_SLOT: usize = 28;
+        #[cfg(target_os = "macos")]
+        const DESTRUCT_SLOT: usize = 29;
+        #[cfg(target_os = "macos")]
+        const ALLOC_SLOT: usize = 30;
 
         let size = u32::try_from(mem::size_of::<T>()).expect("native class size exceeds u32");
         let alignment =
@@ -1061,6 +1100,7 @@ impl Method {
         handler: VoidPtr,
         flags: FunctionFlags,
     ) {
+        #[cfg(not(target_os = "macos"))]
         unsafe {
             let ctor = crate::fn_from_hash!(
                 CClassFunction_ctor,
@@ -1074,6 +1114,25 @@ impl Method {
                 )
             );
             ctor(ptr, class, full_name, short_name, handler, flags.0);
+        };
+        // macOS: the handler is a pointer to member function, so it takes two registers: x4 = function, x5 = adjustment (0), and the
+        // flags move to w6. Evidence: Mac CClassFunction ctor 0x2173760 (`mov x20,x5; mov x21,x4; orr w24,w6,#1`; x5 is passed on to
+        // 0x21fd4c8); the game's own registration code does `mov x5,#0; mov w6,#0` before `bl 0x2173860`, a one-instruction thunk to it.
+        #[cfg(target_os = "macos")]
+        unsafe {
+            let ctor = crate::fn_from_hash!(
+                CClassFunction_ctor,
+                unsafe extern "C" fn(
+                    *mut Method,
+                    *const Class,
+                    CName,
+                    CName,
+                    VoidPtr,
+                    usize,
+                    red::CBaseFunction_Flags,
+                )
+            );
+            ctor(ptr, class, full_name, short_name, handler, 0, flags.0);
         };
     }
 
@@ -1622,7 +1681,14 @@ impl ValuePtr {
 
 #[repr(C)]
 struct TypeVft {
+    /// Windows (MSVC): the scalar deleting destructor. macOS (Itanium): D1, the complete object destructor, which destroys in place.
     destroy: unsafe extern "C" fn(this: *mut Type),
+    /// macOS: D0, the deleting destructor, has its own slot right after D1, so everything after it is 8 bytes higher.
+    /// bindgen leaves the destructor out of `CBaseRTTIType__bindgen_vtable`, which therefore starts at GetName.
+    /// Evidence: Mac CClass vtable (RVA 0x7001020): slot 0x00 `b 0x219721c` (D1), slot 0x08 `bl 0x219721c; b 0x4a3dbf4` (D0 = delete),
+    /// slot 0x10 `ldr x0,[x0,#0x18]; ret` (GetName), slot 0x28 `mov w0,#2; ret` (GetType == Class).
+    #[cfg(target_os = "macos")]
+    _destroy_deleting: unsafe extern "C" fn(this: *mut Type),
     tail: red::rtti::IType__bindgen_vtable,
 }
 
@@ -1640,7 +1706,14 @@ struct ArrayTypeVft {
 #[repr(C)]
 struct FunctionVft {
     get_allocator: unsafe extern "C" fn(this: &Function) -> *mut IAllocator,
+    /// Windows: the scalar deleting destructor. macOS: D1 (in place), the call the `Drop` impls mean.
     destruct: unsafe extern "C" fn(this: &mut Function),
+    /// macOS: D0 (deleting destructor). Without this slot `get_parent` lands on D0 and would delete the function.
+    /// Evidence: Mac CGlobalFunction vtable (vptr 0x6FFACC8, set at the end of the ctor 0x21739E8) and CClassFunction vtable (vptr
+    /// 0x6FFAC88, ctor 0x2173760): slot 0x00 `b 0x2178364` (GetAllocator), 0x08 `b 0x2172010` (D1), 0x10 `bl 0x2172010; b 0x4a3dbf4`
+    /// (D0), 0x18 `mov x0,#0; ret` for a global and `ldr x0,[x0,#0xb0]; ret` for a method (GetParent).
+    #[cfg(target_os = "macos")]
+    _destruct_deleting: unsafe extern "C" fn(this: &mut Function),
     get_parent: unsafe extern "C" fn(this: &Function) -> *mut Class,
 }
 
@@ -1650,6 +1723,13 @@ pub struct ISerializableVft {
     get_type: unsafe extern "C" fn(this: &ISerializable) -> *mut Class,
     get_allocator: unsafe extern "C" fn(this: &ISerializable) -> *mut IAllocator,
     destroy: unsafe extern "C" fn(this: *mut ISerializable),
+    /// macOS: D0 (deleting destructor) takes the next slot; everything below is 8 bytes higher than on Windows. Evidence: a live Mac
+    /// vtable of an IScriptable-derived class (vptr 0x6E8F870): 0x18 D1, 0x20 D0, and the functions Codeware's R19 rows matched to
+    /// Windows one by one sit at exactly Windows + 8: ISerializable_sub_30 (0x2186078) at 0x38, sub_40 (0x2185F34) at 0x48, sub_78
+    /// (0x21862CC) at 0x80, sub_A0 (0x2186230) at 0xA8, sub_C0 (0x2186208) at 0xC8, IScriptable_sub_D8 (0x2238918) at 0xE0. The game's
+    /// IsSavingLocked is slot 0x178 on Mac against 0x170 on Windows (Codeware macos/MacR16b.cpp, checked by its self-test).
+    #[cfg(target_os = "macos")]
+    _destroy_deleting: unsafe extern "C" fn(this: *mut ISerializable),
     sub_20: VoidPtr,
     post_load: VoidPtr,
     sub_30: VoidPtr,

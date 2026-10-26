@@ -132,7 +132,13 @@ fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
     if sanitized.len() > self::MAX_LENGTH {
         return Err(ResourcePathError::TooLong);
     }
-    if Path::new(&sanitized)
+    // macOS: `\` is not a path separator for `Path` there, so `..\a` would be a single normal component. The sanitized path is
+    // backslash-separated (archive style), so it is turned into `/` form before the component check.
+    #[cfg(target_os = "macos")]
+    let sanitized_for_check = sanitized.replace('\\', "/");
+    #[cfg(not(target_os = "macos"))]
+    let sanitized_for_check = &sanitized;
+    if Path::new(&sanitized_for_check)
         .components()
         .any(|x| !matches!(x, std::path::Component::Normal(_)))
     {

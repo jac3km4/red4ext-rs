@@ -364,6 +364,7 @@ name = "red4ext-rs"
 version = "0.11.1"
 dependencies = [
  "bindgen",
+ "cc",
  "chrono",
  "chrono-tz",
  "cmake",
