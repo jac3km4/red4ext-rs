@@ -48,7 +48,7 @@ jobs:
           Set-Content -Path target/doc/index.html -Value '<meta http-equiv="refresh" content="0; url=red4ext_rs/">'
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: target/doc
 
