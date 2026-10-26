@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: rustup toolchain install nightly-2026-10-15 --profile minimal --component rustfmt --no-self-update
       - run: cargo +nightly-2026-10-15 fmt --all -- --check
 
@@ -42,7 +42,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --component clippy --no-self-update
@@ -69,7 +69,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
       - run: rustup toolchain install stable --profile minimal --no-self-update
@@ -101,7 +101,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: true
       - run: rustup toolchain install 1.95 --profile minimal --no-self-update
