@@ -7,10 +7,9 @@ use crate::types::WeakRef;
 use crate::types::rtti::IScriptableVft;
 use crate::{NativeRepr, VoidPtr};
 
-/// Scripted game instance.
-///
-/// It's worth noting that `GameInstance` is named after Redscript and Lua,
-/// but it differs from [RED4ext naming convention](https://github.com/WopsS/RED4ext.SDK/blob/master/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp).
+/// REDscript `GameInstance`, named
+/// [ScriptGameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp)
+/// in the SDK. Not the native [`NativeGameInstance`].
 #[derive(Default)]
 #[repr(transparent)]
 pub struct GameInstance(red::ScriptGameInstance);
@@ -28,11 +27,9 @@ unsafe impl NativeRepr for GameInstance {
     const NAME: &'static str = "ScriptGameInstance";
 }
 
-/// Native game instance.
-///
-/// Please note that it differs from Redscript and Lua's `GameInstance`,
-/// see [`GameInstance`].
-#[derive(Default)]
+/// Native SDK [GameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp),
+/// not REDscript's [`GameInstance`]. Access through [`GameEngine::game_instance`].
+/// This is a borrowed engine object, not a constructible or owning Rust value.
 #[repr(transparent)]
 pub struct NativeGameInstance(red::GameInstance);
 
@@ -54,17 +51,10 @@ impl NativeGameInstance {
     }
 }
 
-impl Drop for NativeGameInstance {
-    #[inline]
-    fn drop(&mut self) {
-        unsafe { (self.vft().destroy)(self) };
-    }
-}
-
 #[repr(C)]
 pub struct GameInstanceVft {
     /// Windows: the scalar deleting destructor. macOS: D1, the complete object destructor, which destroys in place.
-    destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
+    _destroy: unsafe extern "C" fn(this: *mut NativeGameInstance),
     /// macOS: D0 (deleting destructor) takes the next slot, so GetSystem is at 0x10 and the table has one more entry.
     /// Evidence: Mac GameInstance vtable (vptr 0x6FB1FA0, set by the derived constructor 0x1F2D640): slot 0x00 `b 0x33141bc` (D1),
     /// 0x08 `bl 0x33141bc; b 0x4a3dbf4` (D0), 0x10 -> 0x331543c (looks the type up in the system map at +0x10: GetSystem),
@@ -90,6 +80,8 @@ pub struct GameInstanceVft {
 }
 
 #[repr(transparent)]
+/// SDK [CGameEngine](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp).
+/// Access requires a live engine and game framework.
 pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
@@ -106,6 +98,7 @@ impl GameEngine {
 }
 
 #[repr(transparent)]
+/// SDK [game::ScriptableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/game/ScriptableSystem.hpp).
 pub struct ScriptableSystem(red::ScriptableSystem);
 
 unsafe impl ScriptClass for ScriptableSystem {
@@ -121,6 +114,7 @@ impl AsRef<IScriptable> for ScriptableSystem {
 }
 
 #[repr(transparent)]
+/// SDK [IUpdatableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/IUpdatableSystem.hpp).
 pub struct IUpdatableSystem(IScriptable);
 
 unsafe impl ScriptClass for IUpdatableSystem {
@@ -143,6 +137,7 @@ impl AsRef<IScriptable> for IUpdatableSystem {
 }
 
 #[repr(C)]
+/// SDK [game::IGameSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp).
 pub struct IGameSystem {
     base: IUpdatableSystem,
     game_instance: *mut NativeGameInstance,
@@ -196,4 +191,14 @@ pub struct IGameSystemVft {
     sub_198: VoidPtr,
     on_initialize: VoidPtr,
     on_uninitialize: VoidPtr,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NativeGameInstance;
+
+    #[test]
+    fn native_game_instance_is_non_owning() {
+        assert!(!std::mem::needs_drop::<NativeGameInstance>());
+    }
 }

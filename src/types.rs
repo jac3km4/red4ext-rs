@@ -57,6 +57,7 @@ pub use sync::{RwSpinLockReadGuard, RwSpinLockWriteGuard};
 pub use time::{DateTime, EngineTime, GameTime};
 pub use variant::Variant;
 
+/// Compares native instance addresses rather than pointed-to values.
 pub trait PtrEq<Rhs = Self>
 where
     Rhs: ?Sized,

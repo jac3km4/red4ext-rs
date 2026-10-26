@@ -27,7 +27,8 @@ mod raw;
 mod repr;
 mod systems;
 
-/// A module encapsulating various types defined in the RED4ext SDK.
+/// Rust wrappers for [SDK types](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext).
+/// Engine-backed allocation, RTTI, and singleton access require a live game runtime.
 pub mod types;
 
 pub use class::{ClassKind, ScriptClass, ScriptClassOps, class_kind};
@@ -38,7 +39,8 @@ pub use invocable::{
 pub use repr::{FromRepr, IntoRepr, NativeRepr};
 pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
 
-/// Hashes of known function addresses.
+/// SDK [address hashes](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Detail/AddressHashes.hpp)
+/// for runtime relocation. Resolve only inside a running game.
 ///
 /// # Example
 /// Resolve a hash to an address:
@@ -46,8 +48,9 @@ pub use systems::{RttiRegistrator, RttiSystem, RttiSystemMut};
 /// use red4ext_rs::addr_hashes;
 ///
 /// fn exec_hash() -> usize {
-///   addr_hashes::resolve(addr_hashes::CBaseFunction_ExecuteNative)
+///     addr_hashes::resolve(addr_hashes::CBaseFunction_ExecuteNative)
 /// }
+/// ```
 pub mod addr_hashes {
     pub use super::red::Detail::AddressHashes::*;
 
@@ -85,7 +88,9 @@ pub mod internal {
 #[doc(hidden)]
 pub type VoidPtr = *mut std::os::raw::c_void;
 
-/// A definition of a RED4ext plugin.
+/// Plugin metadata, exports, and load/unload callbacks.
+/// See SDK [PluginInfo](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/PluginInfo.hpp)
+/// and export the entry points with [`export_plugin_symbols!`].
 pub trait Plugin {
     /// The name of the plugin.
     const NAME: &'static U16CStr;
@@ -95,36 +100,35 @@ pub trait Plugin {
     const VERSION: SemVer;
     /// The RED4ext SDK version the plugin was built with.
     const SDK: SdkVersion = SdkVersion::LATEST;
-    /// The version of the game the plugin is compatible with.
+    /// Loader runtime requirement. Runtime-independent does not guarantee ABI
+    /// compatibility across game updates.
     const RUNTIME: RuntimeVersion = RuntimeVersion::RUNTIME_INDEPENDENT;
     /// The RED4ext API version.
     const API_VERSION: ApiVersion = ApiVersion::LATEST;
 
-    /// A list of definitions to be exported automatically when the plugin is loaded.
-    /// This can be used to define classes and functions that will available to use in the game.
-    /// See the [`exports!`] macro for more information.
+    /// Definitions registered during the SDK's RTTI registration callbacks.
+    /// Use [`exports!`] to collect classes and functions.
     fn exports() -> impl Exportable {
         ExportNil
     }
 
-    /// A function that is called when the plugin is loaded.
-    ///
-    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    /// Called for SDK [Load](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/EMainReason.hpp).
+    /// Game systems and RTTI registration may not yet be ready.
     fn on_load(_env: &SdkEnv) {}
-    /// A function that is called when the plugin is unloaded.
-    ///
-    /// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+    /// Called for SDK [Unload](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/EMainReason.hpp).
+    /// Release plugin-owned runtime resources before returning.
     fn on_unload(_env: &SdkEnv) {}
 }
 
-/// [StateHandler] execution result,
-/// which can be executed across multiple frames.
+/// Result of a [`StateHandler`]; see SDK
+/// [GameState](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/GameState.hpp).
+/// Only update callbacks outside `Running` use the result to control repetition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum StateHandlerResult {
-    /// [StateHandler] hasn't finished executing (and will be called again next frame).
+    /// Continue updating on subsequent frames.
     Running = 0,
-    /// [StateHandler] has finished executing (and lifecycle can carry on to next step).
+    /// Stop updating. Return this for enter and exit callbacks.
     Finished = 1,
 }
 
@@ -190,8 +194,9 @@ where
     }
 }
 
-/// Defines a set of DLL symbols necessary for RED4ext to load the plugin. Your plugin will
-/// not be loaded unless you call this macro.
+/// Exports `Query`, `Main`, and `Supports` for a [`Plugin`].
+/// Required once per plugin DLL; see the SDK
+/// [plugin example](https://github.com/WopsS/RED4ext.SDK/tree/2216befc23924b46996a9335043aebb31ba6a757/examples).
 ///
 /// On macOS the macro takes a second argument, the name of one more exported function that runs
 /// the plugin's RTTI registration (`register` then `post_register`, once): the private macOS loader
@@ -289,9 +294,9 @@ macro_rules! export_plugin_symbols {
     };
 }
 
-/// Convenience logging macros. By default all macros require a [`SdkEnv`] instance to be passed as
-/// the first argument. If the `log` feature is enabled, this module becomes an alias to the
-/// `log` crate.
+/// Logging through the SDK [Logger](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/Logger.hpp).
+/// Without the `log` feature, pass [`SdkEnv`] first: `log::info!(env, "loaded")`.
+/// With `log` enabled, this is the `log` crate: `log::info!("loaded")`.
 #[cfg(not(feature = "log"))]
 pub mod log {
     #[doc(inline)]
@@ -299,17 +304,7 @@ pub mod log {
         __debug as debug, __error as error, __info as info, __trace as trace, __warn as warn,
     };
 
-    /// Logs a message at the info level.
-    ///
-    /// # Example
-    /// ```rust
-    /// use red4ext_rs::{SdkEnv, log};
-    ///
-    /// fn log_info(env: &SdkEnv) {
-    ///     log::info!(env, "Hello, world!");
-    ///     // log::info!("Hello, world!"); // if the `log` feature is enabled
-    /// }
-    /// ```
+    /// Logs an info message: `log::info!(env, "loaded")`.
     #[doc(hidden)]
     #[macro_export]
     macro_rules! __info {
@@ -318,17 +313,7 @@ pub mod log {
         };
     }
 
-    /// Logs a message at the warn level.
-    ///
-    /// # Example
-    /// ```rust
-    /// use red4ext_rs::{SdkEnv, log};
-    ///
-    /// fn log_warn(env: &SdkEnv) {
-    ///     log::warn!(env, "Hello, world!");
-    ///     // log::warn!("Hello, world!"); // if the `log` feature is enabled
-    /// }
-    /// ```
+    /// Logs a warning: `log::warn!(env, "unexpected value")`.
     #[doc(hidden)]
     #[macro_export]
     macro_rules! __warn {
@@ -337,17 +322,7 @@ pub mod log {
         };
     }
 
-    /// Logs a message at the error level.
-    ///
-    /// # Example
-    /// ```rust
-    /// use red4ext_rs::{SdkEnv, log};
-    ///
-    /// fn log_error(env: &SdkEnv) {
-    ///     log::error!(env, "Hello, world!");
-    ///     // log::error!("Hello, world!"); // if the `log` feature is enabled
-    /// }
-    /// ```
+    /// Logs an error: `log::error!(env, "operation failed")`.
     #[doc(hidden)]
     #[macro_export]
     macro_rules! __error {
@@ -356,17 +331,7 @@ pub mod log {
         };
     }
 
-    /// Logs a message at the debug level.
-    ///
-    /// # Example
-    /// ```rust
-    /// use red4ext_rs::{SdkEnv, log};
-    ///
-    /// fn log_debug(env: &SdkEnv) {
-    ///     log::debug!(env, "Hello, world!");
-    ///     // log::debug!("Hello, world!"); // if the `log` feature is enabled
-    /// }
-    /// ```
+    /// Logs a debug message: `log::debug!(env, "value: {}", 42)`.
     #[doc(hidden)]
     #[macro_export]
     macro_rules! __debug {
@@ -375,17 +340,7 @@ pub mod log {
         };
     }
 
-    /// Logs a message at the trace level.
-    ///
-    /// # Example
-    /// ```rust
-    /// use red4ext_rs::{SdkEnv, log};
-    ///
-    /// fn log_trace(env: &SdkEnv) {
-    ///     log::trace!(env, "Hello, world!");
-    ///     // log::trace!("Hello, world!"); // if the `log` feature is enabled
-    /// }
-    /// ```
+    /// Logs a trace message: `log::trace!(env, "entered callback")`.
     #[doc(hidden)]
     #[macro_export]
     macro_rules! __trace {
@@ -407,10 +362,9 @@ macro_rules! log_internal {
     };
 }
 
-/// A handle to the RED4ext SDK environment.
-/// This struct enables access to the SDK's functions and logging facilities.
-/// It can be obtained statically using the [`PluginOps::env`] method from any plugin
-/// implementation.
+/// Plugin-scoped SDK services: logging, hooks, and state listeners.
+/// See SDK [Sdk](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/Sdk.hpp).
+/// Available in lifecycle callbacks or through [`PluginOps::env`] after load.
 #[derive(Debug)]
 pub struct SdkEnv {
     handle: red::v1::PluginHandle,
@@ -488,9 +442,9 @@ impl SdkEnv {
         unsafe { ((*self.sdk.gameStates).Add.unwrap())(self.handle, typ as u32, &mut listener.0) }
     }
 
-    /// Attaches a hook to a target function.
-    /// The hook will be called instead of the target function. The hook must accept a callback
-    /// function as its last argument, which should be called to execute the original function.
+    /// Attaches an SDK [hook](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/Hooking.hpp).
+    /// The detour's last argument is the trampoline; call it to run the original.
+    /// Returns whether attachment succeeded.
     ///
     /// # Safety
     /// The target and detour functions must both be valid and compatible function pointers.
@@ -535,7 +489,8 @@ impl SdkEnv {
         }
     }
 
-    /// Detaches a hook from a target function.
+    /// Detaches SDK hooks at the target; returns whether detachment succeeded.
+    /// See SDK [Hooking::Detach](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/Hooking.hpp).
     #[inline]
     pub unsafe fn detach_hook<F, A, R>(&self, target: F) -> bool
     where
@@ -567,7 +522,7 @@ impl log::Log for SdkEnv {
     fn flush(&self) {}
 }
 
-/// A version number in the semantic versioning format.
+/// SDK [SemVer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/SemVer.hpp).
 #[derive(Debug)]
 pub struct SemVer(red::v1::SemVer);
 
@@ -616,12 +571,12 @@ impl IntoRepr for SemVer {
     }
 }
 
-/// A version number representing the game's version.
+/// SDK [runtime version](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/Runtime.hpp) requirement.
 #[derive(Debug)]
 pub struct RuntimeVersion(red::v1::FileVer);
 
 impl RuntimeVersion {
-    /// A special version number that indicates the plugin is compatible with any game version.
+    /// Disables the loader's game-version restriction; does not ensure ABI compatibility.
     pub const RUNTIME_INDEPENDENT: Self = Self(red::v1::FileVer {
         major: versioning::RUNTIME_INDEPENDENT,
         minor: versioning::RUNTIME_INDEPENDENT,
@@ -630,7 +585,7 @@ impl RuntimeVersion {
     });
 }
 
-/// A version number representing the RED4ext SDK version.
+/// SDK [version](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Version.hpp) used to build the plugin.
 #[derive(Debug)]
 pub struct SdkVersion(SemVer);
 
@@ -643,7 +598,7 @@ impl SdkVersion {
     ));
 }
 
-/// A version number representing the RED4ext API version.
+/// Loader [API version](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/ApiVersion.hpp).
 #[derive(Debug)]
 pub struct ApiVersion(u32);
 
@@ -747,25 +702,20 @@ impl_fn_ptr!(A, B, C, D, E, F, G, H, I, J);
 /// A callback function to be called when a state is entered, updated, or exited.
 pub type StateHandler = unsafe extern "C" fn(app: &GameApp) -> StateHandlerResult;
 
-/// A wrapper around the game application instance.
+/// SDK [CGameApplication](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameApplication.hpp) passed to state callbacks.
 #[repr(transparent)]
 pub struct GameApp(red::CGameApplication);
 
-/// A listener for state changes in the game application.
-/// The listener can be attached to a specific state type using the [`SdkEnv::add_listener`]
-/// method.
-///
-/// For more informations, see [game's lifecycle](https://docs.red4ext.com/mod-developers/custom-game-states#games-life-cycle).
+/// SDK [GameState](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Api/v1/GameState.hpp)
+/// callbacks. Register with [`SdkEnv::add_listener`].
 #[derive(Debug, Default)]
 #[repr(transparent)]
 pub struct StateListener(red::v1::GameState);
 
 #[allow(clippy::missing_transmute_annotations)]
 impl StateListener {
-    /// Sets a callback to be called when the state is entered.
-    ///
-    /// Called immediately after the state is activated.
-    /// This function is called once by the game, so be careful what you want to do here.
+    /// Called when the state activates. Return [`StateHandlerResult::Finished`];
+    /// the SDK ignores the result.
     #[inline]
     pub fn with_on_enter(self, cb: StateHandler) -> Self {
         Self(red::v1::GameState {
@@ -774,9 +724,8 @@ impl StateListener {
         })
     }
 
-    /// Sets a callback to be called when the state is updated.
-    ///
-    /// Called every frame. This function can contain more complex code.
+    /// Called each frame until it returns [`StateHandlerResult::Finished`].
+    /// In [`StateType::Running`], the result is ignored and updates continue.
     #[inline]
     pub fn with_on_update(self, cb: StateHandler) -> Self {
         Self(red::v1::GameState {
@@ -785,10 +734,8 @@ impl StateListener {
         })
     }
 
-    /// Sets a callback to be called when the state is exited.
-    ///
-    /// Called when the state is ending.
-    /// This function is called once by the game, so be careful what you want to do here.
+    /// Called when the state ends. Return [`StateHandlerResult::Finished`];
+    /// the SDK ignores the result.
     #[inline]
     pub fn with_on_exit(self, cb: StateHandler) -> Self {
         Self(red::v1::GameState {
@@ -798,7 +745,7 @@ impl StateListener {
     }
 }
 
-/// An enum representing different types of game states.
+/// SDK [game state types](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameStates.hpp).
 #[derive(Debug)]
 #[repr(u32)]
 pub enum StateType {

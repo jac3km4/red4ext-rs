@@ -10,7 +10,9 @@ use crate::systems::RttiSystem;
 use crate::types::PtrEq;
 use crate::{ClassKind, VoidPtr};
 
-/// A reference counted shared pointer to a script class.
+/// Shared ownership of a script-class instance via SDK
+/// [Handle](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Handle.hpp).
+/// Cloning shares the instance, not its fields; reference counting does not prevent aliasing.
 #[repr(transparent)]
 pub struct Ref<T: ScriptClass>(BaseRef<NativeType<T>>);
 
@@ -28,7 +30,9 @@ impl<T: ScriptClass> Ref<T> {
         let mut this = Self::default();
         Self::ctor(&mut this, class.instantiate().as_ptr().cast::<T>());
 
-        init(T::Kind::fields_mut(this.0.instance_mut()?));
+        // The unsafe ScriptClass implementation supplies the field layout; this
+        // newly constructed instance has not escaped to another Rust handle.
+        init(unsafe { T::Kind::fields_mut(this.0.instance_mut()?) });
         Some(this)
     }
 
@@ -39,31 +43,29 @@ impl<T: ScriptClass> Ref<T> {
         }
     }
 
-    /// Returns a reference to the fields of the class.
+    /// Borrows the class fields.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Prevent mutation through the engine or other handles for the entire borrow.
     #[inline]
     pub unsafe fn fields(&self) -> Option<&T> {
-        Some(T::Kind::fields(self.0.instance()?))
+        Some(unsafe { T::Kind::fields(self.0.instance()?) })
     }
 
-    /// Returns a mutable reference to the fields of the class.
+    /// Mutably borrows the class fields.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Ensure exclusive access: no engine or other handle may read or write these
+    /// fields for the entire borrow.
     #[inline]
     pub unsafe fn fields_mut(&mut self) -> Option<&mut T> {
-        Some(T::Kind::fields_mut(self.0.instance_mut()?))
+        Some(unsafe { T::Kind::fields_mut(self.0.instance_mut()?) })
     }
 
-    /// Returns a reference to the instance of the class.
+    /// Borrows the native instance.
     ///
     /// # Safety
-    /// The underlying value can be accessed mutably at any point through another copy of the
-    /// [`Ref`]. Ideally, the caller should ensure that the returned reference is short-lived.
+    /// Prevent mutation through the engine or other handles for the entire borrow.
     #[inline]
     pub unsafe fn instance(&self) -> Option<&NativeType<T>> {
         self.0.instance()
@@ -154,8 +156,8 @@ impl<T: ScriptClass> Drop for Ref<T> {
 unsafe impl<T: ScriptClass> Send for Ref<T> {}
 unsafe impl<T: ScriptClass> Sync for Ref<T> {}
 
-/// A weak reference to a script class.
-/// Before use, it must be upgraded to a strong reference using [`WeakRef::upgrade`].
+/// Non-owning SDK [WeakHandle](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Handle.hpp).
+/// Use [`WeakRef::upgrade`] before accessing the instance.
 #[repr(transparent)]
 pub struct WeakRef<T: ScriptClass>(BaseRef<NativeType<T>>);
 
@@ -224,8 +226,10 @@ impl<T> BaseRef<T> {
 
     #[inline]
     fn inc_strong(&self) {
+        // Match the SDK's unsuffixed Windows Interlocked operations, including
+        // their full barriers before promotion and final destruction.
         if let Some(cnt) = self.ref_count() {
-            cnt.strong().fetch_add(1, Ordering::Relaxed);
+            cnt.strong().fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -235,7 +239,7 @@ impl<T> BaseRef<T> {
         };
 
         cnt.strong()
-            .try_update(Ordering::Relaxed, Ordering::Relaxed, |x| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |x| {
                 (x != 0).then(|| x + 1)
             })
             .is_ok()
@@ -246,7 +250,7 @@ impl<T> BaseRef<T> {
             return false;
         };
 
-        if cnt.strong().fetch_sub(1, Ordering::Relaxed) == 1 {
+        if cnt.strong().fetch_sub(1, Ordering::SeqCst) == 1 {
             self.dec_weak();
             true
         } else {
@@ -257,7 +261,7 @@ impl<T> BaseRef<T> {
     #[inline]
     fn inc_weak(&self) {
         if let Some(cnt) = self.ref_count() {
-            cnt.weak_refs().fetch_add(1, Ordering::Relaxed);
+            cnt.weak_refs().fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -318,7 +322,47 @@ impl RefCount {
     }
 }
 
-/// A reference to local script data.
+#[cfg(test)]
+mod count_tests {
+    use super::*;
+
+    fn with_count(strong: u32, weak: u32) -> (Box<red::RefCnt>, BaseRef<()>) {
+        let mut count = Box::new(red::RefCnt {
+            strongRefs: strong,
+            weakRefs: weak,
+        });
+        let base = BaseRef(red::SharedPtrBase {
+            instance: ptr::null_mut(),
+            refCount: &mut *count,
+            ..Default::default()
+        });
+        (count, base)
+    }
+
+    #[test]
+    fn counts_match_sdk_transitions_without_final_release() {
+        let (count, mut base) = with_count(1, 1);
+        base.inc_strong();
+        assert_eq!(count.strongRefs, 2);
+        assert!(base.inc_strong_if_non_zero());
+        assert_eq!(count.strongRefs, 3);
+        assert!(!base.dec_strong());
+        assert_eq!(count.strongRefs, 2);
+        base.inc_weak();
+        assert_eq!(count.weakRefs, 2);
+    }
+
+    #[test]
+    fn promotion_never_revives_dead_or_empty_counts() {
+        let (count, base) = with_count(0, 1);
+        assert!(!base.inc_strong_if_non_zero());
+        assert_eq!(count.strongRefs, 0);
+        assert!(!BaseRef::<()>::default().inc_strong_if_non_zero());
+    }
+}
+
+/// Borrowed script data using SDK
+/// [ScriptRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ScriptRef<'a, T>(red::ScriptRef<T>, PhantomData<&'a mut T>);
@@ -329,7 +373,7 @@ impl<'a, T: NativeRepr> ScriptRef<'a, T> {
         let rtti = RttiSystem::get();
         let inner = rtti.get_type(CName::new(T::NAME))?;
         let ref_ = red::ScriptRef {
-            innerType: inner.as_raw() as *const _ as *mut red::CBaseRTTIType,
+            innerType: inner.as_raw() as *const _ as *mut red::rtti::IType,
             ref_: val as *mut T,
             ..Default::default()
         };

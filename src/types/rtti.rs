@@ -13,22 +13,23 @@ use crate::repr::{FromRepr, NativeRepr};
 use crate::types::PtrEq;
 use crate::{ScriptClass, VoidPtr, check_invariant, class_kind};
 
-/// A handler for function calls.
-pub type FunctionHandler<C, R> = extern "C" fn(&C, &mut StackFrame, R, i64);
+/// Native handler for SDK [functions](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
+pub type FunctionHandler<C, R> = unsafe extern "C" fn(*mut C, &mut StackFrame, R, i64);
 
-/// An RTTI representation of a type.
+/// SDK [CBaseRTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
+/// Metadata borrowed from RTTI remains engine-owned.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct Type(red::CBaseRTTIType);
+pub struct Type(red::rtti::IType);
 
 impl Type {
     #[inline]
-    pub(crate) fn as_raw(&self) -> &red::CBaseRTTIType {
+    pub(crate) fn as_raw(&self) -> &red::rtti::IType {
         &self.0
     }
 
     #[inline]
-    pub(crate) unsafe fn from_raw<'a>(raw: *const red::CBaseRTTIType) -> Option<&'a Self> {
+    pub(crate) unsafe fn from_raw<'a>(raw: *const red::rtti::IType) -> Option<&'a Self> {
         unsafe { raw.cast::<Self>().as_ref() }
     }
 
@@ -37,7 +38,7 @@ impl Type {
         #[cfg(not(target_os = "macos"))]
         {
             // calling Type with unk8 == 0 crashes the game
-            if self.0.unk8 == 0 {
+            if self.0.unk8.is_null() {
                 return CName::undefined();
             }
         }
@@ -54,33 +55,33 @@ impl Type {
                 return CName::undefined();
             }
         }
-        CName::from_raw(unsafe { (self.vft().tail.CBaseRTTIType_GetName)(&self.0) })
+        CName::from_raw(unsafe { (self.vft().tail.IType_GetName)(&self.0) })
     }
 
     #[inline]
     pub fn size(&self) -> u32 {
-        unsafe { (self.vft().tail.CBaseRTTIType_GetSize)(&self.0) }
+        unsafe { (self.vft().tail.IType_GetSize)(&self.0) }
     }
 
     #[inline]
     pub fn alignment(&self) -> u32 {
-        unsafe { (self.vft().tail.CBaseRTTIType_GetAlignment)(&self.0) }
+        unsafe { (self.vft().tail.IType_GetAlignment)(&self.0) }
     }
 
     #[inline]
     pub fn kind(&self) -> TypeKind {
-        unsafe { mem::transmute((self.vft().tail.CBaseRTTIType_GetType)(&self.0)) }
+        unsafe { mem::transmute((self.vft().tail.IType_GetType)(&self.0)) }
     }
 
     #[inline]
     pub fn allocator(&self) -> &IAllocator {
-        unsafe { &*((self.vft().tail.CBaseRTTIType_GetAllocator)(&self.0).cast::<IAllocator>()) }
+        unsafe { &*((self.vft().tail.IType_GetAllocator)(&self.0).cast::<IAllocator>()) }
     }
 
     #[inline]
     pub fn as_class(&self) -> Option<&Class> {
         if self.kind().is_class() {
-            Some(unsafe { mem::transmute::<&red::CBaseRTTIType, &Class>(&self.0) })
+            Some(unsafe { mem::transmute::<&red::rtti::IType, &Class>(&self.0) })
         } else {
             None
         }
@@ -89,7 +90,7 @@ impl Type {
     #[inline]
     pub fn as_class_mut(&mut self) -> Option<&mut Class> {
         if self.kind().is_class() {
-            Some(unsafe { mem::transmute::<&mut red::CBaseRTTIType, &mut Class>(&mut self.0) })
+            Some(unsafe { mem::transmute::<&mut red::rtti::IType, &mut Class>(&mut self.0) })
         } else {
             None
         }
@@ -98,7 +99,7 @@ impl Type {
     #[inline]
     pub fn as_array(&self) -> Option<&ArrayType> {
         if self.kind().is_array() {
-            Some(unsafe { mem::transmute::<&red::CBaseRTTIType, &ArrayType>(&self.0) })
+            Some(unsafe { mem::transmute::<&red::rtti::IType, &ArrayType>(&self.0) })
         } else {
             None
         }
@@ -130,7 +131,7 @@ impl Type {
     pub unsafe fn to_string(&self, value: ValuePtr) -> RedString {
         let mut str = RedString::new();
         unsafe {
-            (self.vft().tail.CBaseRTTIType_ToString)(
+            (self.vft().tail.IType_ToString)(
                 &self.0,
                 value.0,
                 &mut str as *mut _ as *mut red::CString,
@@ -145,27 +146,27 @@ impl Type {
     }
 }
 
-/// An identifier for a kind of type.
+/// SDK [ERTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp) discriminator.
 #[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TypeKind {
-    Name = red::ERTTIType::Name,
-    Fundamental = red::ERTTIType::Fundamental,
-    Class = red::ERTTIType::Class,
-    Array = red::ERTTIType::Array,
-    Simple = red::ERTTIType::Simple,
-    Enum = red::ERTTIType::Enum,
-    StaticArray = red::ERTTIType::StaticArray,
-    NativeArray = red::ERTTIType::NativeArray,
-    Pointer = red::ERTTIType::Pointer,
-    Ref = red::ERTTIType::Handle,
-    WeakRef = red::ERTTIType::WeakHandle,
-    ResourceRef = red::ERTTIType::ResourceReference,
-    RaRef = red::ERTTIType::ResourceAsyncReference,
-    BitField = red::ERTTIType::BitField,
-    Curve = red::ERTTIType::LegacySingleChannelCurve,
-    ScriptRef = red::ERTTIType::ScriptReference,
-    FixedArray = red::ERTTIType::FixedArray,
+    Name = red::rtti::ERTTIType::Name,
+    Fundamental = red::rtti::ERTTIType::Fundamental,
+    Class = red::rtti::ERTTIType::Class,
+    Array = red::rtti::ERTTIType::Array,
+    Simple = red::rtti::ERTTIType::Simple,
+    Enum = red::rtti::ERTTIType::Enum,
+    StaticArray = red::rtti::ERTTIType::StaticArray,
+    NativeArray = red::rtti::ERTTIType::NativeArray,
+    Pointer = red::rtti::ERTTIType::Pointer,
+    Ref = red::rtti::ERTTIType::Handle,
+    WeakRef = red::rtti::ERTTIType::WeakHandle,
+    ResourceRef = red::rtti::ERTTIType::ResourceReference,
+    RaRef = red::rtti::ERTTIType::ResourceAsyncReference,
+    BitField = red::rtti::ERTTIType::BitField,
+    Curve = red::rtti::ERTTIType::LegacySingleChannelCurve,
+    ScriptRef = red::rtti::ERTTIType::ScriptReference,
+    FixedArray = red::rtti::ERTTIType::FixedArray,
 }
 
 impl TypeKind {
@@ -183,7 +184,7 @@ impl TypeKind {
     }
 }
 
-/// Enum representation of the RTTI type.
+/// Borrowed RTTI metadata dispatched by [`TypeKind`].
 #[derive(Debug)]
 pub enum TaggedType<'a> {
     /// A name type.
@@ -222,7 +223,7 @@ pub enum TaggedType<'a> {
     FixedArray(&'a ArrayType),
 }
 
-/// An RTTI representation of a class.
+/// SDK [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp) metadata.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Class(red::CClass);
@@ -407,7 +408,7 @@ impl Drop for Class {
     }
 }
 
-/// Flags for a class type.
+/// SDK [CClass flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct ClassFlags(red::CClass_Flags);
@@ -528,7 +529,7 @@ impl fmt::Debug for ClassFlags {
     }
 }
 
-/// An RTTI representation of a native class.
+/// Rust-defined native [`Class`] with construction, cloning, and destruction callbacks.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct NativeClass<T>(Class, PhantomData<*mut T>);
@@ -572,7 +573,11 @@ impl<T> NativeClass<T> {
         #[cfg(target_os = "macos")]
         const ALLOC_SLOT: usize = 30;
 
-        let mut class = Class::new_native(name, mem::size_of::<T>() as u32);
+        let size = u32::try_from(mem::size_of::<T>()).expect("native class size exceeds u32");
+        let alignment =
+            u32::try_from(mem::align_of::<T>()).expect("native class alignment exceeds u32");
+        let mut class = Class::new_native(name, size);
+        class.0.alignment = alignment;
         if let Some(base) = base {
             class.0.parent = base.as_raw() as *const _ as *mut red::CClass;
         }
@@ -593,7 +598,7 @@ impl<T> NativeClass<T> {
         ClassHandle(NonNull::from(Box::leak(Box::new(class))))
     }
 
-    fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
+    unsafe extern "C" fn is_equal(this: VoidPtr, lhs: VoidPtr, rhs: VoidPtr, unk: u32) -> bool {
         unsafe {
             crate::fn_from_hash!(
                 TTypedClass_IsEqual,
@@ -602,14 +607,19 @@ impl<T> NativeClass<T> {
         }
     }
 
-    fn assign(&self, lhs: &mut T, rhs: &T)
+    // Retains the existing initialized-destination contract. The SDK's use of
+    // placement new alone does not establish destination lifetime at call sites.
+    unsafe extern "C" fn assign(_this: *const Self, lhs: *mut T, rhs: *const T)
     where
         T: Clone,
     {
-        lhs.clone_from(rhs)
+        // Rust references must not be created for a self-assignment alias.
+        if lhs.cast_const() != rhs {
+            unsafe { (&mut *lhs).clone_from(&*rhs) };
+        }
     }
 
-    fn construct(&self, mem: *mut T)
+    unsafe extern "C" fn construct(_this: *const Self, mem: *mut T)
     where
         T: Default,
     {
@@ -618,16 +628,17 @@ impl<T> NativeClass<T> {
         }
     }
 
-    fn destruct(&self, mem: *mut T) {
+    unsafe extern "C" fn destruct(_this: *const Self, mem: *mut T) {
         unsafe {
             ptr::drop_in_place(mem);
         }
     }
 
-    fn alloc(&self) -> *mut T {
-        let align = self.0.as_type().alignment();
-        let size = self.0.as_type().size().next_multiple_of(align);
-        let alloc: *mut T = unsafe { self.0.as_type().allocator().alloc_aligned(size, align) };
+    unsafe extern "C" fn alloc(this: *const Self) -> *mut T {
+        let this = unsafe { &*this };
+        let align = this.0.as_type().alignment();
+        let size = this.0.as_type().size().next_multiple_of(align);
+        let alloc: *mut T = unsafe { this.0.as_type().allocator().alloc_aligned(size, align) };
         alloc
     }
 }
@@ -648,7 +659,7 @@ impl ClassHandle {
     }
 }
 
-/// An RTTI representation of a pointer type.
+/// SDK [CRTTIPointerType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct PointerType(red::CRTTIPointerType);
 
@@ -669,7 +680,7 @@ impl PointerType {
     }
 }
 
-/// An RTTI representation of a reference type.
+/// SDK [CRTTIHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct RefType(red::CRTTIHandleType);
 
@@ -690,7 +701,7 @@ impl RefType {
     }
 }
 
-/// An RTTI representation of a weak reference type.
+/// SDK [CRTTIWeakHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct WeakRefType(red::CRTTIWeakHandleType);
 
@@ -711,7 +722,7 @@ impl WeakRefType {
     }
 }
 
-/// An RTTI representation of a script reference type.
+/// SDK [CRTTIScriptReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct ScriptRefType(red::CRTTIScriptReferenceType);
 
@@ -732,7 +743,7 @@ impl ScriptRefType {
     }
 }
 
-/// An RTTI representation of a static array type.
+/// SDK [CRTTIStaticArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct StaticArrayType(red::CRTTIStaticArrayType);
 
@@ -758,7 +769,7 @@ impl StaticArrayType {
     }
 }
 
-/// An RTTI representation of a native array type.
+/// SDK [CRTTINativeArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct NativeArrayType(red::CRTTINativeArrayType);
 
@@ -784,7 +795,7 @@ impl NativeArrayType {
     }
 }
 
-/// An RTTI representation of a resource reference type.
+/// SDK [CRTTIResourceReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct ResourceRefType(red::CRTTIResourceReferenceType);
 
@@ -805,7 +816,7 @@ impl ResourceRefType {
     }
 }
 
-/// An RTTI representation of an asynchronous resource reference type.
+/// SDK [CRTTIResourceAsyncReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct RaRefType(red::CRTTIResourceAsyncReferenceType);
 
@@ -826,7 +837,7 @@ impl RaRefType {
     }
 }
 
-/// An RTTI representation of a curve type.
+/// SDK [CRTTILegacySingleChannelCurveType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct CurveType(red::CRTTILegacySingleChannelCurveType);
 
@@ -847,7 +858,7 @@ impl CurveType {
     }
 }
 
-/// An RTTI representation of a function type.
+/// SDK [CBaseFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp) metadata.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Function(red::CBaseFunction);
@@ -906,9 +917,8 @@ impl Function {
         unsafe { self.0.SetReturnType(typ.to_raw()) };
     }
 
-    /// Executes the function with the given arguments represented as a tuple of values
-    /// that satsify the [`NativeRepr`] trait.
-    /// Returns the result of the function execution.
+    /// Executes with a tuple of [`NativeRepr`] arguments and a matching return type.
+    /// Requires initialized engine RTTI and a valid receiver for instance methods.
     pub fn execute<A, R>(&self, ctx: Option<&IScriptable>, mut args: A) -> Result<R, InvokeError>
     where
         A: Args,
@@ -995,7 +1005,7 @@ impl Function {
     }
 }
 
-/// An RTTI representation of a global function.
+/// SDK [CGlobalFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct GlobalFunction(red::CGlobalFunction);
@@ -1046,7 +1056,7 @@ impl Drop for GlobalFunction {
     }
 }
 
-/// An RTTI representation of a method.
+/// SDK [CClassFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Method(red::CClassFunction);
@@ -1145,7 +1155,7 @@ impl Drop for Method {
     }
 }
 
-/// An RTTI representation of a static method.
+/// SDK [CClassStaticFunction](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StaticMethod(red::CClassStaticFunction);
@@ -1216,7 +1226,7 @@ impl Drop for StaticMethod {
     }
 }
 
-/// Flags for a function.
+/// SDK [CBaseFunction flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct FunctionFlags(red::CBaseFunction_Flags);
@@ -1255,7 +1265,7 @@ impl FunctionFlags {
     }
 }
 
-/// An RTTI representation of a property.
+/// SDK [CProperty](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Property(red::CProperty);
@@ -1276,9 +1286,10 @@ impl Property {
         unsafe {
             (*ptr).0.name = name.to_raw();
             (*ptr).0.group = group.to_raw();
-            (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::CBaseRTTIType;
+            (*ptr).0.type_ = type_.as_raw() as *const _ as *mut red::rtti::IType;
             (*ptr).0.parent = parent.as_raw() as *const _ as *mut red::CClass;
             (*ptr).0.valueOffset = offset;
+            (*ptr).0.flags = PropertyFlags::default().0;
             prop.assume_init()
         }
     }
@@ -1314,7 +1325,7 @@ impl Property {
     }
 }
 
-/// Flags for a property.
+/// SDK [CProperty flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct PropertyFlags(red::CProperty_Flags);
@@ -1337,7 +1348,7 @@ impl PropertyFlags {
     }
 }
 
-/// An RTTI representation of an array type.
+/// SDK [CRTTIBaseArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ArrayType(red::CRTTIBaseArrayType);
@@ -1382,7 +1393,7 @@ impl Drop for ArrayType {
     }
 }
 
-/// An RTTI representation of an enum type.
+/// SDK [CEnum](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Enum(red::CEnum);
@@ -1427,7 +1438,7 @@ impl Drop for Enum {
     }
 }
 
-/// An RTTI representation of a bitfield type.
+/// SDK [CBitfield](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Bitfield(red::CBitfield);
@@ -1462,7 +1473,8 @@ impl Drop for Bitfield {
     }
 }
 
-/// The base type for all types held inside game references.
+/// SDK [ISerializable](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ISerializable.hpp),
+/// the base for handle-managed instances.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct ISerializable(red::ISerializable);
@@ -1526,7 +1538,8 @@ unsafe impl ScriptClass for ISerializable {
     const NAME: &'static str = "ISerializable";
 }
 
-/// The base type for all scripted classes.
+/// SDK [IScriptable](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/IScriptable.hpp),
+/// with separate storage for scripted fields.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IScriptable(red::IScriptable);
@@ -1560,23 +1573,49 @@ impl IScriptable {
         self.0.nativeType = class.as_raw() as *const _ as *mut red::CClass;
     }
 
+    /// Creates a fresh native base, retaining type metadata but not object identity.
+    ///
+    /// This deliberately does not copy scripted fields or the embedded weak
+    /// handle. Native Rust classes can use this in a manual `Clone` implementation
+    /// to copy their own fields without duplicating engine-owned base state.
+    /// Scripted objects must be copied through engine RTTI instead.
+    pub fn clone_native_base(&self) -> Self {
+        assert!(
+            self.0.valueHolder.is_null(),
+            "cannot copy a scripted value holder"
+        );
+        if let Some(class) = unsafe { self.0.nativeType.cast::<Class>().as_ref() } {
+            assert!(
+                !class.flags().is_scripted_class() && !class.flags().is_scripted_struct(),
+                "cannot copy a scripted object as a native base"
+            );
+        }
+        let mut base = Self::default();
+        // Keep the fresh base's vtable: a derived vtable may access fields that
+        // are not present in this standalone IScriptable value.
+        base.0.nativeType = self.0.nativeType;
+        base
+    }
+
     #[inline]
     pub fn vft(&self) -> &IScriptableVft {
         unsafe { &*(self.0._base.vtable_ as *const IScriptableVft) }
     }
 }
 
+impl Clone for IScriptable {
+    fn clone(&self) -> Self {
+        self.clone_native_base()
+    }
+
+    /// Never copy an object's weak handle or value holder as raw bytes.
+    fn clone_from(&mut self, _: &Self) {}
+}
+
 impl Default for IScriptable {
     #[inline]
     fn default() -> Self {
         Self(unsafe { red::IScriptable::new() })
-    }
-}
-
-impl Clone for IScriptable {
-    #[inline]
-    fn clone(&self) -> Self {
-        unsafe { ptr::read(self) }
     }
 }
 
@@ -1650,7 +1689,7 @@ struct TypeVft {
     /// slot 0x10 `ldr x0,[x0,#0x18]; ret` (GetName), slot 0x28 `mov w0,#2; ret` (GetType == Class).
     #[cfg(target_os = "macos")]
     _destroy_deleting: unsafe extern "C" fn(this: *mut Type),
-    tail: red::CBaseRTTIType__bindgen_vtable,
+    tail: red::rtti::IType__bindgen_vtable,
 }
 
 #[repr(C)]
@@ -1725,4 +1764,38 @@ pub struct IScriptableVft {
     sub_f0: VoidPtr,
     sub_f8: VoidPtr,
     sub_100: VoidPtr,
+}
+
+#[cfg(test)]
+mod native_class_tests {
+    use super::*;
+
+    #[test]
+    fn trampolines_have_explicit_c_signatures() {
+        let _: unsafe extern "C" fn(VoidPtr, VoidPtr, VoidPtr, u32) -> bool =
+            NativeClass::<u64>::is_equal;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64, *const u64) =
+            NativeClass::<u64>::assign;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64) =
+            NativeClass::<u64>::construct;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>, *mut u64) =
+            NativeClass::<u64>::destruct;
+        let _: unsafe extern "C" fn(*const NativeClass<u64>) -> *mut u64 =
+            NativeClass::<u64>::alloc;
+    }
+
+    #[test]
+    fn assignment_handles_self_alias_without_references() {
+        let mut value = String::from("unchanged");
+        let value_ptr = ptr::from_mut(&mut value);
+        unsafe { NativeClass::<String>::assign(ptr::null(), value_ptr, value_ptr) };
+        assert_eq!(value, "unchanged");
+    }
+
+    #[test]
+    fn construction_initializes_raw_storage() {
+        let mut value = mem::MaybeUninit::<u64>::uninit();
+        unsafe { NativeClass::<u64>::construct(ptr::null(), value.as_mut_ptr()) };
+        assert_eq!(unsafe { value.assume_init() }, 0);
+    }
 }

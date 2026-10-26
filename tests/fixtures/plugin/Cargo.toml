@@ -1,0 +1,11 @@
+[package]
+name = "red4ext-smoke-plugin"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+red4ext-rs = { path = "../../.." }

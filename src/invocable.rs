@@ -78,7 +78,12 @@ impl InvokeError {
 pub trait GlobalInvocable<A, R> {
     const FN_TYPE: FunctionType;
 
-    fn invoke(self, ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R>>);
+    fn invoke(
+        self,
+        ctx: *mut IScriptable,
+        frame: &mut StackFrame,
+        ret: Option<&mut MaybeUninit<R>>,
+    );
 }
 
 macro_rules! impl_global_invocable {
@@ -98,7 +103,7 @@ macro_rules! impl_global_invocable {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
+                fn invoke(self, _ctx: *mut IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self($($types,)*);
                     if let Some(ret) = ret {
@@ -139,7 +144,7 @@ macro_rules! impl_global_invocable_with_ref {
                 };
 
                 #[inline]
-                fn invoke(self, _ctx: &IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
+                fn invoke(self, _ctx: *mut IScriptable, frame: &mut StackFrame, ret: Option<&mut MaybeUninit<R::Repr>>) {
                     let this = unsafe { frame.get_arg() };
                     $(let $types = unsafe { frame.get_arg::<$types>() };)*
                     let res = self(this, $($types,)*);
@@ -210,7 +215,8 @@ impl_method_invocable!(
     (A, B, C, D, E, F, G)
 );
 
-/// A representation of a function type, including its arguments and return type.
+/// Argument and return-type metadata for SDK
+/// [functions](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Functions.hpp).
 #[derive(Debug)]
 pub struct FunctionType {
     args: &'static [CName],
@@ -286,7 +292,8 @@ pub struct MethodMetadata<Ctx> {
     is_final: bool,
 }
 
-impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
+// Instance handlers receive the native object, never scripted field storage.
+impl<Ctx: ScriptClass<Kind = crate::class_kind::Native>> MethodMetadata<Ctx> {
     #[doc(hidden)]
     #[inline]
     pub const fn new<F: MethodInvocable<Ctx, A, R>, A, R>(
@@ -348,13 +355,13 @@ impl<Ctx: ScriptClass> MethodMetadata<Ctx> {
 #[macro_export]
 macro_rules! global {
     ($name:literal, $fun:expr) => {{
-        extern "C" fn native_impl(
-            ctx: &$crate::types::IScriptable,
+        unsafe extern "C" fn native_impl(
+            ctx: *mut $crate::types::IScriptable,
             frame: &mut $crate::types::StackFrame,
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
-            let out = unsafe { std::mem::transmute(ret) };
+            let out = unsafe { (ret as *mut ::std::mem::MaybeUninit<_>).as_mut() };
             $crate::GlobalInvocable::invoke($fun, ctx, frame, out);
             unsafe { frame.step() };
         }
@@ -363,18 +370,33 @@ macro_rules! global {
     }};
 }
 
-/// A macro for defining class methods. Usually used in conjunction with the
+/// Defines methods on native classes (`ScriptClass<Kind = class_kind::Native>`).
+/// Scripted field layouts cannot be used as native instance headers.
+///
+/// ```compile_fail
+/// use red4ext_rs::{ScriptClass, class_kind, method};
+/// struct Fields;
+/// unsafe impl ScriptClass for Fields {
+///     type Kind = class_kind::Scripted;
+///     const NAME: &'static str = "Fields";
+/// }
+/// impl Fields { fn value(&self) -> i32 { 1 } }
+/// let _ = method!(c"Value", Fields::value);
+/// ```
+/// Usually used in conjunction with the
 /// [`methods!`](crate::methods) macro.
 #[macro_export]
 macro_rules! method {
     ($name:literal, $ty:ident::$id:ident $($mods:ident)*) => {{
-        extern "C" fn native_impl(
-            ctx: &$ty,
+        unsafe extern "C" fn native_impl(
+            ctx: *mut $ty,
             frame: &mut $crate::types::StackFrame,
             ret: $crate::VoidPtr,
             _unk: i64,
         ) {
-            let out = unsafe { ::std::mem::transmute(ret) };
+            let out = unsafe { (ret as *mut ::std::mem::MaybeUninit<_>).as_mut() };
+            if !ctx.is_aligned() { return; }
+            let Some(ctx) = (unsafe { ctx.as_ref() }) else { return };
             $crate::MethodInvocable::invoke($ty::$id, ctx, frame, out);
             unsafe { frame.step() };
         }
@@ -390,10 +412,10 @@ macro_rules! method {
     }
 }
 
-/// A macro for conveniently calling functions and methods.
-/// If you're calling a method, the first argument should be the instance of the class.
-/// The next argument should be a full function name, which might have to include mangled names of
-/// the parameter types.
+/// Calls a reflected function using SDK
+/// [stack arguments](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
+/// Use the full RTTI name, including mangled parameter types where required.
+/// Instance calls take a receiver first. Requires initialized engine RTTI.
 ///
 /// # Example
 /// ```rust
@@ -539,3 +561,27 @@ impl_args!(
     (A, B, C, D, E, F),
     (A, B, C, D, E, F, G)
 );
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+
+    fn answer() -> i32 {
+        42
+    }
+
+    #[test]
+    fn global_handler_accepts_null_context() {
+        let metadata = crate::global!(c"Answer", answer);
+        // CStackFrame is plain pointer/integer/bool storage. The no-argument
+        // handler only advances code and never reads the null metadata fields.
+        let mut raw: crate::raw::root::RED4ext::CStackFrame = unsafe { std::mem::zeroed() };
+        let mut code = [0i8; 2];
+        raw.code = code.as_mut_ptr();
+        let frame = unsafe { &mut *std::ptr::from_mut(&mut raw).cast::<StackFrame>() };
+        let mut result = MaybeUninit::<i32>::uninit();
+        unsafe { (metadata.func)(std::ptr::null_mut(), frame, result.as_mut_ptr().cast(), 0) };
+        assert_eq!(unsafe { result.assume_init() }, 42);
+        assert_eq!(raw.code, unsafe { code.as_mut_ptr().add(1) });
+    }
+}

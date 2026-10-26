@@ -9,7 +9,8 @@ use crate::{NativeRepr, fnv1a64};
 
 pub const MAX_LENGTH: usize = 216;
 
-/// An asynchronous resource reference.
+/// SDK [RaRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp).
+/// Construction hashes an archive path; it does not load the resource.
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct RaRef<T>(red::RaRef, PhantomData<T>);
@@ -55,6 +56,8 @@ impl<T> Hash for RaRef<T> {
 
 #[derive(Debug, Default)]
 #[repr(transparent)]
+/// Script resource token; see SDK
+/// [ResRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/red/ResourceReferenceScriptToken.hpp).
 pub struct ResRef(red::ResRef);
 
 impl ResRef {
@@ -129,7 +132,13 @@ fn encode_path(path: impl AsRef<Path>) -> Result<u64, ResourcePathError> {
     if sanitized.len() > self::MAX_LENGTH {
         return Err(ResourcePathError::TooLong);
     }
-    if Path::new(&sanitized)
+    // macOS: `\` is not a path separator for `Path` there, so `..\a` would be a single normal component. The sanitized path is
+    // backslash-separated (archive style), so it is turned into `/` form before the component check.
+    #[cfg(target_os = "macos")]
+    let sanitized_for_check = sanitized.replace('\\', "/");
+    #[cfg(not(target_os = "macos"))]
+    let sanitized_for_check = &sanitized;
+    if Path::new(&sanitized_for_check)
         .components()
         .any(|x| !matches!(x, std::path::Component::Normal(_)))
     {
@@ -152,7 +161,8 @@ pub enum ResourcePathError {
     InvalidUnicode,
 }
 
-/// shortcut for ResRef creation.
+/// Creates a [`ResRef`](crate::types::ResRef) from slash-separated path literals,
+/// returning a `Result` from path validation.
 #[macro_export]
 macro_rules! res_ref {
     ($base:expr, /$lit:literal $($tt:tt)*) => {
@@ -170,16 +180,40 @@ macro_rules! res_ref {
 
 #[derive(Debug)]
 #[repr(transparent)]
+/// Owning SDK [ResourceReference](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/ResourceReference.hpp).
+/// Nonempty references must be dropped while the game's resource systems are available.
 pub struct ResourceRef<T>(red::ResourceReference<T>);
+
+impl<T> Drop for ResourceRef<T> {
+    fn drop(&mut self) {
+        // SAFETY: This transparent wrapper owns one SDK resource reference. The
+        // bridge uses the pinned SDK's T-independent token/handle destruction
+        // ABI (documented in deps/bridge/README.md), including its allocators.
+        unsafe {
+            crate::raw::root::red4ext_rs_destroy_resource_ref(
+                std::ptr::from_mut(&mut self.0).cast(),
+            );
+        }
+    }
+}
 
 #[derive(Debug, Default, Copy, Clone)]
 #[repr(transparent)]
+/// SDK [MessageResourcePath](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp) layout wrapper.
 pub struct MessageResourcePath(red::MessageResourcePath);
 
 #[cfg(test)]
 mod tests {
-    use super::{ResRef, encode_path};
+    use super::{ResRef, ResourceRef, encode_path};
     use crate::fnv1a64;
+
+    #[test]
+    fn empty_resource_ref_drop() {
+        // A default SDK reference has a null token and needs no game systems.
+        let resource = ResourceRef::<u8>(Default::default());
+        assert_eq!(std::mem::size_of_val(&resource), 0x18);
+        drop(resource);
+    }
 
     #[test]
     fn resource_path() {

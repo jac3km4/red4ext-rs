@@ -2,6 +2,9 @@ use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
+/// Game-clock seconds; see SDK
+/// [GameTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/GameTime.hpp).
+/// Rust addition and subtraction methods saturate at the `u32` bounds.
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct GameTime(red::GameTime);
@@ -225,9 +228,9 @@ impl TryFrom<chrono::DateTime<chrono::Utc>> for GameTime {
         if value < cyberpunk_epoch() {
             return Err(chrono::format::ParseErrorKind::OutOfRange);
         }
-        Ok(Self::from(
-            (value.timestamp() - cyberpunk_epoch().timestamp()) as u32,
-        ))
+        let seconds = u32::try_from(value.timestamp() - cyberpunk_epoch().timestamp())
+            .map_err(|_| chrono::format::ParseErrorKind::OutOfRange)?;
+        Ok(Self::from(seconds))
     }
 }
 
@@ -329,6 +332,24 @@ mod tests {
         assert_eq!(gt.hour(), 0);
         assert_eq!(gt.minute(), 7);
         assert_eq!(gt.second(), 7);
+    }
+
+    #[test]
+    #[cfg(feature = "chrono")]
+    fn date_bounds() {
+        use chrono::Duration;
+
+        let epoch = super::cyberpunk_epoch().to_utc();
+        assert!(GameTime::try_from(epoch - Duration::seconds(1)).is_err());
+        assert_eq!(u32::from(GameTime::try_from(epoch).unwrap()), 0);
+        let last = epoch + Duration::seconds(u32::MAX as i64);
+        assert_eq!(u32::from(GameTime::try_from(last).unwrap()), u32::MAX);
+        assert!(GameTime::try_from(last + Duration::seconds(1)).is_err());
+        // Preserve the existing truncation of subsecond precision.
+        assert_eq!(
+            u32::from(GameTime::try_from(epoch + Duration::milliseconds(999)).unwrap()),
+            0
+        );
     }
 
     #[test]

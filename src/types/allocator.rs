@@ -4,18 +4,23 @@ use std::{mem, ops, ptr};
 use once_cell::race::OnceNonZeroUsize;
 use sealed::sealed;
 
-use super::{GlobalFunction, IScriptable, Method, Property, StaticMethod};
+use super::{GlobalFunction, IScriptable, Method, Property, RwSpinLockReadGuard, StaticMethod};
 use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{VoidPtr, fnv1a32};
 
-/// An interface for allocating and freeing memory.
+/// Engine allocator interface; see the SDK's
+/// [allocators](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Allocators.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IAllocator(red::Memory::IAllocator);
 
 impl IAllocator {
-    /// Frees the memory pointed by `memory`.
+    /// Releases storage without dropping its contents.
+    ///
+    /// # Safety
+    /// `memory` must be a live allocation from this allocator, with any required
+    /// payload destruction already complete. It must not be used or freed afterward.
     #[inline]
     pub unsafe fn free<T>(&self, memory: *mut T) {
         let mut alloc = AllocationResult {
@@ -30,7 +35,11 @@ impl IAllocator {
         }
     }
 
-    /// Allocates `size` bytes of memory with `alignment` bytes alignment.
+    /// Allocates `size` bytes with the requested alignment; returns null on failure.
+    ///
+    /// # Safety
+    /// The size and alignment must be valid for the engine allocator. Initialize
+    /// the allocation before reading it and release it through the same allocator.
     #[cfg(not(target_os = "macos"))]
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
@@ -43,7 +52,11 @@ impl IAllocator {
         }
     }
 
-    /// Allocates `size` bytes of memory with `alignment` bytes alignment.
+    /// Allocates `size` bytes with the requested alignment; returns null on failure.
+    ///
+    /// # Safety
+    /// The size and alignment must be valid for the engine allocator. Initialize
+    /// the allocation before reading it and release it through the same allocator.
     ///
     /// macOS: asks the allocator itself (vtable slot 0x08, AllocAligned) instead of looking its handle up in the vault. The game's
     /// `GetHandle` (slot 0x30) returns `PoolStorage::allocatorhandle` of its own pool storage, which the vault stand-in
@@ -65,7 +78,9 @@ impl IAllocator {
     }
 }
 
-/// A reference to a value stored in a pool.
+/// Owns storage from an SDK
+/// [memory pool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Pool.hpp).
+/// Drop destroys `T` and releases storage. `PoolRef<MaybeUninit<T>>` releases only storage.
 #[derive(Debug)]
 pub struct PoolRef<T: Poolable>(*mut T);
 
@@ -97,8 +112,10 @@ impl<T: Poolable> ops::DerefMut for PoolRef<T> {
 impl<T: Poolable> Drop for PoolRef<T> {
     #[inline]
     fn drop(&mut self) {
-        unsafe { ptr::drop_in_place(self.0) };
-        T::free(self);
+        unsafe {
+            ptr::drop_in_place(self.0);
+            pool_free(self.0);
+        }
     }
 }
 
@@ -146,8 +163,6 @@ where
 pub trait PoolableOps: Poolable + Sized {
     /// Allocates memory for `Self`. The resulting value must be initialized before use.
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
-    /// Frees memory pointed by `ptr`.
-    fn free(ptr: &mut PoolRef<Self>);
 }
 
 #[sealed]
@@ -156,19 +171,19 @@ impl<T: Poolable> PoolableOps for T {
         let result = unsafe { vault_alloc(T::Pool::vault(), mem::size_of::<T>() as u32)? };
         (!result.is_null()).then(|| PoolRef(result.cast::<mem::MaybeUninit<Self>>()))
     }
+}
 
-    fn free(ptr: &mut PoolRef<Self>) {
-        let mut alloc = AllocationResult {
-            memory: ptr.0 as VoidPtr,
-            size: 0,
-        };
-        unsafe {
-            let free = crate::fn_from_hash!(
-                Memory_Vault_Free,
-                unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
-            );
-            free(T::Pool::vault(), &mut alloc);
-        };
+unsafe fn pool_free<T: Poolable>(memory: *mut T) {
+    let mut alloc = AllocationResult {
+        memory: memory as VoidPtr,
+        size: 0,
+    };
+    unsafe {
+        let free = crate::fn_from_hash!(
+            Memory_Vault_Free,
+            unsafe extern "C" fn(*mut red::Memory::Vault, *mut AllocationResult)
+        );
+        free(T::Pool::vault(), &mut alloc);
     }
 }
 
@@ -177,9 +192,11 @@ impl<T: Poolable> PoolableOps for T {
 pub trait Pool {
     const NAME: &'static str;
 
+    #[doc(hidden)]
+    fn vault_cache() -> &'static OnceNonZeroUsize;
+
     fn vault() -> *mut red::Memory::Vault {
-        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
-        VAULT
+        Self::vault_cache()
             .get_or_try_init(|| {
                 NonZeroUsize::new(unsafe { vault_get(fnv1a32(Self::NAME)) as _ }).ok_or(())
             })
@@ -195,6 +212,11 @@ pub struct FunctionPool;
 #[sealed]
 impl Pool for FunctionPool {
     const NAME: &'static str = "PoolRTTIFunction";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 /// A pool for properties.
@@ -204,6 +226,11 @@ pub struct PropertyPool;
 #[sealed]
 impl Pool for PropertyPool {
     const NAME: &'static str = "PoolRTTIProperty";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 /// A pool for scripts values.
@@ -213,6 +240,11 @@ pub struct ScriptPool;
 #[sealed]
 impl Pool for ScriptPool {
     const NAME: &'static str = "PoolScript";
+
+    fn vault_cache() -> &'static OnceNonZeroUsize {
+        static VAULT: OnceNonZeroUsize = OnceNonZeroUsize::new();
+        &VAULT
+    }
 }
 
 /// The type of the size argument of the vault functions. macOS: the stand-ins (`deps/macos/MacVault.cpp`) take `uint64_t`, and a `u32`
@@ -255,20 +287,74 @@ pub(super) unsafe fn vault_alloc_aligned(
 #[cold]
 pub(super) unsafe fn vault_get(handle: u32) -> *mut red::Memory::Vault {
     unsafe {
-        let vault = &mut *red::Memory::Vault::Get();
+        let vault = red::Memory::Vault::Get();
+        vault_get_from_registry(&raw mut (*vault).poolRegistry, handle)
+    }
+}
 
-        vault.poolRegistry.nodesLock.lock_shared();
-        let Some(info) = vault
-            .poolRegistry
-            .nodes
-            .iter()
-            .find(|node| node.handle == handle)
-        else {
+unsafe fn vault_get_from_registry(
+    registry: *mut red::Memory::PoolRegistry,
+    handle: u32,
+) -> *mut red::Memory::Vault {
+    unsafe {
+        let nodes = RwSpinLockReadGuard::new(
+            ptr::NonNull::new_unchecked(&raw mut (*registry).nodesLock),
+            ptr::NonNull::new_unchecked(&raw mut (*registry).nodes),
+        );
+        let Some(info) = nodes.iter().find(|node| node.handle == handle) else {
             return ptr::null_mut();
         };
-        let storage = (*info.storage).allocatorStorage & !7;
-        vault.poolRegistry.nodesLock.unlock_shared();
+        ((*info.storage).allocatorStorage & !7) as _
+    }
+}
 
-        storage as _
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn vault_caches_are_per_pool() {
+        let caches = [
+            FunctionPool::vault_cache(),
+            PropertyPool::vault_cache(),
+            ScriptPool::vault_cache(),
+        ];
+        for (i, cache) in caches.iter().enumerate() {
+            for other in &caches[i + 1..] {
+                assert!(!ptr::eq(*cache, *other));
+            }
+        }
+        assert!(ptr::eq(FunctionPool::vault_cache(), caches[0]));
+    }
+
+    #[test]
+    fn missing_pool_releases_registry_lock() {
+        let mut registry = red::Memory::PoolRegistry::default();
+
+        for _ in 0..2 {
+            assert!(unsafe { vault_get_from_registry(&raw mut registry, 1) }.is_null());
+            assert_eq!(registry.nodesLock.state, 0);
+        }
+    }
+
+    #[test]
+    fn matching_pool_masks_tags_and_releases_registry_lock() {
+        let mut registry = red::Memory::PoolRegistry::default();
+        let mut vault = mem::MaybeUninit::<red::Memory::Vault>::uninit();
+        let expected = vault.as_mut_ptr();
+        registry.nodes[0].handle = 1;
+
+        for tag in 0..8 {
+            let mut storage = red::Memory::PoolStorage {
+                allocatorStorage: expected as u64 | tag,
+                ..Default::default()
+            };
+            registry.nodes[0].storage = &mut storage;
+            assert_eq!(
+                unsafe { vault_get_from_registry(&raw mut registry, 1) },
+                expected
+            );
+            assert_eq!(registry.nodesLock.state, 0);
+        }
     }
 }

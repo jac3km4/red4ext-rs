@@ -5,15 +5,15 @@ use std::hash::Hash;
 use crate::fnv1a64;
 use crate::raw::root::RED4ext as red;
 
-/// A hash representing an immutable string stored in a global name pool.
+/// SDK [CName](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CName.hpp) hash.
+/// Creating a hash does not register its text in [`CNamePool`].
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct CName(red::CName);
 
 impl CName {
-    /// Creates a new `CName` from the given string.
-    /// This function just calculates the hash of the string using the FNV-1a algorithm.
-    /// If you want it to be added to the global name pool, use [`CNamePool::add_cstr`].
+    /// Computes FNV-1a without engine access; `"None"` and empty text map to zero.
+    /// Use [`CNamePool::add_cstr`] to register text for reverse lookup.
     #[inline]
     pub const fn new(name: &str) -> Self {
         Self::from_bytes(name.as_bytes())
@@ -21,7 +21,7 @@ impl CName {
 
     pub const fn from_bytes(name: &[u8]) -> Self {
         #[allow(clippy::equatable_if_let)]
-        if let b"None" = name {
+        if let b"" | b"None" = name {
             return Self::undefined();
         }
         Self(red::CName {
@@ -43,7 +43,8 @@ impl CName {
         self.0
     }
 
-    /// Returns the string representation of the [`CName`].
+    /// Looks up text in the engine name pool; requires an initialized engine.
+    /// Panics if the returned text is not UTF-8.
     pub fn as_str(&self) -> &'static str {
         unsafe { ffi::CStr::from_ptr(self.0.ToString()) }
             .to_str()
@@ -107,7 +108,8 @@ impl Hash for CName {
     }
 }
 
-/// A global pool containing all [`CName`]s.
+/// SDK [CNamePool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CNamePool.hpp)
+/// for registered name text. Hashes made with [`CName::new`] are not added automatically.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct CNamePool(red::CNamePool);
@@ -154,6 +156,7 @@ mod test {
         assert_eq!(u64::from(CName::new("Vector2")), 7_466_804_955_052_523_504);
         assert_eq!(u64::from(CName::new("Color")), 3_769_135_706_557_701_272);
         assert_eq!(u64::from(CName::new("None")), 0);
-        assert_eq!(u64::from(CName::new("")), 0xCBF2_9CE4_8422_2325);
+        assert_eq!(u64::from(CName::new("")), 0);
+        assert_eq!(CName::from_bytes(b""), CName::undefined());
     }
 }

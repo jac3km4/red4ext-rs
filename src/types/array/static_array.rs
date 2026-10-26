@@ -2,6 +2,9 @@ use const_combine::bounded::const_combine as combine;
 
 use crate::NativeRepr;
 
+/// Inline fixed-capacity array with an initialized-element count.
+/// See SDK [array RTTI](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
+/// [`NativeRepr`] is supported for capacities 1 through 8.
 #[derive(Debug)]
 #[repr(C)]
 pub struct StaticArray<T, const N: usize> {

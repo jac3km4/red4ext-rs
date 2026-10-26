@@ -1,5 +1,5 @@
 RED4ext::CBaseFunction
-RED4ext::CBaseRTTIType
+RED4ext::rtti::IType
 RED4ext::CBitfield
 RED4ext::CClass.*
 RED4ext::CDateTime
@@ -22,7 +22,7 @@ RED4ext::DynArray
 RED4ext::EditorObjectID
 RED4ext::EGameStateType
 RED4ext::ent::EntityID
-RED4ext::ERTTIType::.+
+RED4ext::rtti::ERTTIType::.+
 RED4ext::FileVer
 RED4ext::GameInstance
 RED4ext::v1::GameState
@@ -58,3 +58,4 @@ RED4ext::Variant
 RED4ext::WeakHandle
 RED4ext::v1::EMainReason
 RED4ext::OpcodeHandlers
+red4ext_rs_destroy_resource_ref

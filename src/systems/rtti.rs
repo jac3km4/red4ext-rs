@@ -1,3 +1,4 @@
+use std::cell::UnsafeCell;
 use std::{mem, ptr};
 
 use crate::raw::root::RED4ext as red;
@@ -15,18 +16,20 @@ use crate::types::{
 /// Apple `SharedSpinLock` protocol is written against) and releases with `ldclralb ...,[x21]` (clears bit 7); `AddRegisterCallback`
 /// (slot 0xC0, 0x2192548) locks a mutex at +0x228, the Windows `rttiRegistratorMutex` (0x210) plus 0x18.
 #[inline]
-unsafe fn types_lock<'a>(rtti: *mut red::CRTTISystem) -> &'a red::SharedSpinLock {
+unsafe fn types_lock(rtti: *mut red::CRTTISystem) -> ptr::NonNull<red::SharedSpinLock> {
     #[cfg(not(target_os = "macos"))]
     unsafe {
-        &(*rtti).typesLock
+        ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock)
     }
     #[cfg(target_os = "macos")]
     unsafe {
-        &*rtti.cast::<u8>().add(0x220).cast::<red::SharedSpinLock>()
+        ptr::NonNull::new_unchecked(rtti.cast::<u8>().add(0x220).cast::<red::SharedSpinLock>())
     }
 }
 
-/// The RTTI system containing information about all types in the game.
+/// Read access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Requires initialized engine RTTI. Keep lock guards short-lived and release
+/// them before operations that acquire a conflicting lock.
 ///
 /// # Example
 /// ```rust
@@ -42,7 +45,8 @@ unsafe fn types_lock<'a>(rtti: *mut red::CRTTISystem) -> &'a red::SharedSpinLock
 /// }
 /// ```
 #[repr(transparent)]
-pub struct RttiSystem(red::CRTTISystem);
+// Native readers mutate the embedded lock even while shared views exist.
+pub struct RttiSystem(UnsafeCell<red::CRTTISystem>);
 
 impl RttiSystem {
     /// Acquire a read lock on the RTTI system.
@@ -51,7 +55,7 @@ impl RttiSystem {
         unsafe {
             let rtti = red::CRTTISystem_Get();
             let lock = types_lock(rtti);
-            RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
+            RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
         }
     }
 
@@ -90,7 +94,7 @@ impl RttiSystem {
         unsafe { ty.cast::<Function>().as_ref() }
     }
 
-    /// Retrieve all native types and collect them into a [`RedArray`]`.
+    /// Collects all native types into a [`RedArray`].
     #[inline]
     pub fn get_native_types(&self) -> RedArray<&Type> {
         let mut out = RedArray::default();
@@ -100,15 +104,17 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all enums and collect them into a [`RedArray`]`.
+    /// Collects all enums into a [`RedArray`].
     #[inline]
     pub fn get_enums(&self) -> RedArray<&Enum> {
         let mut out = RedArray::default();
-        unsafe { (self.vft().get_enums)(self, &mut out as *mut _ as *mut RedArray<*mut Enum>) };
+        unsafe {
+            (self.vft().get_enums)(self, &mut out as *mut _ as *mut RedArray<*mut Enum>, false)
+        };
         out
     }
 
-    /// Retrieve all bitfields and collect them into a [`RedArray`]`.
+    /// Collects bitfields into a [`RedArray`], optionally restricting to scripted types.
     #[inline]
     pub fn get_bitfields(&self, scripted_only: bool) -> RedArray<&Bitfield> {
         let mut out = RedArray::default();
@@ -122,7 +128,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all global functions and collect them into a [`RedArray`]`.
+    /// Collects all global functions into a [`RedArray`].
     #[inline]
     pub fn get_global_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -135,7 +141,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve all instance methods and collect them into a [`RedArray`]`.
+    /// Collects all instance methods into a [`RedArray`].
     #[inline]
     pub fn get_class_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -195,19 +201,19 @@ impl RttiSystem {
     /// Retrieve a reference to a map of all types by name.
     #[inline]
     pub fn type_map(&self) -> &RedHashMap<CName, &Type> {
-        unsafe { &*(&self.0.types as *const _ as *const RedHashMap<CName, &Type>) }
+        unsafe { &*(&raw const (*self.0.get()).types as *const RedHashMap<CName, &Type>) }
     }
 
     /// Retrieve a reference to a map of all script to native name aliases.
     #[inline]
     pub fn script_to_native_map(&self) -> &RedHashMap<CName, CName> {
-        unsafe { &*(&self.0.scriptToNative as *const _ as *const RedHashMap<CName, CName>) }
+        unsafe { &*(&raw const (*self.0.get()).scriptToNative as *const RedHashMap<CName, CName>) }
     }
 
     /// Retrieve a reference to a map of all native to script name aliases.
     #[inline]
     pub fn native_to_script_map(&self) -> &RedHashMap<CName, CName> {
-        unsafe { &*(&self.0.nativeToScript as *const _ as *const RedHashMap<CName, CName>) }
+        unsafe { &*(&raw const (*self.0.get()).nativeToScript as *const RedHashMap<CName, CName>) }
     }
 
     /// Resolves a static method by its full name, which should be in the format `Class::Method`.
@@ -247,14 +253,14 @@ impl RttiSystem {
 
     #[inline]
     fn vft(&self) -> &RttiSystemVft {
-        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
+        unsafe { &*((*self.0.get())._base.vtable_ as *const RttiSystemVft) }
     }
 }
 
-/// The RTTI system containing information about all types in the game.
-/// This variant allows for modifying the RTTI system and locks it for exclusive access.
+/// Exclusive access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Registration transfers metadata ownership to the engine.
 #[repr(transparent)]
-pub struct RttiSystemMut(red::CRTTISystem);
+pub struct RttiSystemMut(UnsafeCell<red::CRTTISystem>);
 
 impl RttiSystemMut {
     /// Acquire a write lock on the RTTI system. You should be careful not to hold the lock for
@@ -264,7 +270,7 @@ impl RttiSystemMut {
         unsafe {
             let rtti = red::CRTTISystem_Get();
             let lock = types_lock(rtti);
-            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti as _))
+            RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
         }
     }
 
@@ -276,7 +282,7 @@ impl RttiSystemMut {
             return ty.as_class_mut();
         }
         let &id = type_ids.get(&name)?;
-        types_by_id.get_mut(&id)?.as_class_mut()
+        types_by_id.get_mut(&u64::from(id))?.as_class_mut()
     }
 
     /// Register a new [`ClassHandle`] with the RTTI system.
@@ -288,7 +294,7 @@ impl RttiSystemMut {
         self.type_map()
             .insert(class.as_ref().name(), class.as_mut().as_type_mut());
         self.type_by_id_map()
-            .insert(id, class.as_mut().as_type_mut());
+            .insert(u64::from(id), class.as_mut().as_type_mut());
         self.type_id_map().insert(class.as_ref().name(), id);
     }
 
@@ -303,17 +309,19 @@ impl RttiSystemMut {
 
     #[inline]
     fn type_map(&mut self) -> &mut RedHashMap<CName, &mut Type> {
-        unsafe { &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>) }
+        unsafe { &mut *(&raw mut (*self.0.get()).types as *mut RedHashMap<CName, &mut Type>) }
     }
 
     #[inline]
-    fn type_by_id_map(&mut self) -> &mut RedHashMap<u32, &mut Type> {
-        unsafe { &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>) }
+    fn type_by_id_map(&mut self) -> &mut RedHashMap<u64, &mut Type> {
+        unsafe {
+            &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u64, &mut Type>)
+        }
     }
 
     #[inline]
     fn type_id_map(&mut self) -> &mut RedHashMap<CName, u32> {
-        unsafe { &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>) }
+        unsafe { &mut *(&raw mut (*self.0.get()).typeAsyncIds as *mut RedHashMap<CName, u32>) }
     }
 
     #[inline]
@@ -322,21 +330,21 @@ impl RttiSystemMut {
         &mut self,
     ) -> (
         &mut RedHashMap<CName, &mut Type>,
-        &mut RedHashMap<u32, &mut Type>,
+        &mut RedHashMap<u64, &mut Type>,
         &mut RedHashMap<CName, u32>,
     ) {
         unsafe {
             (
-                &mut *(&mut self.0.types as *mut _ as *mut RedHashMap<CName, &mut Type>),
-                &mut *(&mut self.0.typesByAsyncId as *mut _ as *mut RedHashMap<u32, &mut Type>),
-                &mut *(&mut self.0.typeAsyncIds as *mut _ as *mut RedHashMap<CName, u32>),
+                &mut *(&raw mut (*self.0.get()).types as *mut RedHashMap<CName, &mut Type>),
+                &mut *(&raw mut (*self.0.get()).typesByAsyncId as *mut RedHashMap<u64, &mut Type>),
+                &mut *(&raw mut (*self.0.get()).typeAsyncIds as *mut RedHashMap<CName, u32>),
             )
         }
     }
 
     #[inline]
     fn vft(&self) -> &RttiSystemVft {
-        unsafe { &*(self.0._base.vtable_ as *const RttiSystemVft) }
+        unsafe { &*((*self.0.get())._base.vtable_ as *const RttiSystemVft) }
     }
 }
 
@@ -364,7 +372,11 @@ struct RttiSystemVft {
     _sub_50: unsafe extern "C" fn(this: *const RttiSystem),
     get_class_functions:
         unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Function>),
-    get_enums: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Enum>),
+    get_enums: unsafe extern "C" fn(
+        this: *const RttiSystem,
+        out: *mut RedArray<*mut Enum>,
+        scripted_only: bool,
+    ),
     get_bitfields: unsafe extern "C" fn(
         this: *const RttiSystem,
         out: *mut RedArray<*mut Bitfield>,
@@ -405,7 +417,7 @@ struct RttiSystemVft {
         parent: *const Class,
     ),
     // FIXME: signature is wrong, but how to represent name and value of enumerator ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L50
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_enum: unsafe extern "C" fn(
         this: *const RttiSystem,
         name: CName,
@@ -413,7 +425,7 @@ struct RttiSystemVft {
         variants: *mut RedArray<u64>,
     ),
     // FIXME: signature is wrong, but how to represent name and bit ?
-    // https://github.com/WopsS/RED4ext.SDK/blob/124984353556f7b343041b810040062fbaa96196/include/RED4ext/RTTISystem.hpp#L54
+    // https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp
     _create_scripted_bitfield:
         unsafe extern "C" fn(this: *const RttiSystem, name: CName, bits: *mut RedArray<u64>),
     _initialize_script_runtime: unsafe extern "C" fn(this: *const RttiSystem),
@@ -431,7 +443,8 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
-/// A helper struct to set up RTTI registration callbacks.
+/// SDK [RTTI registration callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Normally installed by [`export_plugin_symbols!`](crate::export_plugin_symbols).
 #[derive(Debug)]
 pub struct RttiRegistrator;
 

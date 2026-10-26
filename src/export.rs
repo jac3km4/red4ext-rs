@@ -22,7 +22,9 @@ impl<H, T> ExportList<H, T> {
     }
 }
 
-/// A trait for types to be exported to the game.
+/// Registers definitions in the SDK's
+/// [RTTI callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Normally driven by [`Plugin::exports`](crate::Plugin::exports), not called manually.
 #[sealed]
 pub trait Exportable {
     fn register(&self);
@@ -61,9 +63,12 @@ impl Exportable for ExportNil {
     fn post_register(&self) {}
 }
 
-/// A single class export.
-/// This can be used to define a custom class to be exported to the game.
-/// This type should not be used for structs, use [`StructExport`] instead.
+/// Registers a native class backed by SDK
+/// [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
+/// Include the base class in the Rust layout. For value types, use [`StructExport`].
+/// Implement `Clone` explicitly: use `IScriptable::clone_native_base` for a fresh
+/// object's base and preserve the destination base in `clone_from`. Never copy
+/// an object's weak handle or value holder as raw bytes.
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
     base: &'static str,
@@ -178,8 +183,7 @@ impl<C> ClassExportBuilder<C> {
     }
 }
 
-/// A single struct export.
-/// This can be used to define a custom struct to be exported to the game.
+/// Registers a native value type. Unlike [`ClassExport`], it has no default base class.
 #[derive(Debug)]
 pub struct StructExport<C> {
     base: Option<&'static str>,
@@ -316,12 +320,23 @@ impl Exportable for GlobalExport {
 ///   "Hello, world!".to_string()
 /// }
 ///
-/// #[derive(Debug, Default, Clone)]
+/// #[derive(Debug, Default)]
 /// #[repr(C)]
 /// struct MyClass {
 ///     // You must include the base native class in your Rust struct.
 ///     base: IScriptable,
 ///     value: Cell<i32>,
+/// }
+///
+/// impl Clone for MyClass {
+///     fn clone(&self) -> Self {
+///         Self { base: self.base.clone_native_base(), value: self.value.clone() }
+///     }
+///
+///     fn clone_from(&mut self, source: &Self) {
+///         // Assignment preserves the destination's engine identity and holder.
+///         self.value.set(source.value.get());
+///     }
 /// }
 ///
 /// impl MyClass {
@@ -341,7 +356,7 @@ impl Exportable for GlobalExport {
 #[macro_export]
 macro_rules! exports {
     [$export:expr, $($tt:tt)*] => {
-        $crate::ExportList::new($export, exports!($($tt)*))
+        $crate::ExportList::new($export, $crate::exports!($($tt)*))
     };
     [$export:expr] => {
         $crate::ExportList::new($export, $crate::ExportNil)
@@ -349,7 +364,7 @@ macro_rules! exports {
     [] => { $crate::ExportNil }
 }
 
-/// Define a list of methods to register with the game. Usually used in conjuction with
+/// Defines instance methods, usually used with
 /// [`exports!`].
 #[macro_export]
 macro_rules! methods {
@@ -358,7 +373,7 @@ macro_rules! methods {
     };
 }
 
-/// Define a list of static methods to register with the game. Usually used in conjuction with
+/// Defines static methods, usually used with
 /// [`exports!`].
 #[macro_export]
 macro_rules! static_methods {

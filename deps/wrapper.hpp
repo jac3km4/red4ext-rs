@@ -1,3 +1,4 @@
+#include "bridge/bridge.hpp"
 #include <RED4ext/RED4ext.hpp>
 #include <RED4ext/Callback.hpp>
 #include <RED4ext/Scripting/Natives/entEntityID.hpp>
