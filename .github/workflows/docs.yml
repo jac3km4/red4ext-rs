@@ -1,0 +1,69 @@
+name: Documentation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RED4EXT_BUILD_TIMINGS: "1"
+
+jobs:
+  build:
+    name: Build documentation (Windows)
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - run: rustup toolchain install stable --profile minimal --no-self-update
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: v1-workspace
+          key: docs
+          cache-workspace-crates: "true"
+
+      - name: Build documentation
+        run: cargo +stable doc --locked -p red4ext-rs --all-features --no-deps
+
+      - name: Prepare docs
+        shell: pwsh
+        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue target/doc/.lock
+          Set-Content -Path target/doc/index.html -Value '<meta http-equiv="refresh" content="0; url=red4ext_rs/">'
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+
+  deploy:
+    name: Deploy documentation
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
