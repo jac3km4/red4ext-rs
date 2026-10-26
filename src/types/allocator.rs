@@ -9,8 +9,9 @@ use crate::raw::root::RED4ext as red;
 use crate::raw::root::RED4ext::Memory::AllocationResult;
 use crate::{VoidPtr, fnv1a32};
 
-/// Engine allocator interface; see the SDK's
-/// [allocators](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Allocators.hpp).
+/// Engine allocator interface.
+///
+/// SDK: [allocators](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Allocators.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct IAllocator(red::Memory::IAllocator);
@@ -38,8 +39,9 @@ impl IAllocator {
     /// Allocates `size` bytes with the requested alignment; returns null on failure.
     ///
     /// # Safety
-    /// The size and alignment must be valid for the engine allocator. Initialize
-    /// the allocation before reading it and release it through the same allocator.
+    /// Requires initialized engine memory systems and a size and alignment valid
+    /// for this allocator. Before accessing the result as `T`, ensure sufficient
+    /// size and alignment and initialize it. Release it through the same allocator.
     #[inline]
     pub unsafe fn alloc_aligned<T>(&self, size: u32, alignment: u32) -> *mut T {
         unsafe {
@@ -52,9 +54,12 @@ impl IAllocator {
     }
 }
 
-/// Owns storage from an SDK
-/// [memory pool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Pool.hpp).
-/// Drop destroys `T` and releases storage. `PoolRef<MaybeUninit<T>>` releases only storage.
+/// Owns a value allocated from an engine memory pool.
+///
+/// Drop destroys `T` and releases storage through its pool, requiring initialized
+/// engine memory systems. `PoolRef<MaybeUninit<T>>` releases only storage.
+///
+/// SDK: [memory pool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Memory/Pool.hpp).
 #[derive(Debug)]
 pub struct PoolRef<T: Poolable>(*mut T);
 
@@ -93,9 +98,10 @@ impl<T: Poolable> Drop for PoolRef<T> {
     }
 }
 
-/// A trait for types that can be stored in a pool.
+/// Associates an engine-allocated type with its SDK memory pool.
 #[sealed]
 pub trait Poolable {
+    /// Pool used to allocate and release this type.
     type Pool: Pool;
 }
 
@@ -132,10 +138,13 @@ where
     type Pool = T::Pool;
 }
 
-/// A trait with operations for types that can be stored in a pool.
+/// Allocation operations for pool-backed types.
 #[sealed]
 pub trait PoolableOps: Poolable + Sized {
-    /// Allocates memory for `Self`. The resulting value must be initialized before use.
+    /// Allocates uninitialized storage for `Self`, returning `None` on allocation failure.
+    ///
+    /// Requires initialized engine memory systems. Dropping the result releases
+    /// storage without destroying an uninitialized value.
     fn alloc() -> Option<PoolRef<mem::MaybeUninit<Self>>>;
 }
 
@@ -161,14 +170,18 @@ unsafe fn pool_free<T: Poolable>(memory: *mut T) {
     }
 }
 
-/// A trait for different types of pools.
+/// Identifies an SDK memory pool.
 #[sealed]
 pub trait Pool {
+    /// Engine name used to locate this pool.
     const NAME: &'static str;
 
     #[doc(hidden)]
     fn vault_cache() -> &'static OnceNonZeroUsize;
 
+    /// Returns the pool's cached native vault.
+    ///
+    /// Requires initialized engine memory systems. Panics if the pool cannot be resolved.
     fn vault() -> *mut red::Memory::Vault {
         Self::vault_cache()
             .get_or_try_init(|| {
@@ -179,7 +192,7 @@ pub trait Pool {
     }
 }
 
-/// A pool for functions.
+/// SDK pool for RTTI function metadata.
 #[derive(Debug)]
 pub struct FunctionPool;
 
@@ -193,7 +206,7 @@ impl Pool for FunctionPool {
     }
 }
 
-/// A pool for properties.
+/// SDK pool for RTTI property metadata.
 #[derive(Debug)]
 pub struct PropertyPool;
 
@@ -207,7 +220,7 @@ impl Pool for PropertyPool {
     }
 }
 
-/// A pool for scripts values.
+/// SDK pool for script values.
 #[derive(Debug)]
 pub struct ScriptPool;
 

@@ -5,8 +5,11 @@ use std::hash::Hash;
 use crate::fnv1a64;
 use crate::raw::root::RED4ext as red;
 
-/// SDK [CName](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CName.hpp) hash.
-/// Creating a hash does not register its text in [`CNamePool`].
+/// Hashed name.
+/// Creating a hash does not register its text in [`CNamePool`]. Equality and
+/// ordering compare hashes, not text. The default value is undefined (zero).
+///
+/// SDK: [CName](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CName.hpp).
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct CName(red::CName);
@@ -19,6 +22,8 @@ impl CName {
         Self::from_bytes(name.as_bytes())
     }
 
+    /// Hashes bytes without registering them; empty bytes and `b"None"` map to zero.
+    /// All bytes are included, including embedded NULs.
     pub const fn from_bytes(name: &[u8]) -> Self {
         #[allow(clippy::equatable_if_let)]
         if let b"" | b"None" = name {
@@ -44,6 +49,8 @@ impl CName {
     }
 
     /// Looks up text in the engine name pool; requires an initialized engine.
+    ///
+    /// # Panics
     /// Panics if the returned text is not UTF-8.
     pub fn as_str(&self) -> &'static str {
         unsafe { ffi::CStr::from_ptr(self.0.ToString()) }
@@ -108,13 +115,16 @@ impl Hash for CName {
     }
 }
 
-/// SDK [CNamePool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CNamePool.hpp)
-/// for registered name text. Hashes made with [`CName::new`] are not added automatically.
+/// Pool for registered name text. Hashes made with [`CName::new`] are not added automatically.
+///
+/// SDK: [CNamePool](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CNamePool.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct CNamePool(red::CNamePool);
 
 impl CNamePool {
+    /// Registers text for reverse lookup and returns its name hash.
+    /// Requires the engine name pool to be initialized.
     pub fn add_cstr(str: &CStr) -> CName {
         unsafe {
             let add_cstr = crate::fn_from_hash!(

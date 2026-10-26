@@ -9,13 +9,17 @@ use crate::raw::root::RED4ext as red;
 mod static_array;
 pub use static_array::StaticArray;
 
-/// Owns an SDK [DynArray](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/DynArray.hpp).
-/// Allocation and cleanup require the engine; drop destroys elements and releases storage.
+/// Owns an engine dynamic array.
+///
+/// Dereferences to the initialized elements as a slice. Allocation and storage
+/// cleanup require engine memory systems; drop destroys elements and frees storage.
+///
+/// SDK: [DynArray](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/DynArray.hpp).
 #[repr(transparent)]
 pub struct RedArray<T>(red::DynArray<T>);
 
 impl<T> RedArray<T> {
-    /// Creates a new empty [`RedArray`].
+    /// Creates an empty array without allocating.
     #[inline]
     pub const fn new() -> Self {
         Self(red::DynArray {
@@ -26,7 +30,7 @@ impl<T> RedArray<T> {
         })
     }
 
-    /// Creates a new empty [`RedArray`] with the specified capacity.
+    /// Creates an empty array with the requested capacity using the engine allocator.
     #[inline]
     pub fn with_capacity(capacity: u32) -> Self {
         let mut this = Self::new();
@@ -52,7 +56,7 @@ impl<T> RedArray<T> {
         self.0.m_capacity
     }
 
-    /// Clears the array, removing all values.
+    /// Drops all elements, retaining the allocated capacity.
     #[inline]
     pub fn clear(&mut self) {
         let elems: *mut [T] = &mut **self;
@@ -71,7 +75,7 @@ impl<T> RedArray<T> {
         self.0.m_size = len + 1;
     }
 
-    /// Reserve capacity for at least `additional` more elements to be inserted.
+    /// Reserves capacity for at least `additional` more elements beyond the current length.
     pub fn reserve(&mut self, additional: u32) {
         let expected = self.len() + additional;
         if expected <= self.capacity() {
@@ -218,6 +222,9 @@ impl<T> Drop for RedArray<T> {
     }
 }
 
+/// Consuming iterator over a [`RedArray`].
+///
+/// Drop destroys unconsumed elements and releases the array's engine storage.
 #[derive(Debug)]
 pub struct IntoIter<T> {
     array: red::DynArray<T>,

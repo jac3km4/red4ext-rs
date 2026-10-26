@@ -1,14 +1,16 @@
 use std::fmt;
 
-/// Rust adapter for REDscript `opt T` parameters; see SDK
-/// [parameter flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
+/// Rust adapter for REDscript `opt T` parameters.
 /// Omitted arguments use `T::default()`, so omission and an explicit default value
-/// cannot be distinguished during representation conversion.
+/// cannot be distinguished during representation conversion. Comparisons and
+/// display treat [`Opt::Default`] as `T::default()`.
+///
+/// SDK: [parameter flags](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/CProperty.hpp).
 #[derive(Default, Debug, Clone, Copy)]
 pub enum Opt<T> {
     /// Explicit value. Direct construction does not enforce a non-default value.
     NonDefault(T),
-    /// `Default` value.
+    /// Uses `T::default()` when converted to an engine representation.
     #[default]
     Default,
 }
@@ -26,6 +28,8 @@ where
 }
 
 impl<T> Opt<T> {
+    /// Returns the explicit value, or `None` for [`Opt::Default`].
+    /// Unlike comparisons, this preserves an explicitly stored default value.
     pub fn into_option(self) -> Option<T> {
         match self {
             Self::NonDefault(x) => Some(x),
@@ -38,6 +42,7 @@ impl<T> Opt<T>
 where
     T: Default,
 {
+    /// Returns the explicit value, or `T::default()` for [`Opt::Default`].
     pub fn unwrap_or_default(self) -> T {
         match self {
             Self::NonDefault(x) => x,

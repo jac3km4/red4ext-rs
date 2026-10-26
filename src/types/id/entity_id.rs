@@ -3,34 +3,41 @@ use std::hash::Hash;
 
 use crate::raw::root::RED4ext as red;
 
-/// Entity identifier; see SDK
-/// [ent::EntityID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/entEntityID.hpp).
+/// Entity identifier.
+///
+/// SDK: [ent::EntityID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/entEntityID.hpp).
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct EntityId(red::ent::EntityID);
 
 impl EntityId {
+    /// Returns whether the identifier is nonzero; does not check entity existence.
     #[inline]
     pub const fn is_defined(self) -> bool {
         self.0.hash != 0
     }
 
+    /// Returns whether a nonzero identifier is above the SDK's dynamic range.
     #[inline]
     pub const fn is_static(self) -> bool {
         self.0.hash != 0 && self.0.hash > red::ent::EntityID_DynamicUpperBound
     }
 
+    /// Returns whether a nonzero identifier is in the SDK's dynamic range.
     #[inline]
     pub const fn is_dynamic(self) -> bool {
         self.0.hash != 0 && self.0.hash <= red::ent::EntityID_DynamicUpperBound
     }
 
+    /// Returns whether the identifier is in the SDK's persistable range.
+    /// This classifies the ID; it does not persist an entity.
     #[inline]
     pub const fn is_persistable(self) -> bool {
         self.0.hash >= red::ent::EntityID_PersistableLowerBound
             && self.0.hash < red::ent::EntityID_PersistableUpperBound
     }
 
+    /// Returns whether the identifier is nonzero and outside the persistable range.
     #[inline]
     pub const fn is_transient(self) -> bool {
         self.0.hash != 0 && !self.is_persistable()
@@ -105,13 +112,8 @@ impl fmt::Debug for EntityId {
     }
 }
 
-/// A simple entity ID representation.
-///
-/// Flags are displayed as:
-/// - `P`ersistable
-/// - `D`ynamic
-/// - `T`ransient
-/// - `S`tatic
+/// Displays the numeric ID with `P` (persistable), `D` (dynamic), `T` (transient),
+/// and `S` (static) flags, or `undefined` for zero.
 impl std::fmt::Display for EntityId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.is_defined(), self.is_persistable()) {

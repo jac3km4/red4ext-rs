@@ -7,14 +7,19 @@ use crate::repr::NativeRepr;
 use crate::systems::RttiSystem;
 use crate::{FromRepr, VoidPtr};
 
-/// Borrowed SDK [CStackFrame](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
+/// Borrowed script stack frame.
 /// Reading arguments advances bytecode state; restore it before forwarding a hooked call.
+///
+/// SDK: [CStackFrame](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StackFrame(red::CStackFrame);
 
 impl StackFrame {
-    /// Returns the current function of the stack frame.
+    /// Borrows the current function metadata.
+    ///
+    /// Use only on a frame with valid function metadata, such as a scripted frame;
+    /// the native pointer is not checked for null.
     #[inline]
     pub fn func(&self) -> &Function {
         unsafe { &*(self.0.func as *const Function) }
@@ -26,7 +31,7 @@ impl StackFrame {
         unsafe { (self.0.parent as *const StackFrame).as_ref() }
     }
 
-    /// Returns an iterator over all parent stack frames.
+    /// Iterates from the immediate parent outward through ancestor frames.
     #[inline]
     pub fn parent_iter(&self) -> impl Iterator<Item = &StackFrame> {
         iter::successors(self.parent(), |frame| frame.parent())
@@ -38,25 +43,32 @@ impl StackFrame {
         unsafe { (self.0.context as *const IScriptable).as_ref() }
     }
 
-    /// Returns `true` if the stack frame has a code block.
+    /// Returns whether the current bytecode pointer is non-null.
     #[inline]
     pub fn has_code(&self) -> bool {
         !self.0.code.is_null()
     }
 
-    /// Returns the memory address where local variables are stored.
+    /// Returns a view of scripted-frame local storage, which may have a null address.
     #[inline]
     pub fn locals(&self) -> ValueContainer {
         ValueContainer::new(self.0.localVars)
     }
 
-    /// Returns the memory address where parameters are stored.
+    /// Returns a view of scripted-frame parameter storage, which may have a null address.
     #[inline]
     pub fn params(&self) -> ValueContainer {
         ValueContainer::new(self.0.params)
     }
 
-    /// Interprets the code at specified offset as an instruction of type `I`.
+    /// Reads operands of `I` at a byte offset from the current bytecode pointer.
+    ///
+    /// Returns `None` if there is no bytecode or the opcode does not match `I`.
+    ///
+    /// # Safety
+    /// The offset must point to a readable opcode within the current bytecode
+    /// allocation. If it matches, the following bytes must be valid operands of
+    /// `I` and remain valid and unchanged for the returned borrow.
     pub unsafe fn instr_at<I: Instr>(&self, offset: isize) -> Option<&I> {
         if self.0.code.is_null() {
             return None;
@@ -67,16 +79,22 @@ impl StackFrame {
         }
     }
 
-    /// Steps over a single opcode (1 byte).
+    /// Advances the bytecode pointer by one opcode byte, not a whole instruction.
+    ///
+    /// # Safety
+    /// The current pointer and the advanced pointer must lie within the same
+    /// valid bytecode allocation (or one byte past its end).
     #[inline]
     pub unsafe fn step(&mut self) {
         self.0.code = unsafe { self.0.code.offset(OPCODE_SIZE) };
     }
 
-    /// Retrieves the next argument from the stack frame.
+    /// Evaluates and consumes the next argument, advancing the frame's bytecode state.
     ///
     /// # Safety
-    /// The type `T` must be the correct type of the next argument.
+    /// The frame must point to a valid next argument expression, and `T` must
+    /// match its type. Any engine systems needed to evaluate it must be initialized.
+    /// Restore the argument state before forwarding a hooked call.
     #[inline]
     pub unsafe fn get_arg<T>(&mut self) -> T
     where
@@ -98,10 +116,9 @@ impl StackFrame {
         }
     }
 
-    /// Captures the state of stack arguments.
+    /// Captures bytecode and argument-data pointers for [`restore_args`](Self::restore_args).
     ///
-    /// Use its returned value
-    /// with [restore_args](Self::restore_args) to restore the state of arguments.
+    /// Capture before reading any arguments; the argument index is not saved.
     pub fn args_state(&self) -> StackArgsState {
         StackArgsState {
             code: self.0.code,
@@ -110,52 +127,24 @@ impl StackFrame {
         }
     }
 
-    /// Allows to reset the state of function arguments.
+    /// Restores saved argument pointers and resets the argument index to zero.
+    ///
+    /// This does not undo side effects of evaluating argument expressions.
     ///
     /// # Safety
-    /// The state must be saved **before** reading arguments.
-    ///
-    /// The state must be restored **before** passing it back to game code.
-    ///
-    /// Stack arguments should **neither** be _partially_ read,
-    /// **nor** _partially_ restored.
+    /// The snapshot must come from this frame before any arguments were read,
+    /// and its pointers must still be valid. Read the full argument list and
+    /// restore it before forwarding the frame to the original game function.
     ///
     /// # Example
     /// ```rust
-    /// # use red4ext_rs::{hooks, SdkEnv, types::{CName, EntityId, StackFrame, IScriptable}, VoidPtr};
-    /// # hooks! {
-    /// #    static ADD_HOOK: fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr) -> ();
-    /// # }
-    /// # fn attach_my_hook(env: &SdkEnv, addr: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr)) {
-    /// #     unsafe { env.attach_hook(ADD_HOOK, addr, detour) };
-    /// # }
-    /// # fn should_detour(event_name: CName) -> bool { false }
-    ///
-    /// unsafe extern "C" fn detour(
-    ///     i: *mut IScriptable,
-    ///     f: *mut StackFrame,
-    ///     a3: VoidPtr,
-    ///     a4: VoidPtr,
-    ///     cb: unsafe extern "C" fn(i: *mut IScriptable, f: *mut StackFrame, a3: VoidPtr, a4: VoidPtr),
-    /// ) {
-    ///     let frame = &mut *f;
-    ///
-    ///     // stack must be saved before reading stack function parameters
+    /// # use red4ext_rs::types::{CName, StackFrame};
+    /// // For a hooked function taking exactly one CName argument:
+    /// unsafe fn inspect(frame: &mut StackFrame) {
     ///     let state = frame.args_state();
-    ///
-    ///     // assuming our function accepts these 3 parameters
-    ///     let event_name: CName = StackFrame::get_arg(frame);
-    ///     let entity_id: EntityId = StackFrame::get_arg(frame);
-    ///     let emitter_name: CName = StackFrame::get_arg(frame);
-    ///
-    ///     if should_detour(event_name) {
-    ///         // do something else...
-    ///     } else {
-    ///         // since we've read stack function arguments,
-    ///         // stack arguments must be restored before callback.
-    ///         frame.restore_args(state);
-    ///         cb(i, f, a3, a4);
-    ///     }
+    ///     let name: CName = unsafe { frame.get_arg() };
+    ///     // Inspect `name`, then restore before forwarding the call.
+    ///     unsafe { frame.restore_args(state) };
     /// }
     /// ```
     pub unsafe fn restore_args(&mut self, state: StackArgsState) {
@@ -166,14 +155,18 @@ impl StackFrame {
     }
 }
 
-/// Borrowed argument descriptor for an SDK
-/// [CStack](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp) call.
+/// Borrowed argument descriptor for a native stack call.
+///
+/// SDK: [CStack](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Stack.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct StackArg<'a>(red::CStackType, PhantomData<&'a mut ()>);
 
 impl<'a> StackArg<'a> {
-    /// Creates a new stack argument from a reference to a value.
+    /// Borrows a value as a call argument, resolving its native type through RTTI.
+    ///
+    /// Returns `None` if the type is unregistered. `Void` uses a null type pointer
+    /// without a lookup; other types require initialized engine RTTI.
     pub fn new<A: NativeRepr>(val: &'a mut A) -> Option<Self> {
         let type_ = if A::NAME == "Void" {
             ptr::null_mut()
@@ -188,7 +181,7 @@ impl<'a> StackArg<'a> {
         Some(Self(inner, PhantomData))
     }
 
-    /// Returns the type of the stack argument.
+    /// Returns the argument's RTTI type, or `None` for `Void`.
     #[inline]
     pub fn type_(&self) -> Option<&Type> {
         unsafe { self.0.type_.cast::<Type>().as_ref() }
@@ -200,7 +193,10 @@ impl<'a> StackArg<'a> {
     }
 }
 
-/// Snapshot of the state of stack arguments.
+/// Argument pointers captured by [`StackFrame::args_state`].
+///
+/// Does not own the referenced data or save the argument index. Restore only to
+/// the originating live frame using [`StackFrame::restore_args`].
 pub struct StackArgsState {
     code: *mut i8,
     data: VoidPtr,

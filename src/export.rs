@@ -8,7 +8,7 @@ use crate::systems::RttiSystemMut;
 use crate::types::{CName, NativeClass};
 use crate::{NativeRepr, RttiSystem, ScriptClass, class_kind};
 
-/// A list of exports to register with the game.
+/// A list of classes and functions to register with the game; build with [`exports!`](crate::exports).
 #[derive(Debug)]
 pub struct ExportList<H, T> {
     head: H,
@@ -16,18 +16,21 @@ pub struct ExportList<H, T> {
 }
 
 impl<H, T> ExportList<H, T> {
-    /// Create a new `ExportList` with the given head and tail.
+    /// Prepends an export to the remaining list.
     pub const fn new(head: H, tail: T) -> Self {
         Self { head, tail }
     }
 }
 
-/// Registers definitions in the SDK's
-/// [RTTI callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Registers definitions during RTTI registration and post-registration.
 /// Normally driven by [`Plugin::exports`](crate::Plugin::exports), not called manually.
+///
+/// SDK: [RTTI callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
 #[sealed]
 pub trait Exportable {
+    /// Registers type definitions during the RTTI registration callback.
     fn register(&self);
+    /// Registers functions and methods after type definitions are available.
     fn post_register(&self);
 }
 
@@ -50,7 +53,7 @@ where
     }
 }
 
-/// A type representing an empty list of exports.
+/// An empty export list, also returned by `exports![]`.
 #[derive(Debug)]
 pub struct ExportNil;
 
@@ -63,12 +66,13 @@ impl Exportable for ExportNil {
     fn post_register(&self) {}
 }
 
-/// Registers a native class backed by SDK
-/// [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
+/// Exports a native reference type and its instance and static methods as an RTTI class.
 /// Include the base class in the Rust layout. For value types, use [`StructExport`].
 /// Implement `Clone` explicitly: use `IScriptable::clone_native_base` for a fresh
 /// object's base and preserve the destination base in `clone_from`. Never copy
 /// an object's weak handle or value holder as raw bytes.
+///
+/// SDK: [CClass](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
 pub struct ClassExport<C: 'static> {
     base: &'static str,
@@ -77,6 +81,7 @@ pub struct ClassExport<C: 'static> {
 }
 
 impl<C: ScriptClass> ClassExport<C> {
+    /// Starts a class export with base `IScriptable` and no methods.
     pub fn builder() -> ClassExportBuilder<C> {
         ClassExportBuilder {
             base: "IScriptable",
@@ -140,28 +145,28 @@ pub struct ClassExportBuilder<C: 'static> {
 }
 
 impl<C> ClassExportBuilder<C> {
-    /// Set the base class of the class to be exported.
-    /// This is set to `IScriptable` by default.
+    /// Sets the engine RTTI base class name (default: `IScriptable`).
+    /// The Rust layout must include this base at the start of the object.
     pub const fn base(mut self, base: &'static str) -> Self {
         self.base = base;
         self
     }
 
-    /// Set the methods of the class to be exported.
-    /// See the [`methods!`](crate::methods) macro for a convenient way to define methods.
+    /// Sets the instance methods, replacing any previous selection.
+    /// Use [`methods!`](crate::methods) to build the slice.
     pub const fn methods(mut self, methods: &'static [MethodMetadata<C>]) -> Self {
         self.methods = methods;
         self
     }
 
-    /// Set the static methods of the class to be exported.
-    /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
+    /// Sets the static methods, replacing any previous selection.
+    /// Use [`static_methods!`](crate::static_methods) to build the slice.
     pub const fn static_methods(mut self, static_methods: &'static [GlobalMetadata]) -> Self {
         self.static_methods = static_methods;
         self
     }
 
-    /// Build the final [`ClassExport`] instance.
+    /// Builds the class export without registering it.
     pub const fn build(self) -> ClassExport<C> {
         ClassExport {
             base: self.base,
@@ -180,6 +185,7 @@ pub struct StructExport<C> {
 }
 
 impl<C> StructExport<C> {
+    /// Starts a value-type export with no base type or static methods.
     pub fn builder() -> StructExportBuilder<C> {
         StructExportBuilder {
             base: None,
@@ -233,21 +239,21 @@ pub struct StructExportBuilder<C> {
 }
 
 impl<C> StructExportBuilder<C> {
-    /// Set the base type of the struct to be exported.
-    /// Structs do not have a base type by default.
+    /// Sets the engine RTTI base type name; there is no base by default.
+    /// The Rust layout must include the base at the start of the value.
     pub const fn base(mut self, base: &'static str) -> Self {
         self.base = Some(base);
         self
     }
 
-    /// Set the static methods of the struct to be exported.
-    /// See the [`static_methods!`](crate::static_methods) macro for a convenient way to define methods.
+    /// Sets the static methods, replacing any previous selection.
+    /// Use [`static_methods!`](crate::static_methods) to build the slice.
     pub const fn static_methods(mut self, static_methods: &'static [GlobalMetadata]) -> Self {
         self.static_methods = static_methods;
         self
     }
 
-    /// Build the final [`StructExport`] instance.
+    /// Builds the value-type export without registering it.
     pub const fn build(self) -> StructExport<C> {
         StructExport {
             base: self.base,
@@ -259,7 +265,10 @@ impl<C> StructExportBuilder<C> {
 
 /// A single global function export.
 #[derive(Debug)]
-pub struct GlobalExport(pub GlobalMetadata);
+pub struct GlobalExport(
+    /// Function metadata created with [`global!`](crate::global).
+    pub GlobalMetadata,
+);
 
 #[sealed]
 impl Exportable for GlobalExport {
@@ -344,8 +353,8 @@ macro_rules! exports {
     [] => { $crate::ExportNil }
 }
 
-/// Defines instance methods, usually used with
-/// [`exports!`].
+/// Builds an instance-method slice for [`ClassExportBuilder::methods`].
+/// Entries use `c"Name" => Type::method`, optionally prefixed with `event` or `final`.
 #[macro_export]
 macro_rules! methods {
     [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {
@@ -353,8 +362,8 @@ macro_rules! methods {
     };
 }
 
-/// Defines static methods, usually used with
-/// [`exports!`].
+/// Builds a static-method slice for a class or value-type export.
+/// Entries use `c"Name" => Type::function`.
 #[macro_export]
 macro_rules! static_methods {
     [$( $($mod:ident)* $name:literal => $ty:ident::$id:ident),*$(,)?] => {

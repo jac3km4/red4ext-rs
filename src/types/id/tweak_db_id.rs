@@ -5,8 +5,12 @@ use const_crc32::{crc32, crc32_seed};
 
 use crate::raw::root::RED4ext as red;
 
-/// SDK [TweakDBID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
+/// Tweak database identifier.
 /// Creating an ID hashes a name; it does not create or look up a database record.
+/// Equality, ordering, and hashing use the CRC32 hash and byte length, ignoring
+/// the database offset. Raw `u64` conversions preserve the offset.
+///
+/// SDK: [TweakDBID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[derive(Default, Clone, Copy)]
 #[repr(transparent)]
 pub struct TweakDbId(red::TweakDBID);
@@ -25,12 +29,21 @@ impl TweakDbId {
         })
     }
 
+    /// Hashes all UTF-8 bytes of a record name and sets the database offset to zero.
+    ///
+    /// # Panics
+    /// Panics if the name exceeds 255 bytes.
     #[inline]
     pub const fn new(str: &str) -> Self {
         assert!(str.len() <= u8::MAX as usize);
         Self::new_with(crc32(str.as_bytes()), str.len() as u8, [0, 0, 0])
     }
 
+    /// Appends text to a base name's hash and length, resetting the offset to zero.
+    /// No separator is inserted; include one in `str` if needed.
+    ///
+    /// # Panics
+    /// Panics if the combined name length exceeds 255 bytes.
     #[inline]
     pub const fn new_from_base(base: TweakDbId, str: &str) -> Self {
         let base_hash = unsafe { base.0.__bindgen_anon_1.name.hash };
@@ -43,24 +56,27 @@ impl TweakDbId {
         )
     }
 
+    /// Returns whether both the name hash and length are nonzero.
+    /// Does not check whether a database record exists.
     pub fn is_valid(self) -> bool {
         unsafe { self.0.IsValid() }
     }
 
+    /// Returns whether the stored database offset is nonzero.
     pub fn has_tdb_offset(self) -> bool {
         self.tdb_offset() != 0
     }
 
+    /// Returns the unsigned 24-bit database offset as an `i32`.
     pub fn tdb_offset(self) -> i32 {
         let [b1, b2, b3] = unsafe { self.0.__bindgen_anon_1.name }.tdbOffsetBE;
         i32::from_be_bytes([0, b1, b2, b3])
     }
 
-    /// Sets an unsigned 24-bit database offset.
+    /// Returns this ID with an unsigned 24-bit database offset, preserving identity.
     ///
     /// # Panics
-    /// Panics outside `0..=0xFF_FFFF`. Unlike the SDK setter, this rejects
-    /// negative and overflowing inputs rather than truncating their high byte.
+    /// Panics if `offset` is outside `0..=0xFF_FFFF`.
     pub fn with_tdb_offset(self, offset: i32) -> Self {
         assert!(
             (0..=0xFF_FFFF).contains(&offset),

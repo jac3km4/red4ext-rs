@@ -8,29 +8,32 @@ use crate::types::{
     ScriptableSystem, Type, VoidFunctionPointerCallback,
 };
 
-/// Read access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Read access to the engine RTTI system.
+///
 /// Requires initialized engine RTTI. Keep lock guards short-lived and release
-/// them before operations that acquire a conflicting lock.
+/// them before operations that acquire a conflicting lock. Returned arrays own
+/// their storage, but their metadata references remain borrowed from this view.
+///
+/// SDK: [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
 ///
 /// # Example
 /// ```rust
 /// use red4ext_rs::RttiSystem;
 /// use red4ext_rs::types::CName;
 ///
-/// fn rtti_example() {
-///     let rtti = RttiSystem::get();
-///     let class = rtti.get_class(CName::new("IScriptable")).unwrap();
-///     for method in class.methods() {
-///         // do something with the method
-///     }
-/// }
+/// # fn example() {
+/// let rtti = RttiSystem::get();
+/// let class = rtti.get_class(CName::new("IScriptable")).unwrap();
+/// # }
 /// ```
 #[repr(transparent)]
 // Native readers mutate the embedded lock even while shared views exist.
 pub struct RttiSystem(UnsafeCell<red::CRTTISystem>);
 
 impl RttiSystem {
-    /// Acquire a read lock on the RTTI system.
+    /// Acquires a read lock on initialized engine RTTI.
+    ///
+    /// Release the guard before acquiring a write lock on the same system.
     #[inline]
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
@@ -68,7 +71,7 @@ impl RttiSystem {
         unsafe { ty.cast::<Bitfield>().as_ref() }
     }
 
-    /// Retrieve a function by its name.
+    /// Retrieves a global function by its registered name.
     #[inline]
     pub fn get_function(&self, name: CName) -> Option<&Function> {
         let ty = unsafe { (self.vft().get_function)(self, name) };
@@ -122,7 +125,7 @@ impl RttiSystem {
         out
     }
 
-    /// Collects all instance methods into a [`RedArray`].
+    /// Collects class functions into an owned array of borrowed metadata.
     #[inline]
     pub fn get_class_functions(&self) -> RedArray<&Function> {
         let mut out = RedArray::default();
@@ -135,7 +138,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve base class and its inheritors, optionally including abstract classes.
+    /// Collects `base` and its inheritors, excluding abstract classes unless requested.
     #[inline]
     pub fn get_classes(&self, base: &Class, include_abstract: bool) -> RedArray<&Class> {
         let mut out = RedArray::default();
@@ -151,7 +154,7 @@ impl RttiSystem {
         out
     }
 
-    /// Retrieve derived classes, omitting base in the output.
+    /// Collects classes derived from `base`, excluding `base` itself.
     #[inline]
     pub fn get_derived_classes(&self, base: &Class) -> RedArray<&Class> {
         let mut out = RedArray::default();
@@ -179,25 +182,27 @@ impl RttiSystem {
         unsafe { ty.cast::<Enum>().as_ref() }
     }
 
-    /// Retrieve a reference to a map of all types by name.
+    /// Borrows the type registry keyed by native type name.
     #[inline]
     pub fn type_map(&self) -> &RedHashMap<CName, &Type> {
         unsafe { &*(&raw const (*self.0.get()).types as *const RedHashMap<CName, &Type>) }
     }
 
-    /// Retrieve a reference to a map of all script to native name aliases.
+    /// Borrows aliases mapping script names to native names.
     #[inline]
     pub fn script_to_native_map(&self) -> &RedHashMap<CName, CName> {
         unsafe { &*(&raw const (*self.0.get()).scriptToNative as *const RedHashMap<CName, CName>) }
     }
 
-    /// Retrieve a reference to a map of all native to script name aliases.
+    /// Borrows aliases mapping native names to script names.
     #[inline]
     pub fn native_to_script_map(&self) -> &RedHashMap<CName, CName> {
         unsafe { &*(&raw const (*self.0.get()).nativeToScript as *const RedHashMap<CName, CName>) }
     }
 
-    /// Resolves a static method by its full name, which should be in the format `Class::Method`.
+    /// Resolves a static method named `Class::Method`.
+    ///
+    /// Checks the global function registry first, then the native class's static methods.
     #[inline]
     pub fn resolve_static_method_by_full_name(&self, full_name: &str) -> Option<&Function> {
         fn resolve_native(rtti: &RttiSystem, class: CName, method: CName) -> Option<&Function> {
@@ -219,8 +224,11 @@ impl RttiSystem {
             .or_else(|| resolve_native(self, class, method))
     }
 
-    /// Resolve the context required for a call to a static scripted method on specified class.
-    /// Returns `None` if the class was not found in the RTTI system.
+    /// Resolves a game-system context for a static scripted call on `class`.
+    ///
+    /// Falls back to `cpPlayerSystem` when the requested class has no system instance.
+    /// Returns `None` if either required class lookup fails; the returned reference
+    /// can still be null. Requires a live game framework and game instance.
     pub fn resolve_static_context(&self, class: CName) -> Option<Ref<ScriptableSystem>> {
         let game = GameEngine::get().game_instance();
         let get_context = |class| Some(game.get_system(self.get_class(class)?.as_type()));
@@ -238,14 +246,18 @@ impl RttiSystem {
     }
 }
 
-/// Exclusive access to SDK [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
-/// Registration transfers metadata ownership to the engine.
+/// Exclusive access to the engine RTTI system.
+///
+/// Requires initialized engine RTTI. Registration transfers metadata ownership to the engine.
+///
+/// SDK: [CRTTISystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
 #[repr(transparent)]
 pub struct RttiSystemMut(UnsafeCell<red::CRTTISystem>);
 
 impl RttiSystemMut {
-    /// Acquire a write lock on the RTTI system. You should be careful not to hold the lock for
-    /// too long, because interleaving reads and write operations can lead to deadlocks.
+    /// Acquires a write lock on initialized engine RTTI.
+    ///
+    /// Keep the guard short-lived. Do not acquire another RTTI guard while holding it.
     #[inline]
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
@@ -255,7 +267,7 @@ impl RttiSystemMut {
         }
     }
 
-    /// Retrieve a mutable reference to a class by its name
+    /// Retrieves mutable class metadata by its native name.
     pub fn get_class(&mut self, name: CName) -> Option<&mut Class> {
         // implemented manually to avoid the game trying to obtain the type lock
         let (types, types_by_id, type_ids) = self.split_types();
@@ -266,9 +278,9 @@ impl RttiSystemMut {
         types_by_id.get_mut(&u64::from(id))?.as_class_mut()
     }
 
-    /// Register a new [`ClassHandle`] with the RTTI system.
-    /// The handle can be obtained from
-    /// [`NativeClass::new_handle`](crate::types::NativeClass::new_handle).
+    /// Registers a class, transferring its metadata to the engine.
+    ///
+    /// Create the handle with [`NativeClass::new_handle`](crate::types::NativeClass::new_handle).
     pub fn register_class(&mut self, mut class: ClassHandle) {
         // implemented manually to avoid the game trying to obtain the type lock
         let id = unsafe { red::RTTIRegistrator::GetNextId() };
@@ -279,8 +291,9 @@ impl RttiSystemMut {
         self.type_id_map().insert(class.as_ref().name(), id);
     }
 
-    /// Register a new [`GlobalFunction`] with the RTTI system.
-    /// The function can be obtained from [`GlobalFunction::new`].
+    /// Registers a global function, transferring ownership to the engine.
+    ///
+    /// Create the function with [`GlobalFunction::new`].
     #[inline]
     pub fn register_function(&mut self, function: PoolRef<GlobalFunction>) {
         unsafe { (self.vft().register_function)(self, &*function) }
@@ -416,13 +429,17 @@ struct RttiSystemVft {
         unsafe extern "C" fn(this: *const RttiSystem, name: red::CName) -> red::CName,
 }
 
-/// SDK [RTTI registration callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
+/// Installs callbacks for RTTI registration and post-registration.
 /// Normally installed by [`export_plugin_symbols!`](crate::export_plugin_symbols).
+///
+/// SDK: [RTTI registration callbacks](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTISystem.hpp).
 #[derive(Debug)]
 pub struct RttiRegistrator;
 
 impl RttiRegistrator {
-    /// Add a new RTTI registration callback.
+    /// Adds callbacks for the registration and post-registration phases.
+    ///
+    /// `None` leaves that phase unchanged. Requires initialized engine RTTI.
     pub fn add(register: Option<extern "C" fn()>, post_register: Option<extern "C" fn()>) {
         let rtti = RttiSystem::get();
         if let Some(register) = register {

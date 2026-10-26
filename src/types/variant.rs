@@ -5,8 +5,9 @@ use crate::types::{CName, Type};
 use crate::{FromRepr, IntoRepr, NativeRepr, RttiSystem};
 
 /// Owns an RTTI-typed payload, stored inline or in engine-allocated storage.
-/// See SDK [Variant](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 /// Construction, cloning, and cleanup require initialized engine RTTI and allocators.
+///
+/// SDK: [Variant](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[repr(transparent)]
 pub struct Variant(red::Variant);
 
@@ -25,6 +26,7 @@ impl Variant {
         Some(this)
     }
 
+    /// Returns the payload's RTTI type, or `None` for an empty variant.
     #[inline]
     pub fn type_(&self) -> Option<&Type> {
         unsafe { Type::from_raw(self.0.GetType()) }
@@ -35,6 +37,7 @@ impl Variant {
     /// Bytes are not guaranteed to be initialized, even when the payload is valid.
     /// Calling `assume_init` on any byte requires independent proof that that byte
     /// is initialized. This view is not a serialization format.
+    /// Returns `None` if the variant has no type or payload storage.
     pub fn as_uninit_bytes(&self) -> Option<&[mem::MaybeUninit<u8>]> {
         let size = self.type_()?.size() as usize;
         let data_ptr = unsafe { self.0.GetDataPtr() }.cast::<mem::MaybeUninit<u8>>();
@@ -46,7 +49,8 @@ impl Variant {
     }
 
     /// Moves out a matching payload and empties this variant.
-    /// A type mismatch leaves the variant unchanged.
+    /// Returns `None` without changing the variant if it is empty, its RTTI name
+    /// does not match `A::Repr`, or its payload storage is unavailable.
     pub fn try_take<A: FromRepr>(&mut self) -> Option<A> {
         let typ = self.type_()?;
         if typ.name() != CName::new(A::Repr::NAME) {
@@ -81,6 +85,7 @@ impl Variant {
     }
 
     /// Borrows the payload if its RTTI name matches `A`.
+    /// Returns `None` for an empty variant, a type mismatch, or missing storage.
     pub fn try_access<A: NativeRepr>(&self) -> Option<&A> {
         if self.type_()?.name() == CName::new(A::NAME) {
             unsafe { self.0.GetDataPtr().cast::<A>().as_ref() }

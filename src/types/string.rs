@@ -4,8 +4,12 @@ use std::{fmt, ops, ptr};
 
 use crate::raw::root::RED4ext as red;
 
-/// Owns an SDK [CString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CString.hpp).
-/// Construction, cloning, and drop use engine functions; access bytes through `CStr`.
+/// Owns an engine string.
+/// Text construction, cloning, and drop require initialized engine string functions.
+/// Dereferences to [`CStr`]; display and conversion to [`String`] decode UTF-8 lossily.
+/// Equality, ordering, and hashing use the bytes before the first NUL.
+///
+/// SDK: [CString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/CString.hpp).
 #[repr(transparent)]
 pub struct RedString(red::CString);
 
@@ -54,6 +58,8 @@ impl From<&CStr> for RedString {
     }
 }
 
+/// Copies UTF-8 bytes using the length-aware engine constructor.
+/// An embedded NUL ends the visible [`CStr`] view.
 impl From<&str> for RedString {
     #[inline]
     fn from(value: &str) -> Self {
@@ -74,6 +80,7 @@ impl From<CString> for RedString {
     }
 }
 
+/// Copies text up to the first NUL, discarding any remaining bytes.
 impl From<String> for RedString {
     #[inline]
     fn from(value: String) -> Self {

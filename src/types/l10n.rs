@@ -3,18 +3,22 @@ use std::{fmt, mem};
 use crate::raw::root::RED4ext as red;
 use crate::types::RedString;
 
-/// SDK [LocalizationString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
-/// Owns its embedded SDK `CString` and releases it through the native destructor.
-/// Display reads the stored text; it does not perform a localization lookup.
+/// Localization string.
+/// Owns its stored text; dropping it requires initialized engine string functions.
+/// Display reads that text with lossy UTF-8 decoding, without a localization lookup.
+///
+/// SDK: [LocalizationString](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[repr(transparent)]
 pub struct LocalizationString(red::LocalizationString);
 
 impl LocalizationString {
+    /// Returns the stored text length in bytes, excluding the terminating NUL.
     #[inline]
     pub fn len(&self) -> usize {
         (self.0.unk08.length & 0x3FFF_FFFF) as usize
     }
 
+    /// Returns whether the stored text has zero length.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
