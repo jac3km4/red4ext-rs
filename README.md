@@ -35,10 +35,10 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", rev = "v0.11.1" }
+red4ext-rs = { git = "https://github.com/jac3km4/red4ext-rs", rev = "v0.11.2" }
 ```
 
-This example pins the `v0.11.1` release; development API changes may differ from that revision.
+This example pins the `v0.11.2` release; development API changes may differ from that revision.
 
 `src/lib.rs`:
 
