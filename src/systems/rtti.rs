@@ -8,6 +8,25 @@ use crate::types::{
     ScriptableSystem, Type, VoidFunctionPointerCallback,
 };
 
+/// The lock that guards the RTTI type maps.
+///
+/// macOS: it is at `CRTTISystem` +0x220, not at +0x208 where the Windows layout of the SDK header puts `typesLock`. The two mutexes
+/// around it are 0x40 bytes (pthread) on Mac against 0x28 on Windows, which moves everything after `unk1E0` by 0x18. Evidence: Mac
+/// `CRTTISystem::RegisterType` (vtable slot 0x80, 0x2192004) does `add x21,x20,#0x220; bl 0x20c0` (the byte lock function the SDK's
+/// Apple `SharedSpinLock` protocol is written against) and releases with `ldclralb ...,[x21]` (clears bit 7); `AddRegisterCallback`
+/// (slot 0xC0, 0x2192548) locks a mutex at +0x228, the Windows `rttiRegistratorMutex` (0x210) plus 0x18.
+#[inline]
+unsafe fn types_lock(rtti: *mut red::CRTTISystem) -> ptr::NonNull<red::SharedSpinLock> {
+    #[cfg(not(target_os = "macos"))]
+    unsafe {
+        ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock)
+    }
+    #[cfg(target_os = "macos")]
+    unsafe {
+        ptr::NonNull::new_unchecked(rtti.cast::<u8>().add(0x220).cast::<red::SharedSpinLock>())
+    }
+}
+
 /// Read access to the engine RTTI system.
 ///
 /// Requires initialized engine RTTI. Keep lock guards short-lived and release
@@ -38,7 +57,7 @@ impl RttiSystem {
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock);
+            let lock = types_lock(rtti);
             RwSpinLockReadGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
         }
     }
@@ -262,7 +281,7 @@ impl RttiSystemMut {
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
             let rtti = red::CRTTISystem_Get();
-            let lock = ptr::NonNull::new_unchecked(&raw mut (*rtti).typesLock);
+            let lock = types_lock(rtti);
             RwSpinLockWriteGuard::new(lock, ptr::NonNull::new_unchecked(rtti.cast()))
         }
     }
@@ -349,8 +368,16 @@ struct RttiSystemVft {
     get_class: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Class,
     get_enum: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Enum,
     get_bitfield: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Bitfield,
+    // macOS: GetFunction (the search over `funcs` at +0xA0) is slot 0x28 and the unnamed slot (the search over `funcsByHash` at +0xD0) is
+    // slot 0x30, the other way round from Windows. Evidence: Mac CRTTISystem vtable (vptr 0x6FFBD70): slot 0x28 -> 0x2194FB0
+    // `ldr w8,[x0,#0xa8]` and hashes a CName, slot 0x30 -> 0x2195024 `ldr w8,[x0,#0xd8]` and hashes with FNV-1a 32 (0x811C9DC5).
+    // The destructor is the last virtual (D1 0x138, D0 0x140), so no other slot moves. Same finding as the SDK branch
+    // pr/rttisystem-getfunction-slot (44c6c1830).
+    #[cfg(not(target_os = "macos"))]
     _sub_28: unsafe extern "C" fn(this: *const RttiSystem),
     get_function: unsafe extern "C" fn(this: *const RttiSystem, name: CName) -> *mut Function,
+    #[cfg(target_os = "macos")]
+    _sub_28: unsafe extern "C" fn(this: *const RttiSystem),
     _sub_38: unsafe extern "C" fn(this: *const RttiSystem),
     get_native_types: unsafe extern "C" fn(this: *const RttiSystem, out: *mut RedArray<*mut Type>),
     get_global_functions:
