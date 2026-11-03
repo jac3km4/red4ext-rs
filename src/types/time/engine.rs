@@ -1,23 +1,28 @@
 use std::num::NonZeroU64;
 use std::time::Duration;
 
-/// Engine-clock ticks; see SDK
-/// [EngineTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/EngineTime.hpp).
+/// Engine-clock ticks.
 /// Zero is invalid. Convert using the clock's `QueryPerformanceFrequency()`
-/// value; ticks are not seconds and no fixed frequency is assumed.
+/// value in ticks per second; no fixed frequency is assumed. Conversions and
+/// arithmetic accept zero ticks but do not make that value valid.
+///
+/// SDK: [EngineTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/EngineTime.hpp).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct EngineTime(u64);
 
 impl EngineTime {
+    /// Returns whether the tick count is nonzero.
     pub fn is_valid(&self) -> bool {
         self.0 != 0
     }
 
+    /// Wraps a raw tick count, including the invalid zero value.
     pub const fn from_ticks(ticks: u64) -> Self {
         Self(ticks)
     }
 
+    /// Returns the raw tick count.
     pub const fn ticks(self) -> u64 {
         self.0
     }
@@ -28,6 +33,10 @@ impl EngineTime {
     }
 
     /// Converts nonnegative, finite seconds, truncating fractional ticks.
+    ///
+    /// # Errors
+    /// Returns `EngineTimeError::NotANumber` for NaN, or
+    /// `EngineTimeError::OutOfBounds` for negative, infinite, or overflowing values.
     pub fn from_secs_f64(seconds: f64, frequency: NonZeroU64) -> Result<Self, EngineTimeError> {
         if seconds.is_nan() {
             return Err(EngineTimeError::NotANumber);
@@ -40,7 +49,10 @@ impl EngineTime {
         Ok(Self(ticks as u64))
     }
 
-    /// Converts exactly using integer arithmetic, truncating fractional ticks.
+    /// Converts a duration using integer arithmetic, truncating fractional ticks.
+    ///
+    /// # Errors
+    /// Returns `EngineTimeError::OutOfBounds` if the tick count exceeds `u64::MAX`.
     pub fn from_duration(
         duration: Duration,
         frequency: NonZeroU64,
@@ -61,12 +73,16 @@ impl EngineTime {
         Duration::new(seconds, nanos as u32)
     }
 
+    /// Adds a duration after truncating it to whole ticks.
+    /// Returns `None` if duration conversion or addition overflows.
     pub fn checked_add_duration(self, duration: Duration, frequency: NonZeroU64) -> Option<Self> {
         self.0
             .checked_add(Self::from_duration(duration, frequency).ok()?.0)
             .map(Self)
     }
 
+    /// Subtracts a duration after truncating it to whole ticks.
+    /// Returns `None` if duration conversion overflows or subtraction underflows.
     pub fn checked_sub_duration(self, duration: Duration, frequency: NonZeroU64) -> Option<Self> {
         self.0
             .checked_sub(Self::from_duration(duration, frequency).ok()?.0)
@@ -74,9 +90,12 @@ impl EngineTime {
     }
 }
 
+/// Failure to convert seconds or a duration into engine-clock ticks.
 #[derive(Debug)]
 pub enum EngineTimeError {
+    /// The input is negative, infinite, or too large for an unsigned 64-bit tick count.
     OutOfBounds,
+    /// The floating-point seconds value is NaN.
     NotANumber,
 }
 

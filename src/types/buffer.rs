@@ -6,7 +6,11 @@ use crate::raw::root::RED4ext as red;
 
 #[derive(Debug)]
 #[repr(transparent)]
-/// SDK [DataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp) layout wrapper.
+/// Opaque data buffer.
+///
+/// Drop releases raw storage through its native allocator, if present.
+///
+/// SDK: [DataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp).
 pub struct DataBuffer(red::DataBuffer);
 
 impl Drop for DataBuffer {
@@ -18,7 +22,12 @@ impl Drop for DataBuffer {
 
 #[derive(Debug)]
 #[repr(transparent)]
-/// SDK [DeferredDataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp) layout wrapper.
+/// Opaque deferred data buffer.
+///
+/// Drop releases temporary storage and the shared reference to loaded data.
+/// This wrapper does not expose the SDK's asynchronous loading operations.
+///
+/// SDK: [DeferredDataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp).
 pub struct DeferredDataBuffer(red::DeferredDataBuffer);
 
 impl Drop for DeferredDataBuffer {
@@ -61,7 +70,11 @@ unsafe fn release_raw_buffer(
 
 #[derive(Debug, Default, Clone, Copy)]
 #[repr(transparent)]
-/// SDK [SharedDataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp) layout wrapper.
+/// Opaque, copyable shared data buffer value.
+///
+/// No buffer access or ownership operations are exposed.
+///
+/// SDK: [SharedDataBuffer](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Buffer.hpp).
 pub struct SharedDataBuffer(red::SharedDataBuffer);
 
 #[cfg(test)]

@@ -7,14 +7,17 @@ use crate::types::WeakRef;
 use crate::types::rtti::IScriptableVft;
 use crate::{NativeRepr, VoidPtr};
 
-/// REDscript `GameInstance`, named
-/// [ScriptGameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp)
-/// in the SDK. Not the native [`NativeGameInstance`].
+/// REDscript `GameInstance`, not the native [`NativeGameInstance`].
+///
+/// SDK: [ScriptGameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/ScriptGameInstance.hpp).
 #[derive(Default)]
 #[repr(transparent)]
 pub struct GameInstance(red::ScriptGameInstance);
 
 impl GameInstance {
+    /// Wraps the current native game instance for use in REDscript calls.
+    ///
+    /// Requires a live engine, game framework, and native game instance.
     #[inline]
     pub fn new() -> Self {
         Self(unsafe {
@@ -27,13 +30,18 @@ unsafe impl NativeRepr for GameInstance {
     const NAME: &'static str = "ScriptGameInstance";
 }
 
-/// Native SDK [GameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp),
+/// Native game instance,
 /// not REDscript's [`GameInstance`]. Access through [`GameEngine::game_instance`].
 /// This is a borrowed engine object, not a constructible or owning Rust value.
+///
+/// SDK: [GameInstance](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp).
 #[repr(transparent)]
 pub struct NativeGameInstance(red::GameInstance);
 
 impl NativeGameInstance {
+    /// Looks up a system by its RTTI type and acquires a strong reference.
+    ///
+    /// Returns a null [`Ref`] if the system is absent or its weak reference has expired.
     #[inline]
     pub fn get_system(&self, ty: &Type) -> Ref<ScriptableSystem> {
         let instance = unsafe { (self.vft().get_system)(self, ty) };
@@ -51,6 +59,7 @@ impl NativeGameInstance {
     }
 }
 
+/// Native virtual table layout for [`NativeGameInstance`].
 #[repr(C)]
 pub struct GameInstanceVft {
     /// Windows: the scalar deleting destructor. macOS: D1, the complete object destructor, which destroys in place.
@@ -80,15 +89,21 @@ pub struct GameInstanceVft {
 }
 
 #[repr(transparent)]
-/// SDK [CGameEngine](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp).
+/// Game engine singleton.
 /// Access requires a live engine and game framework.
+///
+/// SDK: [CGameEngine](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/GameEngine.hpp).
 pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
+    /// Borrows the engine singleton, which must already be initialized and remain live.
     pub fn get<'a>() -> &'a Self {
         unsafe { &*(red::CGameEngine::Get() as *const GameEngine) }
     }
 
+    /// Borrows the native game instance from the initialized game framework.
+    ///
+    /// The framework and game instance must be live; this method does not check for null.
     pub fn game_instance(&self) -> &NativeGameInstance {
         // macOS 2.5: the SDK's Mac CGameEngine declares `framework` at its Mac offset (+0x378; 2.3.1 read the pointer at +0x338
         // through `unk338`), so both platforms read the same field.
@@ -98,7 +113,9 @@ impl GameEngine {
 }
 
 #[repr(transparent)]
-/// SDK [game::ScriptableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/game/ScriptableSystem.hpp).
+/// Scriptable game system.
+///
+/// SDK: [game::ScriptableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/Generated/game/ScriptableSystem.hpp).
 pub struct ScriptableSystem(red::ScriptableSystem);
 
 unsafe impl ScriptClass for ScriptableSystem {
@@ -114,7 +131,9 @@ impl AsRef<IScriptable> for ScriptableSystem {
 }
 
 #[repr(transparent)]
-/// SDK [IUpdatableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/IUpdatableSystem.hpp).
+/// Updatable engine system.
+///
+/// SDK: [IUpdatableSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/IUpdatableSystem.hpp).
 pub struct IUpdatableSystem(IScriptable);
 
 unsafe impl ScriptClass for IUpdatableSystem {
@@ -125,6 +144,7 @@ unsafe impl ScriptClass for IUpdatableSystem {
 
 impl IUpdatableSystem {
     #[inline]
+    /// Borrows the system's native virtual table.
     pub fn vft(&self) -> &IUpdatableSystemVft {
         unsafe { mem::transmute::<&IScriptableVft, &IUpdatableSystemVft>(self.0.vft()) }
     }
@@ -137,7 +157,9 @@ impl AsRef<IScriptable> for IUpdatableSystem {
 }
 
 #[repr(C)]
-/// SDK [game::IGameSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp).
+/// Game system interface.
+///
+/// SDK: [game::IGameSystem](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp).
 pub struct IGameSystem {
     base: IUpdatableSystem,
     game_instance: *mut NativeGameInstance,
@@ -151,6 +173,7 @@ unsafe impl ScriptClass for IGameSystem {
 
 impl IGameSystem {
     #[inline]
+    /// Borrows the system's native virtual table.
     pub fn vft(&self) -> &IGameSystemVft {
         unsafe { mem::transmute::<&IUpdatableSystemVft, &IGameSystemVft>(self.base.vft()) }
     }
@@ -162,12 +185,14 @@ impl AsRef<IScriptable> for IGameSystem {
     }
 }
 
+/// Native virtual table layout for [`IUpdatableSystem`].
 #[repr(C)]
 pub struct IUpdatableSystemVft {
     base: IScriptableVft,
     on_register_updates: unsafe extern "C" fn(this: VoidPtr, registrar: VoidPtr),
 }
 
+/// Native virtual table layout for [`IGameSystem`], including lifecycle callbacks.
 #[repr(C)]
 pub struct IGameSystemVft {
     base: IUpdatableSystemVft,

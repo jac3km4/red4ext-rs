@@ -6,14 +6,17 @@ use crate::raw::root::RED4ext as red;
 
 const INVALID_INDEX: u32 = u32::MAX;
 
-/// Owns an SDK [HashMap](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/HashMap.hpp).
-/// Drop destroys live keys and values and frees storage through the engine allocator.
-/// Borrowed engine maps must remain borrowed; do not move ownership out of a view.
+/// Owns an engine hash map.
+/// Dropping the map drops its keys and values and releases engine-allocated storage.
+/// Growth requires an initialized engine allocator.
+///
+/// SDK: [HashMap](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/HashMap.hpp).
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct RedHashMap<K, V>(red::HashMap<K, V>);
 
 impl<K, V> RedHashMap<K, V> {
+    /// Returns the value for an equal key, or `None` if absent.
     #[inline]
     pub fn get(&self, key: &K) -> Option<&V>
     where
@@ -23,6 +26,7 @@ impl<K, V> RedHashMap<K, V> {
         unsafe { Some(&self.live_node(index).value) }
     }
 
+    /// Returns a mutable value for an equal key, or `None` if absent.
     #[inline]
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V>
     where
@@ -31,6 +35,8 @@ impl<K, V> RedHashMap<K, V> {
         self.get_by_hash_mut(key, key.hash())
     }
 
+    /// Inserts a key-value pair, returning the previous value if the key exists.
+    /// An existing key is retained; a new key may cause engine allocation.
     pub fn insert(&mut self, key: K, value: V) -> Option<V>
     where
         K: Hash + PartialEq,
@@ -52,16 +58,19 @@ impl<K, V> RedHashMap<K, V> {
         None
     }
 
+    /// Iterates over borrowed key-value pairs in unspecified order.
     #[inline]
     pub fn iter(&self) -> Iter<'_, K, V> {
         self.into_iter()
     }
 
+    /// Returns the number of entries.
     #[inline]
     pub fn size(&self) -> u32 {
         self.0.size
     }
 
+    /// Returns the number of entries that fit without growing the map.
     #[inline]
     pub fn capacity(&self) -> u32 {
         self.0.capacity
@@ -250,6 +259,7 @@ impl<'a, K, V> IntoIterator for &'a RedHashMap<K, V> {
     }
 }
 
+/// Borrowed key-value pairs from a [`RedHashMap`], in unspecified order.
 #[derive(Debug)]
 pub struct Iter<'a, K, V> {
     current_index: u32,
@@ -277,8 +287,11 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
 impl<K, V> FusedIterator for Iter<'_, K, V> {}
 
-/// Produces the 32-bit hash used by [`RedHashMap`], not Rust's `std::hash::Hash`.
+/// Produces the 32-bit hash used by [`RedHashMap`], not Rust's [`std::hash::Hash`].
+/// Equal keys must have equal hashes. For engine-owned maps, hashes must also
+/// match the SDK's hashing algorithm for the key type.
 pub trait Hash {
+    /// Returns the key's hash for map lookup and insertion.
     fn hash(&self) -> u32;
 }
 

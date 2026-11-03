@@ -3,18 +3,25 @@ use std::hash::Hash;
 use crate::fnv1a32;
 use crate::raw::root::RED4ext as red;
 
-/// SDK [CRUID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp) identifier.
+/// CRUID identifier.
 /// Its hash is not interchangeable with [`CName`](crate::types::CName).
+/// The default value is undefined (zero); converting from a `CName` requires
+/// engine name lookup.
+///
+/// SDK: [CRUID](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NativeTypes.hpp).
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct Cruid(red::CRUID);
 
 impl Cruid {
+    /// Returns whether the raw identifier is nonzero; does not look up an object.
     #[inline]
     pub const fn is_defined(self) -> bool {
         self.0.unk00 != 0
     }
 
+    /// Derives an identifier from UTF-8 bytes using 32-bit FNV-1a and CRUID tag bits.
+    /// Does not access the engine or register the text.
     pub const fn new(str: &str) -> Self {
         Self(red::CRUID {
             // https://discord.com/channels/717692382849663036/717720094196760760/1208391892119719946

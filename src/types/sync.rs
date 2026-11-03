@@ -4,8 +4,12 @@ use std::ptr::NonNull;
 
 use crate::raw::root::RED4ext as red;
 
-/// Shared guard for SDK [SharedSpinLock](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/SharedSpinLock.hpp).
-/// Releases the read lock on drop.
+/// Shared guard for a native shared spinlock.
+///
+/// Dereferences to the protected value and releases the read lock on drop.
+/// Release it before requesting a write lock on the same lock.
+///
+/// SDK: [SharedSpinLock](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/SharedSpinLock.hpp).
 pub struct RwSpinLockReadGuard<'a, T> {
     lock: NonNull<red::SharedSpinLock>,
     value: NonNull<T>,
@@ -44,8 +48,12 @@ impl<T> Drop for RwSpinLockReadGuard<'_, T> {
     }
 }
 
-/// Exclusive guard for SDK [SharedSpinLock](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/SharedSpinLock.hpp).
-/// Releases the write lock on drop.
+/// Exclusive guard for a native shared spinlock.
+///
+/// Provides mutable access to the protected value and releases the write lock on
+/// drop. Release it before requesting any other guard on the same lock.
+///
+/// SDK: [SharedSpinLock](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/SharedSpinLock.hpp).
 pub struct RwSpinLockWriteGuard<'a, T> {
     lock: NonNull<red::SharedSpinLock>,
     value: NonNull<T>,

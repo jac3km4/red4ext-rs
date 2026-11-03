@@ -3,8 +3,9 @@ use std::hash::Hash;
 use crate::NativeRepr;
 use crate::raw::root::RED4ext as red;
 
-/// Hashed world-node path; see SDK
-/// [NodeRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NodeRef.hpp).
+/// Hashed world-node path.
+///
+/// SDK: [NodeRef](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/NodeRef.hpp).
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct NodeRef(red::NodeRef);
@@ -14,20 +15,22 @@ unsafe impl NativeRepr for NodeRef {
 }
 
 impl NodeRef {
+    /// Returns whether the hash is nonzero; does not check whether a node exists.
     #[inline]
     pub const fn is_defined(self) -> bool {
         self.0.hash != 0
     }
 
-    /// Hashes a node path without engine access, ignoring `#` and `;` suffixes
-    /// up to the next `/`. Stops at the first NUL, matching the SDK C-string
-    /// constructor, and hashes non-ASCII bytes as signed MSVC `char` values.
-    /// This does not resolve the node.
+    /// Hashes a node path without resolving it or accessing the engine.
+    /// Skips `#` characters and `;` suffixes up to the next `/` or NUL, and stops
+    /// at the first NUL. Empty paths produce the undefined (zero) hash.
     #[inline]
     pub const fn new(name: &str) -> Self {
         Self::from_bytes(name.as_bytes())
     }
 
+    /// Hashes path bytes with the same rules as [`Self::new`], without UTF-8 validation.
+    /// Non-ASCII bytes use the SDK's signed MSVC `char` semantics.
     pub const fn from_bytes(mut tail: &[u8]) -> Self {
         const SEED: u64 = 0xCBF2_9CE4_8422_2325;
 
