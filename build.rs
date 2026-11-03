@@ -8,13 +8,14 @@ fn main() {
 
     let red4ext_dir = if target_os == "macos" {
         // macOS: the pinned deps/RED4ext.SDK is upstream and has no macOS support (it includes Windows.h
-        // everywhere), so the SDK comes from a RED4ext.SDK-macos checkout (branch mac-rs). Evidence: B1 report E0.
+        // everywhere), so the SDK comes from a RED4ext.SDK-macos checkout (branch mac-next). Evidence: B1 report E0.
         println!("cargo:rerun-if-env-changed=RED4EXT_SDK_DIR");
         match env::var_os("RED4EXT_SDK_DIR") {
             Some(dir) => PathBuf::from(dir),
             None => panic!(
                 "RED4EXT_SDK_DIR is not set: on macOS red4ext-rs needs a RED4ext.SDK-macos checkout \
-                 (branch mac-rs), e.g. RED4EXT_SDK_DIR=$HOME/repos/cp2077-mac/RED4ext.SDK-macos-rs"
+                 (https://github.com/codeman101/RED4ext.SDK-macos, branch mac-next), e.g. \
+                 RED4EXT_SDK_DIR=$HOME/repos/cp2077-mac/RED4ext.SDK-macos"
             ),
         }
     } else {
