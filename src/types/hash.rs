@@ -104,9 +104,11 @@ impl<K, V> RedHashMap<K, V> {
     }
 
     fn realloc(&mut self, new_capacity: u32) {
+        let align = mem::align_of::<red::HashMap_Node<K, V>>().max(8);
         let new_cap_bytes = new_capacity as usize
             * (mem::size_of::<red::HashMap_Node<K, V>>() + mem::size_of::<u32>());
-        let mem = unsafe { self.allocator().alloc_aligned(new_cap_bytes as _, 8) };
+        let mem: *mut red::HashMap_Node<K, V> = unsafe { self.allocator().alloc_aligned(new_cap_bytes as _, align as _) };
+        assert!(!mem.is_null(), "allocation failed in RedHashMap::realloc");
 
         let mut node_list = red::HashMap_NodeList {
             nodes: mem,
