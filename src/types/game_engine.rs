@@ -17,12 +17,13 @@ pub struct GameInstance(red::ScriptGameInstance);
 impl GameInstance {
     /// Wraps the current native game instance for use in REDscript calls.
     ///
-    /// Requires a live engine, game framework, and native game instance.
+    /// Returns `None` if the game engine, framework, or game instance is not available.
     #[inline]
-    pub fn new() -> Self {
-        Self(unsafe {
-            red::ScriptGameInstance::new(GameEngine::get().game_instance() as *const _ as *mut _)
-        })
+    pub fn new() -> Option<Self> {
+        let game = GameEngine::get()?.game_instance()?;
+        Some(Self(unsafe {
+            red::ScriptGameInstance::new(game as *const _ as *mut _)
+        }))
     }
 }
 
@@ -87,16 +88,19 @@ pub struct GameInstanceVft {
 pub struct GameEngine(red::CGameEngine);
 
 impl GameEngine {
-    /// Borrows the engine singleton, which must already be initialized and remain live.
-    pub fn get<'a>() -> &'a Self {
-        unsafe { &*(red::CGameEngine::Get() as *const GameEngine) }
+    /// Borrows the engine singleton, or returns `None` if it has not been initialized.
+    pub fn get() -> Option<&'static Self> {
+        unsafe { (red::CGameEngine::Get() as *const GameEngine).as_ref() }
     }
 
     /// Borrows the native game instance from the initialized game framework.
     ///
-    /// The framework and game instance must be live; this method does not check for null.
-    pub fn game_instance(&self) -> &NativeGameInstance {
-        unsafe { &*((*self.0.framework).gameInstance as *const NativeGameInstance) }
+    /// Returns `None` if the framework or game instance is null.
+    pub fn game_instance(&self) -> Option<&NativeGameInstance> {
+        if self.0.framework.is_null() {
+            return None;
+        }
+        unsafe { ((*self.0.framework).gameInstance as *const NativeGameInstance).as_ref() }
     }
 }
 
@@ -208,10 +212,19 @@ pub struct IGameSystemVft {
 
 #[cfg(test)]
 mod tests {
-    use super::NativeGameInstance;
+    use super::*;
 
     #[test]
     fn native_game_instance_is_non_owning() {
         assert!(!std::mem::needs_drop::<NativeGameInstance>());
+    }
+
+    #[test]
+    fn null_framework_returns_none() {
+        let engine = GameEngine(red::CGameEngine {
+            framework: std::ptr::null_mut(),
+            ..Default::default()
+        });
+        assert!(engine.game_instance().is_none());
     }
 }

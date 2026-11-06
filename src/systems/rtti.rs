@@ -230,7 +230,7 @@ impl RttiSystem {
     /// Returns `None` if either required class lookup fails; the returned reference
     /// can still be null. Requires a live game framework and game instance.
     pub fn resolve_static_context(&self, class: CName) -> Option<Ref<ScriptableSystem>> {
-        let game = GameEngine::get().game_instance();
+        let game = GameEngine::get()?.game_instance()?;
         let get_context = |class| Some(game.get_system(self.get_class(class)?.as_type()));
         let ctx = get_context(class)?;
         if ctx.is_null() {
