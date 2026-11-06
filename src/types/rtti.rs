@@ -420,8 +420,9 @@ impl Class {
     /// Returns whether this type is or derives from `ISerializable`, rather than a struct.
     pub fn is_class(&self) -> bool {
         // there might be a better way to check this
+        let target = CName::new("ISerializable");
         self.base_iter_with_self()
-            .any(|c| c.name() == CName::new("ISerializable"))
+            .any(|c| c.name() == target)
     }
 
     /// Creates an instance through engine RTTI and returns its storage address.
@@ -1099,7 +1100,7 @@ impl Function {
     {
         let mut ret = R::Repr::default();
         let mut out = StackArg::new(&mut ret).ok_or(InvokeError::UnresolvedType(R::Repr::NAME))?;
-        let arr = args.to_array()?;
+        let mut arr = args.to_array()?;
 
         #[cfg(not(all(debug_assertions, feature = "log")))]
         self.validate_stack(arr.as_ref(), &out)?;
@@ -1110,7 +1111,7 @@ impl Function {
             return Err(err);
         }
 
-        self.execute_internal(ctx, arr.as_ref(), &mut out)?;
+        self.execute_internal(ctx, arr.as_mut(), &mut out)?;
         Ok(R::from_repr(ret))
     }
 
@@ -1152,13 +1153,13 @@ impl Function {
     fn execute_internal(
         &self,
         ctx: Option<&IScriptable>,
-        args: &[StackArg<'_>],
+        args: &mut [StackArg<'_>],
         ret: &mut StackArg<'_>,
     ) -> Result<(), InvokeError> {
         let success = unsafe {
             let mut stack = red::CStack::new(
                 mem::transmute::<Option<&IScriptable>, VoidPtr>(ctx),
-                mem::transmute::<*const StackArg<'_>, *mut red::CStackType>(args.as_ptr()),
+                args.as_mut_ptr().cast::<red::CStackType>(),
                 args.len() as u32,
                 ret.as_raw_mut(),
             );
@@ -1756,9 +1757,10 @@ impl ISerializable {
     where
         U: ScriptClass,
     {
+        let target = CName::new(U::NAME);
         self.class()
             .base_iter_with_self()
-            .any(|class| class.name() == CName::new(U::NAME))
+            .any(|class| class.name() == target)
     }
 
     /// Returns whether the runtime class name is exactly `U::NAME`, excluding subclasses.

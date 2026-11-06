@@ -552,7 +552,7 @@ where
 #[sealed]
 #[doc(hidden)]
 pub trait Args {
-    type Array<'a>: AsRef<[StackArg<'a>]>
+    type Array<'a>: AsRef<[StackArg<'a>]> + AsMut<[StackArg<'a>]>
     where
         Self: 'a;
 
