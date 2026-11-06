@@ -88,26 +88,33 @@ impl From<EntityId> for u64 {
     }
 }
 
-impl fmt::Debug for EntityId {
+struct EntityFlags<'a>(&'a EntityId);
+
+impl fmt::Debug for EntityFlags<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut attrs = f.debug_set(); // transient and persistable are exclusive
-        if self.is_defined() {
-            if self.is_dynamic() {
+        let mut attrs = f.debug_set();
+        if self.0.is_defined() {
+            if self.0.is_dynamic() {
                 attrs.entry(&"dynamic");
             } else {
                 attrs.entry(&"static");
             }
-            if self.is_transient() {
+            if self.0.is_transient() {
                 attrs.entry(&"transient");
             }
         }
-        if self.is_persistable() {
+        if self.0.is_persistable() {
             attrs.entry(&"persistable");
         }
-        let flags = attrs.finish();
+        attrs.finish()
+    }
+}
+
+impl fmt::Debug for EntityId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("EntityId")
             .field("hash", &self.0.hash)
-            .field("flags", &flags)
+            .field("flags", &EntityFlags(self))
             .finish_non_exhaustive()
     }
 }
@@ -137,5 +144,18 @@ impl std::fmt::Display for EntityId {
             (false, false) => write!(f, "undefined"),
             (false, true) => write!(f, "undefined (P)"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EntityId;
+
+    #[test]
+    fn debug_formatting() {
+        let id = EntityId::from(1);
+        let debug = format!("{id:?}");
+        assert!(debug.starts_with("EntityId {"));
+        assert!(debug.contains("flags: {"));
     }
 }
