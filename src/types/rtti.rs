@@ -66,7 +66,8 @@ impl Type {
     /// Returns the category used to interpret this metadata.
     #[inline]
     pub fn kind(&self) -> TypeKind {
-        unsafe { mem::transmute((self.vft().tail.IType_GetType)(&self.0)) }
+        let raw = unsafe { (self.vft().tail.IType_GetType)(&self.0) };
+        TypeKind::from_raw(raw).expect("unrecognized engine RTTI type kind")
     }
 
     /// Returns the engine allocator associated with this type.
@@ -156,7 +157,7 @@ impl Type {
 /// Engine RTTI category used to select a type-specific metadata view.
 ///
 /// SDK: [ERTTIType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TypeKind {
     /// An interned name (`CName`).
@@ -196,6 +197,31 @@ pub enum TypeKind {
 }
 
 impl TypeKind {
+    /// Converts a raw RTTI type discriminant, returning `None` if unrecognized.
+    #[inline]
+    pub const fn from_raw(raw: u8) -> Option<Self> {
+        match raw {
+            v if v == red::rtti::ERTTIType::Name => Some(Self::Name),
+            v if v == red::rtti::ERTTIType::Fundamental => Some(Self::Fundamental),
+            v if v == red::rtti::ERTTIType::Class => Some(Self::Class),
+            v if v == red::rtti::ERTTIType::Array => Some(Self::Array),
+            v if v == red::rtti::ERTTIType::Simple => Some(Self::Simple),
+            v if v == red::rtti::ERTTIType::Enum => Some(Self::Enum),
+            v if v == red::rtti::ERTTIType::StaticArray => Some(Self::StaticArray),
+            v if v == red::rtti::ERTTIType::NativeArray => Some(Self::NativeArray),
+            v if v == red::rtti::ERTTIType::Pointer => Some(Self::Pointer),
+            v if v == red::rtti::ERTTIType::Handle => Some(Self::Ref),
+            v if v == red::rtti::ERTTIType::WeakHandle => Some(Self::WeakRef),
+            v if v == red::rtti::ERTTIType::ResourceReference => Some(Self::ResourceRef),
+            v if v == red::rtti::ERTTIType::ResourceAsyncReference => Some(Self::RaRef),
+            v if v == red::rtti::ERTTIType::BitField => Some(Self::BitField),
+            v if v == red::rtti::ERTTIType::LegacySingleChannelCurve => Some(Self::Curve),
+            v if v == red::rtti::ERTTIType::ScriptReference => Some(Self::ScriptRef),
+            v if v == red::rtti::ERTTIType::FixedArray => Some(Self::FixedArray),
+            _ => None,
+        }
+    }
+
     /// Returns whether this is the class/struct metadata category.
     #[inline]
     pub fn is_class(self) -> bool {
