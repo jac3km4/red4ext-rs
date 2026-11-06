@@ -29,7 +29,7 @@ impl<F: Callable<A, R>, A, R> Callback<F, CallbackHandler<F, A, R>> {
     /// Stores a callable inline with its SDK-compatible handler table.
     pub fn new(callback: F) -> Self {
         let mut buffer = [0u8; 0x40];
-        unsafe { ptr::write(buffer.as_mut_ptr().cast::<F>(), callback) };
+        unsafe { ptr::write_unaligned(buffer.as_mut_ptr().cast::<F>(), callback) };
         Self {
             callback: PhantomData,
             buffer,
