@@ -37,8 +37,10 @@ impl RttiSystem {
     #[inline]
     pub fn get<'a>() -> RwSpinLockReadGuard<'a, Self> {
         unsafe {
-            let rtti = ptr::NonNull::new(red::CRTTISystem_Get()).expect("CRTTISystem should be initialized");
-            let lock = ptr::NonNull::new(&raw mut (*rtti.as_ptr()).typesLock).expect("typesLock should not be null");
+            let rtti = ptr::NonNull::new(red::CRTTISystem_Get())
+                .expect("CRTTISystem should be initialized");
+            let lock = ptr::NonNull::new(&raw mut (*rtti.as_ptr()).typesLock)
+                .expect("typesLock should not be null");
             RwSpinLockReadGuard::new(lock, rtti.cast())
         }
     }
@@ -261,8 +263,10 @@ impl RttiSystemMut {
     #[inline]
     pub fn get() -> RwSpinLockWriteGuard<'static, Self> {
         unsafe {
-            let rtti = ptr::NonNull::new(red::CRTTISystem_Get()).expect("CRTTISystem should be initialized");
-            let lock = ptr::NonNull::new(&raw mut (*rtti.as_ptr()).typesLock).expect("typesLock should not be null");
+            let rtti = ptr::NonNull::new(red::CRTTISystem_Get())
+                .expect("CRTTISystem should be initialized");
+            let lock = ptr::NonNull::new(&raw mut (*rtti.as_ptr()).typesLock)
+                .expect("typesLock should not be null");
             RwSpinLockWriteGuard::new(lock, rtti.cast())
         }
     }

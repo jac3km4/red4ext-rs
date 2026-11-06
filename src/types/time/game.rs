@@ -310,7 +310,6 @@ impl chrono::Timelike for GameTime {
 mod tests {
     use super::GameTime;
 
-
     #[test]
     fn display() {
         let time = GameTime::new(2, 0, 7, 7);

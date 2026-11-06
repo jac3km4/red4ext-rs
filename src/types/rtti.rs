@@ -413,8 +413,7 @@ impl Class {
     pub fn is_class(&self) -> bool {
         // there might be a better way to check this
         let target = CName::new("ISerializable");
-        self.base_iter_with_self()
-            .any(|c| c.name() == target)
+        self.base_iter_with_self().any(|c| c.name() == target)
     }
 
     /// Creates an instance through engine RTTI and returns its storage address.
