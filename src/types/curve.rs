@@ -12,8 +12,19 @@ use crate::raw::root::RED4ext as red;
 pub struct Curve<T>(red::CurveData, PhantomData<T>);
 
 #[derive(Debug)]
-#[repr(transparent)]
+#[repr(C, align(8))]
 /// Opaque multichannel curve value.
 ///
 /// `T` identifies the value type; channel access and evaluation are not exposed.
 pub struct MultiChannelCurve<T>([u8; 56], PhantomData<T>);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multichannel_curve_layout() {
+        assert_eq!(std::mem::size_of::<MultiChannelCurve<f32>>(), 56);
+        assert_eq!(std::mem::align_of::<MultiChannelCurve<f32>>(), 8);
+    }
+}
