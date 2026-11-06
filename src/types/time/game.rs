@@ -6,7 +6,7 @@ use crate::raw::root::RED4ext as red;
 /// Rust addition and subtraction methods saturate at the `u32` bounds.
 ///
 /// SDK: [GameTime](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/Scripting/Natives/GameTime.hpp).
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 #[repr(transparent)]
 pub struct GameTime(red::GameTime);
 
@@ -101,7 +101,7 @@ impl std::fmt::Display for GameTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}T{}:{}:{}",
+            "{}T{:02}:{:02}:{:02}",
             self.day(),
             self.hour(),
             self.minute(),
@@ -300,15 +300,22 @@ impl chrono::Timelike for GameTime {
         None
     }
 
-    /// Always returns `None`, even for zero: game time has no subsecond component.
-    fn with_nanosecond(&self, _: u32) -> Option<Self> {
-        None
+    /// Returns `Some(*self)` for zero, and `None` for non-zero: game time has no subsecond component.
+    fn with_nanosecond(&self, nano: u32) -> Option<Self> {
+        (nano == 0).then_some(*self)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::GameTime;
+
+
+    #[test]
+    fn display() {
+        let time = GameTime::new(2, 0, 7, 7);
+        assert_eq!(format!("{time}"), "2T00:07:07");
+    }
 
     #[test]
     fn instantiation() {
@@ -326,6 +333,8 @@ mod tests {
             assert_eq!(time.hour(), 0);
             assert_eq!(time.minute(), 2);
             assert_eq!(time.second(), 2);
+            assert_eq!(time.with_nanosecond(0), Some(time));
+            assert_eq!(time.with_nanosecond(1), None);
         }
     }
 
