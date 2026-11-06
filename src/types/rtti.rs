@@ -380,15 +380,7 @@ impl Class {
     /// matching short name wrapped in [`Err`].
     pub fn get_method(&self, name: CName) -> Result<&Method, impl Iterator<Item = &Method>> {
         self.base_iter_with_self()
-            .find_map(|class| {
-                class.method_map().get(&name).copied().or_else(|| {
-                    class
-                        .methods()
-                        .iter()
-                        .copied()
-                        .find(|m| m.as_function().name() == name || m.as_function().short_name() == name)
-                })
-            })
+            .find_map(|class| class.method_map().get(&name).copied())
             .ok_or_else(|| {
                 self.base_iter_with_self()
                     .flat_map(Class::methods)
