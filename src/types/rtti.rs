@@ -725,6 +725,7 @@ impl ClassHandle {
 ///
 /// SDK: [CRTTIPointerType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct PointerType(red::CRTTIPointerType);
 
 impl PointerType {
@@ -751,6 +752,7 @@ impl PointerType {
 ///
 /// SDK: [CRTTIHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct RefType(red::CRTTIHandleType);
 
 impl RefType {
@@ -777,6 +779,7 @@ impl RefType {
 ///
 /// SDK: [CRTTIWeakHandleType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct WeakRefType(red::CRTTIWeakHandleType);
 
 impl WeakRefType {
@@ -803,6 +806,7 @@ impl WeakRefType {
 ///
 /// SDK: [CRTTIScriptReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct ScriptRefType(red::CRTTIScriptReferenceType);
 
 impl ScriptRefType {
@@ -829,6 +833,7 @@ impl ScriptRefType {
 ///
 /// SDK: [CRTTIStaticArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct StaticArrayType(red::CRTTIStaticArrayType);
 
 impl StaticArrayType {
@@ -861,6 +866,7 @@ impl StaticArrayType {
 ///
 /// SDK: [CRTTINativeArrayType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct NativeArrayType(red::CRTTINativeArrayType);
 
 impl NativeArrayType {
@@ -893,6 +899,7 @@ impl NativeArrayType {
 ///
 /// SDK: [CRTTIResourceReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct ResourceRefType(red::CRTTIResourceReferenceType);
 
 impl ResourceRefType {
@@ -919,6 +926,7 @@ impl ResourceRefType {
 ///
 /// SDK: [CRTTIResourceAsyncReferenceType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct RaRefType(red::CRTTIResourceAsyncReferenceType);
 
 impl RaRefType {
@@ -945,6 +953,7 @@ impl RaRefType {
 ///
 /// SDK: [CRTTILegacySingleChannelCurveType](https://github.com/WopsS/RED4ext.SDK/blob/2216befc23924b46996a9335043aebb31ba6a757/include/RED4ext/RTTITypes.hpp).
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct CurveType(red::CRTTILegacySingleChannelCurveType);
 
 impl CurveType {
